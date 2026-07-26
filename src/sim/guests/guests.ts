@@ -5,6 +5,13 @@ import { type SimState } from "../state";
 import { addIncome, addExpense } from "../economy/ledger";
 import { cellIndex } from "../world/world";
 import { GAME_SECONDS_PER_TICK } from "../core/loop";
+import { EMOTE, GUEST_STATE } from "./emotes";
+import {
+  openRideOptions,
+  rideAppealTerms,
+  tryEnqueue,
+  type OpenRideOption,
+} from "../rides/rides";
 
 /**
  * The guest simulation (GAME_DESIGN §12): SoA typed arrays at a hard cap,
@@ -30,25 +37,7 @@ const DECAY_PER_TICK: Record<NeedKey, number> = {
   fun: 100 / ((90 * 60) / GAME_SECONDS_PER_TICK), // decays only while idle/queuing
 };
 
-export const GUEST_STATE = {
-  off: 0,
-  walking: 1,
-  idle: 2,
-  serving: 3,
-  leaving: 4,
-} as const;
-
-export const EMOTE = {
-  none: 0,
-  happy: 1,
-  hungry: 2,
-  thirsty: 3,
-  needToilet: 4,
-  tired: 5,
-  angry: 6,
-  broke: 7,
-  heart: 8,
-} as const;
+export { EMOTE, GUEST_STATE } from "./emotes";
 
 export const ARCHETYPES = ["family", "thrill", "foodie", "sightseer", "superfan"] as const;
 const ARCHETYPE_WALLET_CENTS = [110_00, 70_00, 95_00, 55_00, 160_00] as const;
@@ -75,6 +64,8 @@ export interface GuestSoA {
   serveTicks: Uint16Array;
   servingShop: Int32Array; // placed piece id or -1
   enteredAtTick: Uint32Array;
+  /** Ride key while queuing/riding: >0 tracked, <0 flat, 0 none (M3). */
+  rideId: Int16Array;
   /** Cold per-guest data: current path + thought log (i18n keys). */
   paths: Map<number, number[]>;
   thoughts: Map<number, string[]>;
@@ -102,6 +93,7 @@ export function createGuests(): GuestSoA {
     serveTicks: new Uint16Array(GUEST_CAP),
     servingShop: new Int32Array(GUEST_CAP),
     enteredAtTick: new Uint32Array(GUEST_CAP),
+    rideId: new Int16Array(GUEST_CAP),
     paths: new Map(),
     thoughts: new Map(),
   };
@@ -265,8 +257,17 @@ export function arrivalsPerMinute(state: SimState): number {
   if (pathCellCount === 0) {
     return 0; // nowhere to walk — no arrivals
   }
-  const appeal = 1.2 + shops * 1.6 + scenery * 0.06 + Math.min(pathCellCount * 0.04, 4);
-  const fairEntry = 8_00 + shops * 1_00 + Math.min(scenery * 4, 3_00);
+  // Rides drive both appeal and what an entry ticket is worth
+  // (GAME_BALANCE §4.1 — M3 note: fairEntry gains the doc's $1.1×topAvgE term).
+  const rides = rideAppealTerms(state);
+  const appeal =
+    1.2 +
+    shops * 1.6 +
+    scenery * 0.06 +
+    Math.min(pathCellCount * 0.04, 4) +
+    rides.totalE * 1.0;
+  const fairEntry =
+    8_00 + shops * 1_00 + Math.min(scenery * 4, 3_00) + Math.round(rides.topAvgE * 1_10);
   const elasticity = Math.min(
     Math.max(1.6 - (state.entryFeeCents / fairEntry) ** 1.4, 0.1),
     1.3,
@@ -312,6 +313,7 @@ function spawnGuest(state: SimState): number | null {
   g.emoteTtl[slot] = 0;
   g.serveTicks[slot] = 0;
   g.servingShop[slot] = -1;
+  g.rideId[slot] = 0;
   g.enteredAtTick[slot] = state.tick;
   g.paths.delete(slot);
   g.thoughts.set(slot, ["thought.arrived"]);
@@ -437,7 +439,72 @@ function setEmote(g: GuestSoA, slot: number, emote: number): void {
   }
 }
 
-function decide(state: SimState, slot: number, shopSites: ShopSite[]): void {
+/** Is any 4-neighbor of the cell a walkable path? Returns that path cell. */
+function pathApproach(
+  state: SimState,
+  cellX: number,
+  cellZ: number,
+): { x: number; z: number } | null {
+  const w = state.world.terrain.site.cells.w;
+  for (const [dx, dz] of [
+    [0, 1],
+    [1, 0],
+    [0, -1],
+    [-1, 0],
+  ] as const) {
+    const x = cellX + dx;
+    const z = cellZ + dz;
+    if (
+      state.world.terrain.inBounds(x, z) &&
+      state.world.pathCells[cellIndex(state.world, x, z)] === 1
+    ) {
+      return { x, z };
+    }
+  }
+  void w;
+  return null;
+}
+
+/** Rides are the fun engine: pick the best archetype match worth the walk. */
+function seekRide(state: SimState, slot: number, options: readonly OpenRideOption[]): boolean {
+  const g = state.guests;
+  // Preference band centers per archetype (family/thrill/foodie/sightseer/superfan).
+  const prefE = [3.5, 7.5, 4.5, 3.0, 6.5][g.archetype[slot]!] ?? 4;
+  let best: OpenRideOption | null = null;
+  let bestScore = -Infinity;
+  for (const opt of options) {
+    if (opt.queueLen >= 12 || g.wallet[slot]! < opt.priceCents) {
+      continue;
+    }
+    if (!pathApproach(state, opt.entranceX, opt.entranceZ)) {
+      continue;
+    }
+    const here = guestCell(state, slot);
+    const dist = Math.abs(opt.entranceX - here.x) + Math.abs(opt.entranceZ - here.z);
+    const score = 10 - Math.abs(opt.eStat - prefE) * 1.5 - dist * 0.08 - opt.queueLen * 0.3;
+    if (score > bestScore) {
+      bestScore = score;
+      best = opt;
+    }
+  }
+  if (!best) {
+    return false;
+  }
+  const approach = pathApproach(state, best.entranceX, best.entranceZ)!;
+  if (!routeTo(state, slot, approach.x, approach.z)) {
+    return false;
+  }
+  g.rideId[slot] = best.key;
+  think(g, slot, "thought.ride.heading");
+  return true;
+}
+
+function decide(
+  state: SimState,
+  slot: number,
+  shopSites: ShopSite[],
+  rideOptions: readonly OpenRideOption[],
+): void {
   const g = state.guests;
   if (!state.parkOpen) {
     beginLeaving(state, slot, "thought.parkClosed");
@@ -485,6 +552,14 @@ function decide(state: SimState, slot: number, shopSites: ShopSite[]): void {
       think(g, slot, "thought.broke");
     }
   }
+  // Rides beat strolling when fun is sagging — and thrill-leaning archetypes
+  // chase coasters even while content (GAME_DESIGN §12).
+  const thrillish = g.archetype[slot] === 1 || g.archetype[slot] === 4;
+  if (g.fun[slot]! < SEEK_THRESHOLD || (thrillish && g.fun[slot]! < 78)) {
+    if (seekRide(state, slot, rideOptions)) {
+      return;
+    }
+  }
   // Stroll: wander to a random path cell (fun trickles back near scenery).
   const pathCells: number[] = [];
   const w = state.world.terrain.site.cells.w;
@@ -508,6 +583,20 @@ function arriveAtDestination(state: SimState, slot: number): void {
       state.stats.happyDepartures += 1;
     }
     despawn(state, slot);
+    return;
+  }
+  // Heading to a ride: join its queue (or shrug and re-decide if it filled).
+  if (g.rideId[slot] !== 0) {
+    const key = g.rideId[slot]!;
+    if (tryEnqueue(state, slot, key)) {
+      g.state[slot] = GUEST_STATE.queuing;
+      g.serveTicks[slot] = 0; // repurposed as queue-patience counter
+      think(g, slot, "thought.ride.queued");
+    } else {
+      g.rideId[slot] = 0;
+      g.state[slot] = GUEST_STATE.idle;
+      think(g, slot, "thought.ride.full");
+    }
     return;
   }
   const shopId = g.servingShop[slot]!;
@@ -578,7 +667,7 @@ export function tickGuests(state: SimState): void {
   const g = state.guests;
 
   // Arrivals: rate is "guests per ~10 game-minutes" (50 ticks) — lively at 1×.
-  // M2 tuning baseline; the full appeal model lands with rides (GAME_BALANCE §4.1).
+  // Rides join the appeal model per the GAME_BALANCE §4.1 M3 note.
   state.spawnAccumulator += arrivalsPerMinute(state) / 50;
   while (state.spawnAccumulator >= 1) {
     state.spawnAccumulator -= 1;
@@ -586,10 +675,15 @@ export function tickGuests(state: SimState): void {
   }
 
   const shopSites = findShopSites(state);
+  const rideOptions = openRideOptions(state);
 
   for (let slot = 0; slot < g.count; slot++) {
     const guestState = g.state[slot]!;
     if (guestState === GUEST_STATE.off) {
+      continue;
+    }
+    // On board: the ride owns this guest until it unloads them.
+    if (guestState === GUEST_STATE.riding) {
       continue;
     }
     g.px[slot] = g.x[slot]!;
@@ -600,7 +694,11 @@ export function tickGuests(state: SimState): void {
     addNeed(g, slot, "thirst", -DECAY_PER_TICK.thirst);
     addNeed(g, slot, "bladder", -DECAY_PER_TICK.bladder);
     addNeed(g, slot, "energy", -DECAY_PER_TICK.energy);
-    if (guestState === GUEST_STATE.idle || guestState === GUEST_STATE.serving) {
+    if (
+      guestState === GUEST_STATE.idle ||
+      guestState === GUEST_STATE.serving ||
+      guestState === GUEST_STATE.queuing
+    ) {
       addNeed(g, slot, "fun", -DECAY_PER_TICK.fun);
     } else if (guestState === GUEST_STATE.walking) {
       addNeed(g, slot, "fun", DECAY_PER_TICK.fun * 0.6); // strolling the gardens
@@ -665,9 +763,22 @@ export function tickGuests(state: SimState): void {
       continue;
     }
 
+    // Queuing: hold position, grow impatient, bail after ~2 game-hours.
+    if (guestState === GUEST_STATE.queuing) {
+      g.serveTicks[slot] = g.serveTicks[slot]! + 1;
+      if (g.serveTicks[slot]! > 600) {
+        g.state[slot] = GUEST_STATE.idle;
+        g.rideId[slot] = 0;
+        g.serveTicks[slot] = 0;
+        setEmote(g, slot, EMOTE.angry);
+        think(g, slot, "thought.queue.gaveUp");
+      }
+      continue;
+    }
+
     // idle: staggered decisions
     if ((state.tick + slot) % DECIDE_PERIOD === 0) {
-      decide(state, slot, shopSites);
+      decide(state, slot, shopSites, rideOptions);
     }
   }
 }

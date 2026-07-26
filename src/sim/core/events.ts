@@ -10,7 +10,10 @@ export type SimEvent =
   | { readonly type: "park/renamed"; readonly name: string }
   | { readonly type: "goal/completed"; readonly cardId: string; readonly rewardXp: number }
   | { readonly type: "park/levelUp"; readonly level: number }
-  | { readonly type: "park/monthReport"; readonly report: MonthlyReport };
+  | { readonly type: "park/monthReport"; readonly report: MonthlyReport }
+  | { readonly type: "ride/broke"; readonly rideKey: number }
+  | { readonly type: "ride/repaired"; readonly rideKey: number }
+  | { readonly type: "ride/testPassed"; readonly rideKey: number };
 
 export interface EventCollector {
   emit(event: SimEvent): void;

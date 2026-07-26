@@ -72,6 +72,63 @@ for (let z = 8; z <= MEADOWBROOK.gate.z; z++) {
   }
 }
 
+// Six running Mousetrap ovals across the north strip (ROADMAP M3 acceptance:
+// 6 coasters + a live crowd inside the tick budget).
+const OVAL = [
+  "straight",
+  "corner-small",
+  "corner-small",
+  "straight",
+  "straight",
+  "corner-small",
+  "corner-small",
+] as const;
+// Rolling terrain means fixed anchors fail honestly ("find flatter ground") —
+// scan the free margins for spots where the whole oval dry-validates.
+let coasters = 0;
+outerScan: for (let cz = 1; cz < MEADOWBROOK.cells.d - 2 && coasters < 6; cz += 2) {
+  for (let cx = 1; cx < MEADOWBROOK.cells.w - 2 && coasters < 6; cx += 2) {
+    for (const heading of [0, 1, 2, 3] as const) {
+      if (sim.checkStartTrack("mouse", cx * 2 + 1, cz * 2, heading) !== null) {
+        continue;
+      }
+      const start = sim.dispatch({
+        type: "ride/startTrack",
+        family: "mouse",
+        mx: cx * 2 + 1,
+        mz: cz * 2,
+        heading,
+      });
+      if (!start.ok) {
+        continue;
+      }
+      const rideId = sim.ridesView().tracked[sim.ridesView().tracked.length - 1]!.key;
+      let built = true;
+      for (const kind of OVAL) {
+        if (!sim.dispatch({ type: "ride/appendPiece", rideId, kind, flipped: false }).ok) {
+          built = false;
+          break;
+        }
+      }
+      if (!built) {
+        sim.dispatch({ type: "ride/demolish", rideId });
+        continue;
+      }
+      sim.dispatch({ type: "ride/setState", rideId, to: "testing" });
+      coasters += 1;
+      if (coasters >= 6) {
+        break outerScan;
+      }
+      break; // next anchor cell
+    }
+  }
+}
+console.log(`coasters sited: ${coasters}`);
+sim.advance(400); // let every test circuit finish
+for (const ride of sim.ridesView().tracked) {
+  sim.dispatch({ type: "ride/setState", rideId: ride.key, to: "open" });
+}
+
 sim.dispatch({ type: "park/setEntryFee", cents: 0 });
 sim.dispatch({ type: "park/setOpen", open: true });
 
@@ -97,8 +154,12 @@ for (let i = 0; i < SAMPLES; i++) {
 }
 
 const avg = totalMs / SAMPLES;
+const openCoasters = sim
+  .ridesView()
+  .tracked.filter((ride) => ride.state === 2).length;
 console.log(`shops placed        ${placed}`);
 console.log(`plaza path cells    ${cells.length}`);
+console.log(`coasters running    ${openCoasters}`);
 console.log(`population timed    ${popAtStart} → peak ${popPeak} (target ${TARGET})`);
 console.log(`avg tick            ${avg.toFixed(3)} ms`);
 console.log(`worst tick          ${worstMs.toFixed(3)} ms`);
