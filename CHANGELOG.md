@@ -7,6 +7,26 @@ only where a migration ships — see TECHNICAL_ARCHITECTURE §8).
 
 ## [Unreleased]
 
+### Changed — planning revision after owner Q&A (2026‑07‑26)
+- **Real terrain (ADR‑13):** replaced the flat "Tabletop island" world with authored landscape
+  Sites (heightmap, splat surfaces, vegetation, water) per the owner's Aquapark Tycoon
+  environment reference; grid became a logical layer projected onto terrain with slope classes.
+  Reworked GAME_DESIGN §5, TECHNICAL_ARCHITECTURE §4.7/§6.4, ROADMAP M1.
+- **Districts (ADR‑14):** new GAME_DESIGN §6 — Parking Grounds, Arrival Station, Resort Row,
+  Staff Village, Commerce Quarter, Works Yard built from the city/building/industry packs, with
+  arrival capacity, multi‑day hotel guests, staff housing, rent and ops hooks; numbers in
+  GAME_BALANCE §3.3; scheduled in ROADMAP M4/M5.
+- **Sandbox‑first, never forced, no hard end (ADR‑15):** My Parks is the primary mode; Career
+  scenarios became persistent "Park Stories"; the forced tutorial became the optional Guidance
+  layer + adaptive Goal Deck (GAME_DESIGN §18/§20, GAME_BALANCE §9.4); bankruptcy became
+  recoverable Receivership with an optional classic hard‑fail sandbox toggle.
+- **Kit‑only content law (ADR‑16):** every game element must be assembled from `/assets` packs
+  (no ferris wheel — no pieces); codified as pillar P7, CLAUDE/AGENTS hard rule, ASSET_GUIDE §6
+  and balance invariant #10.
+- Owner answers recorded: multi‑theme direction confirmed, all four coaster families kept,
+  English‑only at 1.0, Kenney CC0 audio approved (ADR‑17), honor‑system leaderboard confirmed,
+  branding as planned (ADR‑18). DECISIONS restructured with ADR‑13…18 and the Q&A record.
+
 ### Added
 - Complete planning documentation suite (milestone M‑1, see ROADMAP.md):
   - `GAME_DESIGN.md` — vision, pillars, systems, content roster, scenarios, tutorial, tone.
