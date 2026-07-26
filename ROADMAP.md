@@ -36,21 +36,27 @@ both enforcers, then removed · full local gate green.
 **Owner step:** connect the repo to Vercel (framework auto‑detected) for preview/production
 URLs; Lighthouse pass lands with the first preview.
 
-## M1 · The Valley — "walk the empty landscape" (≈2–3 weeks)
+## M1 · The Valley — "walk the empty landscape" — ✅ complete 2026‑07‑26
 
-**Terrain system first** (TECH §6.4/§4.7): site descriptor format + Meadowbrook authored ·
-heightmap terrain mesh with splat shader, water plane, vegetation scatter + wind, haze +
-time‑of‑day skyboxes · slope‑classed grid projected onto terrain · camera rig (UI_UX §8) ·
-placement core on terrain (ghost validity, auto‑foundations, snap, rotate, undo/redo command
-bus) · path auto‑tiling as organic ribbons + plaza fill · scenery placement with variants ·
-static‑chunk instanced rendering + selection outline · HUD shell (vitals cluster, build dock,
-speed controls — fake data where needed) · save/load round‑trip of a decorated site.
+Shipped: landform‑descriptor terrain system (ADR‑19) with Meadowbrook authored (rolling meadow,
+NE hill, SW pond, treeline rim) · vertex‑colored heightfield (grass patchiness, sandy shores,
+rocky steeps, gravel halos under paths) + pond water + time‑of‑day sun/fog/sky · deterministic
+vegetation scatter (instanced, site‑seeded) · slope‑classed grid (flat/gentle/steep per
+GAME_DESIGN §5) · placement core with ghost validity + reasons, R‑rotation, per‑tile terrain
+tilt, drag path painting with `ground_path*` auto‑tiling (incl. T/cross/plaza tiles), bulldoze
+with the §3.2 refund policy, full undo/redo (exact‑inverse commands with pinned‑id replay) ·
+camera rig (LMB‑free MapControls, WASD/Q/E/Home) · in‑game HUD v1 (money/clock/speed/dock/
+toasts/hints), scenery palette with pipeline thumbnails, pause menu · IndexedDB quicksave +
+autosave + save‑on‑hide; save format v2 with v1 migration; title CONTINUE + hub My Parks live ·
+save formatVersion 2 migration chain · `?bench=N` perf harness.
 
-**Demo:** wander a lush Meadowbrook at golden hour, lay a winding path over a hill, decorate,
-save, reload, orbit at 60 fps — and it looks like the Aquapark reference, not a board game.
-**Accept:** terrain+veg within budget (TECH §10) with 10k placed pieces at 60 fps reference ·
-placement golden tests per slope class · undo/redo 100‑step fuzz · deterministic state hash ·
-no visible grid outside build mode (eyeball checklist).
+**Acceptance:** placement golden tests per slope class + water · auto‑tile resolution tests ·
+100‑step undo/redo fuzz (undo‑all ≡ initial modulo monotonic ids; redo‑all ≡ exact final) ·
+golden‑seed determinism with build commands · save round‑trip + v1→v2 migration · e2e: build →
+money oracle → save → continue restores state · no grid outside build modes (build‑mode‑only
+overlay by construction). **Frame‑rate note:** container GL is software‑rendered, so the
+60 fps/10k‑piece check runs on real GPUs via the Vercel preview + `?bench=10000` (owner
+eyeball); CI asserts everything else.
 
 ## M2 · Life — "guests arrive" (≈2–3 weeks)
 

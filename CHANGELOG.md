@@ -7,6 +7,28 @@ only where a migration ships — see TECHNICAL_ARCHITECTURE §8).
 
 ## [Unreleased]
 
+### M1 — The Valley (✅ completed 2026‑07‑26)
+- **Terrain system (ADR‑19):** sites authored as landform descriptors + seeded noise
+  (`src/content/sites/meadowbrook.ts`); sim precomputes cell heights, slope classes
+  (flat/gentle/steep) and water; renderer builds a vertex‑colored heightfield (grass patchiness,
+  sandy shores, rocky steeps, gravel path halos) plus pond water, time‑of‑day sun/fog/sky and
+  deterministic instanced vegetation scatter with a decorative surround ring.
+- **Placement core:** ghost preview with denial reasons, rotation, slope rules per
+  GAME_DESIGN §5, occupancy/footprints, money costs per GAME_BALANCE §3.2, bulldoze refunds
+  (100% grace → 70%), drag‑painted paths with `ground_path*` auto‑tiling (ends, straights,
+  bends, T‑splits, crossings, plaza interiors) tilted flush onto terrain, and full undo/redo
+  built on exact‑inverse commands with pinned‑id replay (100‑step fuzz‑tested).
+- **Play session:** `/play` route with sim driver (fixed timestep, speeds 0/1/2/4, menu pauses),
+  HUD v1 (money ticker, clock/day, build dock with honest M2/M3 stubs, toasts, context hints),
+  scenery palette using pipeline thumbnails, pause menu, quiet autosave + save‑on‑hide into
+  IndexedDB (`idb`), continue flow from title/hub; `?bench=N` renderer load harness.
+- **Save format v2:** adds money + world (placed pieces, path cells) with a v1→v2 migration and
+  round‑trip/migration tests; quantization‑safe instanced rendering (node‑matrix composition —
+  fixes black models from baking transforms into quantized attributes).
+- **Content:** +14 pilot pieces (path T/plaza tiles, fences, grass tufts, tree/flower/rock
+  variants) → 56 pieces, 947 KB shipped; play‑route JS budget line (≤900 KB gz) added to the
+  budget gate; unit tests 45 → 57 and new Playwright play‑route suite.
+
 ### M0 — Foundations (✅ completed 2026‑07‑26)
 - Phase gate opened: owner approved implementation start ("Yes Start M0"); CLAUDE.md/AGENTS.md/
   README/ROADMAP updated to reflect the in‑development status; repo hygiene added

@@ -16,6 +16,7 @@ const BUDGETS = {
   singleGlbBytes: 1.5 * 1024 * 1024,
   totalModelBytes: 60 * 1024 * 1024,
   titleRouteJsGzBytes: 300 * 1024,
+  playRouteJsGzBytes: 900 * 1024, // "game chunk lazy ≤900 KB"
 };
 
 interface Check {
@@ -80,13 +81,18 @@ async function checkCatalog(checks: Check[]): Promise<void> {
   checks.push({ name: "catalog.json zod-validates", actual: detail, limit: "valid", ok });
 }
 
-async function checkTitleRouteJs(checks: Check[]): Promise<void> {
+async function checkRouteJs(
+  checks: Check[],
+  routeKey: string,
+  label: string,
+  limit: number,
+): Promise<void> {
   const manifestPath = path.join(ROOT, ".next", "app-build-manifest.json");
   if (!existsSync(manifestPath)) {
     checks.push({
-      name: "title route first-load JS (gz)",
+      name: label,
       actual: "no .next build — run `pnpm build` first",
-      limit: kb(BUDGETS.titleRouteJsGzBytes),
+      limit: kb(limit),
       ok: false,
     });
     return;
@@ -94,7 +100,10 @@ async function checkTitleRouteJs(checks: Check[]): Promise<void> {
   const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as {
     pages: Record<string, string[]>;
   };
-  const files = new Set<string>([...(manifest.pages["/page"] ?? []), ...(manifest.pages["/layout"] ?? [])]);
+  const files = new Set<string>([
+    ...(manifest.pages[routeKey] ?? []),
+    ...(manifest.pages["/layout"] ?? []),
+  ]);
   let gzTotal = 0;
   for (const file of files) {
     if (!file.endsWith(".js")) continue;
@@ -102,10 +111,10 @@ async function checkTitleRouteJs(checks: Check[]): Promise<void> {
     gzTotal += gzipSync(content, { level: 9 }).byteLength;
   }
   checks.push({
-    name: `title route first-load JS gz (${files.size} chunks)`,
+    name: `${label} (${files.size} chunks)`,
     actual: kb(gzTotal),
-    limit: kb(BUDGETS.titleRouteJsGzBytes),
-    ok: gzTotal <= BUDGETS.titleRouteJsGzBytes,
+    limit: kb(limit),
+    ok: gzTotal <= limit,
   });
 }
 
@@ -113,7 +122,8 @@ async function main(): Promise<void> {
   const checks: Check[] = [];
   await checkModels(checks);
   await checkCatalog(checks);
-  await checkTitleRouteJs(checks);
+  await checkRouteJs(checks, "/page", "title route first-load JS gz", BUDGETS.titleRouteJsGzBytes);
+  await checkRouteJs(checks, "/play/page", "play route first-load JS gz", BUDGETS.playRouteJsGzBytes);
 
   let failed = 0;
   for (const check of checks) {

@@ -157,12 +157,13 @@ phase — no physics.
 
 ### 4.7 Terrain, sites, districts & goals (sim side)
 
-- **Sites are content, not code:** each Site ships as a descriptor (`content/sites/*`) +
-  authored maps: 16‑bit heightmap, surface/splat control map, water mask, buildable + expansion
-  + district‑plot masks, vegetation/prop scatter maps (deterministic placements derived from an
-  authored seed). The sim samples heights once at load into per‑cell `height` +
-  `slopeClass` (flat ≤3° / gentle ≤8° / steep) — placement validation (GAME_DESIGN §8.1) and
-  auto‑foundation decisions are pure grid lookups, so terrain adds zero per‑tick cost.
+- **Sites are content, not code (ADR‑19):** each Site ships as a descriptor
+  (`content/sites/*`) of hand‑placed landform primitives (hills/basins with cosine falloff) +
+  a low‑amplitude seeded value‑noise layer, plus water level, gate, expansion/district areas
+  and vegetation scatter groups. One continuous `heightAt(x,z)` feeds everything: the sim
+  precomputes per‑cell `height` + `slopeClass` (flat ≤3° / gentle ≤8° / steep, thresholds from
+  GAME_DESIGN §5) and water flags at load — placement validation is pure grid lookups, zero
+  per‑tick cost — while the renderer samples the same function for the visual heightfield.
 - **Movement on terrain:** pathfinding stays 2D on the cell graph; walkers get a height offset
   from the cell height field + a small slope speed factor. Determinism unaffected.
 - **Districts** are land masks with their own catalog categories and per‑district state
