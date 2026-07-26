@@ -2,9 +2,10 @@
 
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { APP_VERSION } from "@/shared/version";
 import { t } from "@/ui/i18n/t";
+import { useHasSave } from "@/ui/game/useHasSave";
 import { HintRail } from "@/ui/kit/HintRail";
 import { IdentityChip } from "@/ui/kit/IdentityChip";
 
@@ -21,17 +22,28 @@ interface MenuItem {
   readonly disabledHint?: string;
 }
 
-const MENU: readonly MenuItem[] = [
-  { id: "continue", label: t("title.continue"), disabled: true, disabledHint: t("title.continue.empty") },
-  { id: "play", label: t("title.play"), href: "/hub" },
-  { id: "options", label: t("title.options"), href: "/options" },
-  { id: "extras", label: t("title.extras"), href: "/extras" },
-];
-
 export function TitleScreen() {
   const router = useRouter();
-  const firstEnabled = MENU.findIndex((item) => !item.disabled);
-  const [focused, setFocused] = useState(firstEnabled);
+  const hasSave = useHasSave();
+
+  const MENU: readonly MenuItem[] = useMemo(
+    () => [
+      hasSave
+        ? { id: "continue", label: t("title.continue"), href: "/play" }
+        : {
+            id: "continue",
+            label: t("title.continue"),
+            disabled: true,
+            disabledHint: t("title.continue.empty"),
+          },
+      { id: "play", label: t("title.play"), href: "/hub" },
+      { id: "options", label: t("title.options"), href: "/options" },
+      { id: "extras", label: t("title.extras"), href: "/extras" },
+    ],
+    [hasSave],
+  );
+  // Focus starts on Play — stable whether or not a save exists.
+  const [focused, setFocused] = useState(1);
 
   const activate = useCallback(
     (item: MenuItem) => {
@@ -62,7 +74,7 @@ export function TitleScreen() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [focused, activate]);
+  }, [focused, activate, MENU]);
 
   return (
     <main className="relative h-dvh overflow-hidden bg-[#bfdcf5]">
