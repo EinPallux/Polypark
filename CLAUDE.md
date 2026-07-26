@@ -11,13 +11,11 @@ Read this first; it tells you what the project is, where truth lives, and the ru
 first, guided but never forcing, no hard end. Single player, no accounts, deployed on Vercel,
 friends leaderboard as the very last phase. Full pitch: [GAME_DESIGN.md](GAME_DESIGN.md).
 
-## ⛔ Current phase gate
+## ✅ Current phase
 
-**Planning is complete (owner Q&A 2026‑07‑26 incorporated, DECISIONS §3); implementation has
-NOT started.** The owner's explicit "go" starts ROADMAP M0 — until then do not scaffold the
-app, add dependencies, or write source code. Documentation improvements, planning refinements
-and answering questions are always fine. When the go lands, the first M0 commit updates this
-section.
+**Implementation approved by the owner on 2026‑07‑26 ("Yes Start M0").** ROADMAP **M0
+(Foundations) is in progress**. The engineering rules below are now in force. Keep this
+section current as milestones complete.
 
 ## Where truth lives (read before changing anything)
 
@@ -58,7 +56,7 @@ If you find a real contradiction, fix the docs in the same change and note it in
    a timed forced choice, or a fail state that ends a save. Insolvency flows through
    Receivership (GAME_DESIGN §14.3).
 
-## Engineering rules (once M0 is approved)
+## Engineering rules (in force since M0)
 
 - TypeScript strict; no `any`/`as any` outside a justified `// why:` comment; branded types for
   Money/ids per TECH §4.2 (money is integer cents — never floats).

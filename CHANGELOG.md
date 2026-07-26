@@ -7,6 +7,11 @@ only where a migration ships — see TECHNICAL_ARCHITECTURE §8).
 
 ## [Unreleased]
 
+### M0 — Foundations (in progress, approved 2026‑07‑26)
+- Phase gate opened: owner approved implementation start ("Yes Start M0"); CLAUDE.md/AGENTS.md/
+  README/ROADMAP updated to reflect the in‑development status; repo hygiene added
+  (`.gitignore`, `.nvmrc`).
+
 ### Changed — planning revision after owner Q&A (2026‑07‑26)
 - **Real terrain (ADR‑13):** replaced the flat "Tabletop island" world with authored landscape
   Sites (heightmap, splat surfaces, vegetation, water) per the owner's Aquapark Tycoon

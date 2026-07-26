@@ -4,9 +4,9 @@ Phased plan from empty repo to polished 1.0 (+ the leaderboard finale). Each mil
 **demo statement** (what a human can do at its end), deliverables, and acceptance criteria.
 A milestone is done only when its criteria pass — features never straddle an unfinished gate.
 
-> ## ⛔ Phase gate: coding has NOT started
-> Per the project brief, implementation begins **only after the user explicitly approves**.
-> Everything below M‑1 is planned, not started. When approval lands, work begins at M0.
+> ## ✅ Phase gate opened 2026‑07‑26
+> The owner approved implementation ("Yes Start M0"). **M0 is in progress** on branch
+> `claude/new-session-9m1bb2`. Milestone status is tracked here as work lands.
 
 Estimates are working‑session ballparks for one focused developer/agent stream; they order and
 scope the work rather than promise dates.

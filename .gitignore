@@ -1,0 +1,25 @@
+# dependencies
+node_modules/
+
+# next.js
+.next/
+out/
+next-env.d.ts
+
+# testing
+coverage/
+playwright-report/
+test-results/
+blob-report/
+
+# misc
+*.tsbuildinfo
+.DS_Store
+*.pem
+.env*.local
+
+# vercel
+.vercel/
+
+# NOTE: public/content and public/models are GENERATED but COMMITTED on purpose
+# (CI checks drift against the generator — see CLAUDE.md "Git & workflow").

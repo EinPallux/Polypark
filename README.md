@@ -6,8 +6,8 @@ the parking lot, the hotel row, the office quarter. Delight blocky guests, survi
 loans and inspections. Your park never ends; it only grows. Single player, no account, runs
 on Vercel.
 
-> **Status: 📋 Planning complete (owner Q&A incorporated) — implementation not started.**
-> Coding begins at [ROADMAP](ROADMAP.md) M0 on the owner's go (phase gate).
+> **Status: 🚧 In development — [ROADMAP](ROADMAP.md) M0 (Foundations) in progress.**
+> Implementation approved by the owner on 2026‑07‑26.
 
 ## The pitch
 

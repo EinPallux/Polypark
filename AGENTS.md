@@ -10,11 +10,10 @@ sandbox‑first, no hard end. Single player, no accounts, Vercel deployment, fri
 as the final phase. Start with [README.md](README.md) for the doc index and
 [GAME_DESIGN.md](GAME_DESIGN.md) for the game itself.
 
-## Phase gate
+## Phase
 
-⛔ **No implementation yet.** Planning (incl. owner Q&A) is complete; write source code,
-scaffolding or dependency changes only after the owner explicitly says "go" for ROADMAP M0.
-Doc improvements and analysis are always allowed.
+✅ **Implementation approved (owner, 2026‑07‑26). ROADMAP M0 in progress.** All engineering
+rules in CLAUDE.md are in force; docs stay load‑bearing (update them with behavior changes).
 
 ## Non‑negotiable rules (full detail in CLAUDE.md)
 
