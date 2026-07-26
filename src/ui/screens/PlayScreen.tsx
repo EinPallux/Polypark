@@ -6,6 +6,7 @@ import { Suspense, useEffect, useState } from "react";
 import { t } from "@/ui/i18n/t";
 import { BuildPalette } from "@/ui/game/BuildPalette";
 import { Hud } from "@/ui/game/Hud";
+import { GuestInspector, MonthReportModal, StaffPopover } from "@/ui/game/panels";
 import { PauseMenu } from "@/ui/game/PauseMenu";
 import { useGame } from "@/ui/game/store";
 
@@ -31,6 +32,8 @@ function PlayInner() {
   const bootError = useGame((state) => state.bootError);
   const ready = useGame((state) => state.facade !== null);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [paletteCategory, setPaletteCategory] = useState<"scenery" | "shops">("scenery");
+  const [staffOpen, setStaffOpen] = useState(false);
 
   useEffect(() => {
     void boot({ fresh: fresh || bench > 0, ...(bench > 0 ? { bench } : {}) });
@@ -118,8 +121,25 @@ function PlayInner() {
           <p className="skew-ui font-display text-2xl text-white uppercase">{t("play.loading")}</p>
         </div>
       ) : null}
-      <Hud onOpenPalette={() => setPaletteOpen(true)} />
-      <BuildPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      <Hud
+        onOpenPalette={(category) => {
+          setPaletteCategory(category === "shops" ? "shops" : "scenery");
+          setPaletteOpen(true);
+          setStaffOpen(false);
+        }}
+        onToggleStaff={() => {
+          setStaffOpen((open) => !open);
+          setPaletteOpen(false);
+        }}
+      />
+      <BuildPalette
+        open={paletteOpen}
+        category={paletteCategory}
+        onClose={() => setPaletteOpen(false)}
+      />
+      <StaffPopover open={staffOpen} onClose={() => setStaffOpen(false)} />
+      <GuestInspector />
+      <MonthReportModal />
       <PauseMenu />
     </main>
   );

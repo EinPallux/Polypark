@@ -8,9 +8,18 @@ import Image from "next/image";
 import { t } from "@/ui/i18n/t";
 import { moneyToDollarString } from "@/shared/money";
 import { pieceCost } from "@/content/costs";
+import { SHOP_DEFS } from "@/content/shops";
 import { useGame } from "./store";
 
-export function BuildPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function BuildPalette({
+  open,
+  category,
+  onClose,
+}: {
+  open: boolean;
+  category: "scenery" | "shops";
+  onClose: () => void;
+}) {
   const catalog = useGame((state) => state.catalog);
   const buildMode = useGame((state) => state.buildMode);
   const setBuildMode = useGame((state) => state.setBuildMode);
@@ -18,8 +27,10 @@ export function BuildPalette({ open, onClose }: { open: boolean; onClose: () => 
   if (!open || !catalog) {
     return null;
   }
-  const pieces = catalog.pieces.filter(
-    (piece) => piece.category === "scenery" || piece.category === "prop",
+  const pieces = catalog.pieces.filter((piece) =>
+    category === "shops"
+      ? SHOP_DEFS[piece.id] !== undefined
+      : piece.category === "scenery" || piece.category === "prop",
   );
 
   return (
@@ -27,7 +38,7 @@ export function BuildPalette({ open, onClose }: { open: boolean; onClose: () => 
       <div className="panel-cut bg-frost-100/95 p-4 shadow-[var(--elev-slab)]">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="skew-ui font-ui text-lg font-bold tracking-tight text-ink-700 uppercase">
-            {t("play.mode.scenery")}
+            {category === "shops" ? t("play.dock.shops") : t("play.mode.scenery")}
           </h2>
           <button
             type="button"

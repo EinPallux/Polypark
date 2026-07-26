@@ -7,14 +7,18 @@ import { parseCatalog, type Catalog } from "@/content/schema";
 import { toSimPieceDefs } from "@/content/costs";
 import { SITES, MEADOWBROOK } from "@/content/sites/meadowbrook";
 import {
+  createFixedStepper,
   createSim,
+  type FixedStepper,
   type GameSpeed,
+  type HudView,
+  type MonthlyReport,
   type Rotation,
   type SimFacade,
   type SimStateSnapshot,
 } from "@/sim/api";
 import { readSlot, writeSlot, requestPersistence, type SlotMeta } from "@/save/store";
-import { type SaveFile } from "@/save/schema";
+import { SAVE_FORMAT_VERSION, type SaveFile } from "@/save/schema";
 import { t } from "@/ui/i18n/t";
 
 /**
@@ -47,6 +51,10 @@ export const QUICKSLOT = "park-1";
 interface GameState {
   facade: SimFacade | null;
   snapshot: SimStateSnapshot | null;
+  hud: HudView | null;
+  stepper: FixedStepper;
+  selectedGuest: number | null;
+  monthReport: MonthlyReport | null;
   worldVersion: number;
   catalog: Catalog | null;
   speed: GameSpeed;
@@ -76,6 +84,15 @@ interface GameState {
   save: () => Promise<void>;
   pushToast: (tone: Toast["tone"], text: string) => void;
   toasts: Toast[];
+  setParkOpen: (open: boolean) => void;
+  setEntryFee: (cents: number) => void;
+  hireJanitor: () => void;
+  fireJanitor: () => void;
+  dismissGoal: (cardId: string) => void;
+  selectGuest: (slot: number | null) => void;
+  closeReport: () => void;
+  /** Drain sim events into toasts/report state — called from syncFromSim. */
+  handleEvents: () => void;
 }
 
 let toastId = 0;
@@ -92,6 +109,10 @@ export const useGame = create<GameState>()(
   subscribeWithSelector((set, get) => ({
     facade: null,
     snapshot: null,
+    hud: null,
+    stepper: createFixedStepper(),
+    selectedGuest: null,
+    monthReport: null,
     worldVersion: 0,
     catalog: null,
     speed: 1,
@@ -121,7 +142,9 @@ export const useGame = create<GameState>()(
           parkName: t("play.defaultParkName"),
           site,
           pieceDefs,
-          ...(resume ? { resumeFrom: resume.sim } : {}),
+          // why: zod validated the payload at decode; the remaining gap is
+          // readonly-tuple variance between the schema type and the snapshot.
+          ...(resume ? { resumeFrom: resume.sim as unknown as SimStateSnapshot } : {}),
         });
         // Perf harness (ROADMAP M1 acceptance): ?bench=N fills the site with
         // free random scenery so any machine can load-test the renderer.
@@ -163,7 +186,34 @@ export const useGame = create<GameState>()(
       if (!facade) {
         return;
       }
-      set({ snapshot: facade.snapshot(), worldVersion: facade.worldVersion() });
+      // HUD reads the light view every sync; the full (guest-array) snapshot
+      // only refreshes when the world changed — saves rebuild it themselves.
+      const worldVersion = facade.worldVersion();
+      set((current) => ({
+        hud: facade.hud(),
+        worldVersion,
+        ...(current.worldVersion !== worldVersion ? { snapshot: facade.snapshot() } : {}),
+      }));
+      get().handleEvents();
+    },
+
+    handleEvents() {
+      const { facade } = get();
+      if (!facade) {
+        return;
+      }
+      for (const event of facade.drainEvents()) {
+        if (event.type === "goal/completed") {
+          get().pushToast(
+            "good",
+            t("goal.completedToast", { title: t(`goal.${event.cardId}` as never), xp: event.rewardXp }),
+          );
+        } else if (event.type === "park/levelUp") {
+          get().pushToast("good", t("play.levelUp", { level: event.level }));
+        } else if (event.type === "park/monthReport") {
+          set({ monthReport: event.report });
+        }
+      }
     },
 
     setSpeed(speed) {
@@ -291,14 +341,45 @@ export const useGame = create<GameState>()(
       }
       const snapshot = facade.snapshot();
       const save: SaveFile = {
-        formatVersion: 2,
+        formatVersion: SAVE_FORMAT_VERSION,
         appVersion: APP_VERSION,
         meta: { name: snapshot.parkName, savedAtIso: new Date().toISOString() },
-        sim: snapshot as SaveFile["sim"],
+        // why: see resumeFrom above — validated at encode by SaveFileSchema.
+        sim: snapshot as unknown as SaveFile["sim"],
       };
       const meta = await writeSlot(QUICKSLOT, save);
       set({ lastSaveMeta: meta });
       get().pushToast("good", t("play.saved"));
+    },
+
+    setParkOpen(open) {
+      get().facade?.dispatch({ type: "park/setOpen", open });
+      get().syncFromSim();
+    },
+    setEntryFee(cents) {
+      get().facade?.dispatch({ type: "park/setEntryFee", cents });
+      get().syncFromSim();
+    },
+    hireJanitor() {
+      const result = get().facade?.dispatch({ type: "staff/hireJanitor" });
+      if (result && !result.ok && result.reason === "not-enough-money") {
+        get().pushToast("bad", t("play.deny.money"));
+      }
+      get().syncFromSim();
+    },
+    fireJanitor() {
+      get().facade?.dispatch({ type: "staff/fireJanitor" });
+      get().syncFromSim();
+    },
+    dismissGoal(cardId) {
+      get().facade?.dispatch({ type: "goal/dismiss", cardId });
+      get().syncFromSim();
+    },
+    selectGuest(slot) {
+      set({ selectedGuest: slot });
+    },
+    closeReport() {
+      set({ monthReport: null });
     },
 
     pushToast(tone, text) {

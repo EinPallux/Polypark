@@ -7,6 +7,7 @@ import { t } from "@/ui/i18n/t";
 import { Keycap } from "@/ui/kit/Keycap";
 import { HintRail, type Hint } from "@/ui/kit/HintRail";
 import { IdentityChip } from "@/ui/kit/IdentityChip";
+import { GoalPanel, ParkControls } from "./panels";
 import { useGame } from "./store";
 
 /**
@@ -28,8 +29,8 @@ function clockText(tick: number): { time: string; day: number } {
 }
 
 function Vitals() {
-  const snapshot = useGame((state) => state.snapshot);
-  if (!snapshot) {
+  const hud = useGame((state) => state.hud);
+  if (!hud) {
     return null;
   }
   return (
@@ -38,17 +39,21 @@ function Vitals() {
         data-testid="hud-money"
         className="font-numeral text-xl font-semibold text-grass-500 tabular-nums"
       >
-        {moneyToDollarString(money(snapshot.money))}
+        {moneyToDollarString(money(hud.money))}
       </span>
       <span className="font-ui text-xs font-semibold tracking-[0.06em] text-frost-300/70 uppercase">
-        👥 0 · {t("play.vitals.rating")} — · {t("play.vitals.level")} 1
+        👥 <span data-testid="hud-guests" className="font-numeral tabular-nums">{hud.guestCount}</span>{" "}
+        · {t("play.vitals.rating")} — ·{" "}
+        <span data-testid="hud-level">
+          {t("play.vitals.level")} {hud.level}
+        </span>
       </span>
     </div>
   );
 }
 
 function Clock() {
-  const tick = useGame((state) => state.snapshot?.tick ?? 0);
+  const tick = useGame((state) => state.hud?.tick ?? 0);
   const { time, day } = useMemo(() => clockText(tick), [tick]);
   return (
     <div className="pointer-events-auto flex items-center gap-3 bg-ink-900/85 px-4 py-1.5 text-white shadow-[var(--elev-slab)]">
@@ -91,11 +96,23 @@ function SpeedControls() {
   );
 }
 
-function Dock({ onOpenPalette }: { onOpenPalette: (category: "path" | "scenery") => void }) {
+function Dock({
+  onOpenPalette,
+  onToggleStaff,
+}: {
+  onOpenPalette: (category: "path" | "scenery" | "shops") => void;
+  onToggleStaff: () => void;
+}) {
   const buildMode = useGame((state) => state.buildMode);
   const setBuildMode = useGame((state) => state.setBuildMode);
 
-  const buttons = [
+  const buttons: {
+    id: string;
+    label: string;
+    icon: string;
+    active: boolean;
+    onClick: () => void;
+  }[] = [
     {
       id: "paths",
       label: t("play.mode.paths"),
@@ -109,6 +126,20 @@ function Dock({ onOpenPalette }: { onOpenPalette: (category: "path" | "scenery")
       icon: "🌳",
       active: buildMode.kind === "place",
       onClick: () => onOpenPalette("scenery"),
+    },
+    {
+      id: "shops",
+      label: t("play.dock.shops"),
+      icon: "🍔",
+      active: buildMode.kind === "place",
+      onClick: () => onOpenPalette("shops"),
+    },
+    {
+      id: "staff",
+      label: t("staff.title"),
+      icon: "🧹",
+      active: false,
+      onClick: onToggleStaff,
     },
     {
       id: "bulldoze",
@@ -140,10 +171,7 @@ function Dock({ onOpenPalette }: { onOpenPalette: (category: "path" | "scenery")
         </button>
       ))}
       <span className="mx-1 w-px bg-white/15" aria-hidden />
-      {[
-        { icon: "🎢", label: t("play.dock.rides"), milestone: "M3" },
-        { icon: "🍔", label: t("play.dock.shops"), milestone: "M2" },
-      ].map((stub) => (
+      {[{ icon: "🎢", label: t("play.dock.rides"), milestone: "M3" }].map((stub) => (
         <span
           key={stub.label}
           title={t("hub.arrives", { milestone: stub.milestone })}
@@ -211,23 +239,35 @@ function ContextHints() {
   );
 }
 
-export function Hud({ onOpenPalette }: { onOpenPalette: (category: "path" | "scenery") => void }) {
-  const parkName = useGame((state) => state.snapshot?.parkName);
+export function Hud({
+  onOpenPalette,
+  onToggleStaff,
+}: {
+  onOpenPalette: (category: "path" | "scenery" | "shops") => void;
+  onToggleStaff: () => void;
+}) {
+  const parkName = useGame((state) => state.hud?.parkName);
   const [hintCollapsed] = useState(false);
 
   return (
     <div className="pointer-events-none absolute inset-0 z-10 flex flex-col justify-between p-4">
       <div className="flex items-start justify-between">
         <Toasts />
-        <Clock />
-        <div className="pointer-events-auto">
-          <IdentityChip {...(parkName ? { name: parkName } : {})} tickets={0} />
+        <div className="flex items-center gap-2">
+          <Clock />
+          <ParkControls />
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <div className="pointer-events-auto">
+            <IdentityChip {...(parkName ? { name: parkName } : {})} tickets={0} />
+          </div>
+          <GoalPanel />
         </div>
       </div>
       <div className="flex items-end justify-between gap-4">
         <Vitals />
         <div className="flex items-center gap-2">
-          <Dock onOpenPalette={onOpenPalette} />
+          <Dock onOpenPalette={onOpenPalette} onToggleStaff={onToggleStaff} />
           <SpeedControls />
         </div>
         {hintCollapsed ? <Keycap>?</Keycap> : <ContextHints />}

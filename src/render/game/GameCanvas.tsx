@@ -6,6 +6,7 @@ import { CELL_SIZE_METERS } from "@/shared/grid";
 import { useGame } from "@/ui/game/store";
 import { BuildOverlay } from "./BuildOverlay";
 import { CameraRig } from "./CameraRig";
+import { Guests } from "./Guests";
 import { PlacedPieces } from "./PlacedPieces";
 import { Scatter } from "./Scatter";
 import { SimDriver } from "./SimDriver";
@@ -63,6 +64,7 @@ export function GameCanvas() {
         <Water terrain={terrain} />
         <Scatter terrain={terrain} fileForPiece={fileForPiece} />
         <PlacedPieces terrain={terrain} fileForPiece={fileForPiece} />
+        <Guests terrain={terrain} />
         <BuildOverlay terrain={terrain} fileForPiece={fileForPiece} />
         <SceneReadyFlag />
       </Suspense>
