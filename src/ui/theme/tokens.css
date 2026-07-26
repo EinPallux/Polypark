@@ -1,0 +1,48 @@
+/**
+ * Polypark design tokens — docs/UI_UX_DESIGN.md §2 is the authority.
+ * UI code uses these variables (or the Tailwind theme mapped from them in
+ * globals.css) ONLY — no ad-hoc hex values or fonts (CLAUDE.md).
+ */
+:root {
+  /* §2.1 core */
+  --ink-900: #10151f;
+  --ink-700: #1e2a3a;
+  --ink-500: #3a4b61;
+  --frost-100: #f2f5fa;
+  --frost-200: #e6ebf4;
+  --frost-300: #d8dfee;
+  --frost-glass: rgba(230, 235, 244, 0.86);
+  --sun-500: #ff9f1c;
+  --sun-600: #e88a00;
+  --gold-400: #ffd249;
+  --sky-500: #2e9bff;
+  --grass-500: #37c871;
+  --danger-500: #f0426c;
+  --white: #ffffff;
+
+  /* §2.2 kit accents */
+  --kit-boardwalk: #2e62e8;
+  --kit-pirate: #0fa3a8;
+  --kit-cosmic: #7c5cff;
+  --kit-spooky: #d6197f;
+  --kit-storybook: #5a48c7;
+  --kit-winter: #3fb7e8;
+  --kit-gp: #e8452e;
+  --kit-rails: #1e9e4a;
+  --kit-putt: #7cb518;
+  --kit-cuddle: #f5a623;
+  --kit-marble: #5e6c84;
+
+  /* §2.4 geometry & effects */
+  --skew-ui: -8deg;
+  --skew-display: -10deg;
+  --radius: 2px;
+  --cut: 12px;
+  --elev-slab: 0 2px 0 rgba(16, 21, 31, 0.18);
+
+  /* §2.3 type families (loaded via @fontsource in the app layout) */
+  --font-display: "Archivo Black", "Barlow Semi Condensed", sans-serif;
+  --font-ui: "Barlow Semi Condensed", "Barlow", sans-serif;
+  --font-body: "Barlow", sans-serif;
+  --font-numeral: "Barlow Condensed", "Barlow Semi Condensed", sans-serif;
+}
