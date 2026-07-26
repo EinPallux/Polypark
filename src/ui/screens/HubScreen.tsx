@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { useHasSave } from "@/ui/game/useHasSave";
 import { t } from "@/ui/i18n/t";
 import { DisplayTitle } from "@/ui/kit/DisplayTitle";
 import { HintRail } from "@/ui/kit/HintRail";
@@ -10,11 +11,12 @@ import { KitCard } from "@/ui/kit/KitCard";
 import { SlabButton } from "@/ui/kit/SlabButton";
 
 /**
- * Hub shell (UI_UX §6.2): the four mode cards. M0 renders the layout with
- * honest "arrives in Mx" ribbons; My Parks goes live with M1's Valley.
+ * Hub shell (UI_UX §6.2): the four mode cards. My Parks is live since M1;
+ * Stories/Collection/Profile keep their honest "arrives in Mx" ribbons.
  */
 export function HubScreen() {
   const router = useRouter();
+  const hasSave = useHasSave();
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -42,8 +44,8 @@ export function HubScreen() {
             eyebrow={t("app.name")}
             title={t("hub.myParks")}
             blurb={t("hub.myParks.blurb")}
-            ribbon={{ variant: "info", label: t("hub.arrives", { milestone: "M1" }) }}
-            disabled
+            ribbon={{ variant: "new", label: t("hub.playable") }}
+            onSelect={() => router.push(hasSave ? "/play" : "/play?new=1")}
           />
           <KitCard
             testId="card-stories"
@@ -77,9 +79,25 @@ export function HubScreen() {
       </section>
 
       <footer className="flex items-end justify-between px-10 pb-6">
-        <SlabButton size="lg" disabled title={t("title.continue.empty")}>
-          {t("hub.continueLast")}
-        </SlabButton>
+        <div className="flex items-center gap-3">
+          <SlabButton
+            size="lg"
+            disabled={!hasSave}
+            title={hasSave ? undefined : t("title.continue.empty")}
+            onClick={() => router.push("/play")}
+            data-testid="hub-continue"
+          >
+            {t("hub.continueLast")}
+          </SlabButton>
+          <SlabButton
+            size="lg"
+            variant="secondary"
+            onClick={() => router.push("/play?new=1")}
+            data-testid="hub-new-park"
+          >
+            {t("hub.newPark")}
+          </SlabButton>
+        </div>
         <button type="button" onClick={() => router.push("/")} className="cursor-pointer">
           <HintRail hints={[{ keys: ["ESC"], label: t("hint.back") }]} />
         </button>

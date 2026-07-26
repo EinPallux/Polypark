@@ -22,21 +22,24 @@ test("play navigates to the hub and ESC returns", async ({ page }) => {
   await page.getByTestId("menu-play").click();
   await expect(page).toHaveURL(/\/hub$/);
   await expect(page.getByRole("heading", { name: "Play" })).toBeVisible();
-  await expect(page.getByTestId("card-my-parks")).toBeVisible();
-  await expect(page.getByTestId("card-stories")).toBeVisible();
-  await expect(page.getByTestId("card-collection")).toBeVisible();
-  await expect(page.getByTestId("card-profile")).toBeVisible();
+  await expect(page.getByTestId("card-my-parks")).toBeEnabled(); // live since M1
+  await expect(page.getByTestId("card-stories")).toBeDisabled();
+  await expect(page.getByTestId("card-collection")).toBeDisabled();
+  await expect(page.getByTestId("card-profile")).toBeDisabled();
+  await expect(page.getByTestId("hub-new-park")).toBeEnabled();
   await page.keyboard.press("Escape");
   await expect(page).toHaveURL(/\/$/);
 });
 
 test("keyboard-only: enter activates Play, arrows move focus", async ({ page }) => {
   await page.goto("/");
+  await expect(page.getByTestId("menu-play")).toBeVisible(); // hydrated & interactive
   // First enabled item (Play) starts focused — Enter goes straight to the hub.
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/hub$/);
   await page.keyboard.press("Escape");
   await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByTestId("menu-play")).toBeVisible(); // remounted & interactive
   // Arrow down moves focus to Options.
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("Enter");

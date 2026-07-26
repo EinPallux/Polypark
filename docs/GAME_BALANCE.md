@@ -45,7 +45,7 @@ Related: [GAME_DESIGN.md](../GAME_DESIGN.md) · [TECHNICAL_ARCHITECTURE.md](../T
 | Item | Value |
 |------|-------|
 | Story 1 start (Standard) | $50,000 cash · Meadowbrook‑Small site · Boardwalk kit · entry $10 preset |
-| New sandbox park default | $75,000 · Meadowbrook · difficulty Standard · events on · hard‑fail off |
+| New sandbox park default | $75,000 · Meadowbrook · difficulty Standard · events on · hard‑fail off · entry **$5** preset while no rides exist (fair value is shop/scenery‑driven pre‑M3 — see the §4.1 M2 note) |
 
 ### 3.2 Land & construction
 
@@ -84,6 +84,15 @@ EntryPriceElasticity = clamp(1.6 − (entry / fairEntry)^1.4, 0.1, 1.3)
 
 Novelty: new ride ×1.4 decaying to ×1.0 over 3 months; refurb restores to ×1.15.
 
+> **M2 interim (shipped, pre‑rides).** Until rides land (M3) the sim runs a reduced model with
+> the same elasticity shape (clamp and exponent unchanged):
+> `appeal = 1.2 + shops×1.6 + scenery×0.06 + min(pathCells×0.04, 4)` — zero arrivals with no
+> path cells or outside gate hours (09:00–21:00) — with day rhythm ×0.7 before 11:00, ×1.0
+> until 17:00, ×0.5 after; `fairEntry = $8 + $1×shop + min($0.04×scenery, $3)`. The spawn
+> accumulator adds `rate/50` per tick (≈ rate per 10 game‑minutes). Sandbox entry preset is
+> $5 during this phase (§3.1). The full ride‑driven formula above replaces this in M3; this
+> note then retires.
+
 ### 4.2 Park Rating (0–5.0★)
 
 `Rating = 5 × Σ(weighted subscores)/100` with weights: Fun 30 · Value 20 · Care 20 · Wonder 15 ·
@@ -102,7 +111,8 @@ code (`sim/rating/`) and must match this doc's weights.
 | Superfan | 6% | $160 | 2× | 1.3 |
 
 Needs decay (full→0 minutes, Standard): Hunger 150 · Thirst 110 · Bladder 130 (accelerates
-after eating/drinking) · Energy 190 · Fun 90 (decays only while idle/queueing) · Comfort
+after eating/drinking) · Energy 190 · Fun 90 (decays only while idle/queueing; strolling the
+paths *replenishes* Fun at 0.6× that rate — walking a pretty park is its own reward) · Comfort
 event‑driven. Emote thresholds at 45 (thought) and 22 (angry emote + rating impact on exit).
 
 ## 5. Rides
@@ -173,6 +183,12 @@ variants).
 Portion slider: ±30% price/satisfaction/cost linkage. "Fair price" hinting mirrors §4.1
 elasticity (tooltip: "guests think $9 is steep for a snack").
 
+> **M2 shipped subset.** Snack Shack, Sip Station and Restroom are live (catalog pieces
+> `coasterkit/stall-food|stall-drinks|stall-toilets`) with the costs/prices/satisfaction above.
+> Serve times shipped in ticks — 13 / 7 / 8 (the table's second‑values read as ticks for now);
+> per‑serving litter chance is 0.3 / 0.2 / 0 (GAME_DESIGN §12.3). The remaining buildings, the
+> portion slider, price editing and multi‑stall occupancy land with their milestones (M3+).
+
 ## 7. Staff
 
 | Role | Wage/mo | Hire fee | Coverage | Effect |
@@ -184,6 +200,10 @@ elasticity (tooltip: "guests think $9 is steep for a snack").
 
 Morale‑lite: unstaffed backstage (no Staff Room within 40 m of zone) = −15% effectiveness, shown
 as a coffee emote. Raise button: +10% wage = +8% effectiveness for 6 months.
+
+> **M2 shipped subset.** Janitors only ($620/mo wage, $150 hire fee, wages post at month end),
+> with nearest‑litter pursuit instead of coverage zones — patrol areas, morale and the other
+> roles arrive with their systems (Mechanics with rides in M3).
 
 ## 8. Events & loans
 
@@ -236,7 +256,8 @@ Receivership with a hard fail — off by default, never available in Stories.
 
 Guest‑exit joy (1–6 XP by mood) · milestones (first 100 guests: 500 XP…) · **Goal Deck cards**
 (small 60–150 XP, horizon cards 400–800 XP) · monthly rating bonus (rating × 60) · coaster
-completions (E×40). No XP from spending money (no pay‑to‑level loop).
+completions (E×40). No XP from spending money (no pay‑to‑level loop). *(M2 pays XP from Goal
+Deck cards only; exit joy and the rating bonus switch on with the rating system.)*
 
 ### 9.2 Level curve (1→30)
 

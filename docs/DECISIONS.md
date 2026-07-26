@@ -31,6 +31,7 @@ entry. Agents: never silently contradict an Accepted entry — add a superseding
 | ADR‑16 | Accepted (owner directive) | **Kit‑only content law (P7).** Every game element is assembled from `/assets` packs; if pieces don't exist (ferris wheel, buses, bumper cars), the element is out — no custom or external models. Permitted generated visuals: terrain/water shaders, particles, foundation skirts, UI/SVG. → GAME_DESIGN §2 P7, ASSET_GUIDE §6. |
 | ADR‑17 | Accepted (owner Q‑05) | **Audio: Kenney CC0 audio/music packs approved** for addition to `/assets` when audio work starts (M6; core placeholders may land earlier). Every added pack logged in ASSET_GUIDE §7. |
 | ADR‑18 | Accepted (owner Q‑07) | **Branding proceeds as planned:** "Polypark" logotype, ride/kit naming per GAME_DESIGN §9/§11, primary accent `#FF9F1C`. |
+| ADR‑19 | Accepted (M1) | **Terrain authored as landform descriptors, not PNG maps.** Sites define hand‑placed hills/basins + low‑amplitude seeded noise in code (`src/content/sites/*`); the sim precomputes cell heights/slope classes/water and the renderer samples the same function. Diffable, deterministic, no binary authoring tooling; refines the implementation detail of ADR‑13 (its "real terrain" mandate stands unchanged). → TECH §4.7/§6.4. |
 
 ## 3. Owner Q&A record (2026‑07‑26) — all answered
 

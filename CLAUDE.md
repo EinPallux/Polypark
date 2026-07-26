@@ -14,8 +14,9 @@ friends leaderboard as the very last phase. Full pitch: [GAME_DESIGN.md](GAME_DE
 ## ✅ Current phase
 
 **Implementation approved by the owner on 2026‑07‑26 ("Yes Start M0").** ROADMAP **M0
-(Foundations) is in progress**. The engineering rules below are now in force. Keep this
-section current as milestones complete.
+(Foundations), M1 (The Valley) and M2 (Life) are ✅ complete — next up: M3 (Rides & the track
+builder), on owner go‑ahead.** The engineering rules below are in force. Keep this section
+current as milestones complete.
 
 ## Where truth lives (read before changing anything)
 

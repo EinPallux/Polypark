@@ -18,7 +18,7 @@ import path from "node:path";
 import { Logger, NodeIO, getBounds } from "@gltf-transform/core";
 import { ALL_EXTENSIONS } from "@gltf-transform/extensions";
 import { dedup, prune, weld, quantize } from "@gltf-transform/functions";
-import { PILOT_MANIFEST, SKYBOX_SOURCES } from "../src/content/manifest";
+import { EMOTE_SOURCES, PILOT_MANIFEST, SKYBOX_SOURCES } from "../src/content/manifest";
 import { CatalogSchema, type Catalog, type CatalogPiece } from "../src/content/schema";
 import { CELL_SIZE_METERS } from "../src/shared/grid";
 import { stableJson } from "./lib/stable-json";
@@ -113,6 +113,12 @@ async function main(): Promise<void> {
 
   for (const sky of SKYBOX_SOURCES) {
     await cp(path.join(ASSETS_DIR, sky.source), path.join(SKYBOX_DIR, `${sky.id}.png`));
+  }
+  const emoteDir = path.join(ROOT, "public", "emotes");
+  await rm(emoteDir, { recursive: true, force: true });
+  await mkdir(emoteDir, { recursive: true });
+  for (const emote of EMOTE_SOURCES) {
+    await cp(path.join(ASSETS_DIR, emote.source), path.join(emoteDir, `${emote.id}.png`));
   }
 
   const gltfTransformVersion = JSON.parse(

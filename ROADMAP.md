@@ -36,36 +36,53 @@ both enforcers, then removed · full local gate green.
 **Owner step:** connect the repo to Vercel (framework auto‑detected) for preview/production
 URLs; Lighthouse pass lands with the first preview.
 
-## M1 · The Valley — "walk the empty landscape" (≈2–3 weeks)
+## M1 · The Valley — "walk the empty landscape" — ✅ complete 2026‑07‑26
 
-**Terrain system first** (TECH §6.4/§4.7): site descriptor format + Meadowbrook authored ·
-heightmap terrain mesh with splat shader, water plane, vegetation scatter + wind, haze +
-time‑of‑day skyboxes · slope‑classed grid projected onto terrain · camera rig (UI_UX §8) ·
-placement core on terrain (ghost validity, auto‑foundations, snap, rotate, undo/redo command
-bus) · path auto‑tiling as organic ribbons + plaza fill · scenery placement with variants ·
-static‑chunk instanced rendering + selection outline · HUD shell (vitals cluster, build dock,
-speed controls — fake data where needed) · save/load round‑trip of a decorated site.
+Shipped: landform‑descriptor terrain system (ADR‑19) with Meadowbrook authored (rolling meadow,
+NE hill, SW pond, treeline rim) · vertex‑colored heightfield (grass patchiness, sandy shores,
+rocky steeps, gravel halos under paths) + pond water + time‑of‑day sun/fog/sky · deterministic
+vegetation scatter (instanced, site‑seeded) · slope‑classed grid (flat/gentle/steep per
+GAME_DESIGN §5) · placement core with ghost validity + reasons, R‑rotation, per‑tile terrain
+tilt, drag path painting with `ground_path*` auto‑tiling (incl. T/cross/plaza tiles), bulldoze
+with the §3.2 refund policy, full undo/redo (exact‑inverse commands with pinned‑id replay) ·
+camera rig (LMB‑free MapControls, WASD/Q/E/Home) · in‑game HUD v1 (money/clock/speed/dock/
+toasts/hints), scenery palette with pipeline thumbnails, pause menu · IndexedDB quicksave +
+autosave + save‑on‑hide; save format v2 with v1 migration; title CONTINUE + hub My Parks live ·
+save formatVersion 2 migration chain · `?bench=N` perf harness.
 
-**Demo:** wander a lush Meadowbrook at golden hour, lay a winding path over a hill, decorate,
-save, reload, orbit at 60 fps — and it looks like the Aquapark reference, not a board game.
-**Accept:** terrain+veg within budget (TECH §10) with 10k placed pieces at 60 fps reference ·
-placement golden tests per slope class · undo/redo 100‑step fuzz · deterministic state hash ·
-no visible grid outside build mode (eyeball checklist).
+**Acceptance:** placement golden tests per slope class + water · auto‑tile resolution tests ·
+100‑step undo/redo fuzz (undo‑all ≡ initial modulo monotonic ids; redo‑all ≡ exact final) ·
+golden‑seed determinism with build commands · save round‑trip + v1→v2 migration · e2e: build →
+money oracle → save → continue restores state · no grid outside build modes (build‑mode‑only
+overlay by construction). **Frame‑rate note:** container GL is software‑rendered, so the
+60 fps/10k‑piece check runs on real GPUs via the Vercel preview + `?bench=10000` (owner
+eyeball); CI asserts everything else.
 
-## M2 · Life — "guests arrive" (≈2–3 weeks)
+## M2 · Life — "guests arrive" — ✅ complete 2026‑07‑26
 
-Guest spawner/archetypes (gate‑side arrivals until Parking lands in M4; country‑road car
-flavor) · needs/mood/emotes (bubble billboards + cluster chips) · hierarchical A* + congestion ·
-crowd instanced rendering + hero pool · gate/entry fee · first shops (Snack Shack, Sip Station,
-Restroom) with serve loops · litter/vomit + Janitor · money ledger + HUD tickers · guest
-inspector card · monthly tick + first Monthly Report screen · **Goal Deck engine v1** (card
-pools, dealing, progress — the guidance backbone arrives with the first guests).
+Shipped: guest sim on SoA typed arrays (cap 1,500) with the five archetypes, wallets, seeded
+variants and staggered decision ticks · needs/mood per GAME_BALANCE §4.3 with thought log +
+emote bubbles (EmotesPack billboards) · A* routing on path cells with LRU cache invalidated on
+edits; gate‑forecourt walkability so day‑one parks route · gate open/close + entry fee
+steppers (fee → ledger on entry; §4.1 M2 interim arrivals/elasticity model) · Snack Shack /
+Sip Station / Restroom serve loops with per‑serving margins and litter · Janitors
+(hire/fire, nearest‑litter pursuit, month‑end wages) · double‑entry‑lite money ledger + monthly
+tick + Monthly Report modal · guest inspector card (needs bars + recent thoughts) · **Goal Deck
+engine v1** (12 cards across guidance/growth/mastery, deal‑to‑3, dismiss+cooldown, prereq
+stats, XP + level curve §9.2) with the HUD goal panel · crowd instanced rendering (per‑variant
+pools, interpolated positions, walk bob, click‑to‑inspect) + janitor uniforms + litter bits ·
+save format v3 (guests/ledger/goals/stats) with v2→v3 migration; HUD v2 (guest ticker, XP
+chip, staff popover).
 
-**Demo:** open the gate, watch 300 guests flow, eat, emote and complain; complete three goal
-cards; end a month in profit.
-**Accept:** 1,200 simulated guests ≤6 ms/tick reference · balance invariants #3/#4/#11 green ·
-guest thought log matches sim causes (spot test) · goal cards never block or force (API has no
-"required" concept — reviewed).
+**Acceptance:** bench `scripts/bench-guests.ts` — 1,229→1,500 live guests at **1.19 ms/tick
+avg (3.2 ms worst)** on the software‑GL container, vs the 6 ms budget · invariants #3/#4/#11
+green in `src/sim/m2.test.ts` (need‑decay floor, default‑price stall profitable, goals never
+block/force — the card type has no "required" concept) · determinism hash + save v3 round‑trip
+with a living crowd · thought‑log spot test via the guest inspector (browser session) · e2e:
+open gate → guests counted in HUD → hire janitor. **Deferred, named:** hierarchical A* +
+congestion (plain A* + cache ships; revisit at M6 perf pass) · vomit + First Aid (with rides,
+M3) · emote cluster chips + hero guest pool (M6 polish) · country‑road car flavor (M4 Parking) ·
+shop price editing UI (M3 economy pass).
 
 ## M3 · Rides & the track builder — "the marquee toy" (≈3 weeks)
 

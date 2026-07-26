@@ -1,0 +1,163 @@
+"use client";
+
+import { useMemo } from "react";
+import { DoubleSide } from "three";
+import { CELL_SIZE_METERS } from "@/shared/grid";
+import { type Terrain } from "@/sim/api";
+import { useGame } from "@/ui/game/store";
+import { usePieceSubMeshes } from "./pieceMeshes";
+
+/**
+ * Build-mode-only feedback (GAME_DESIGN §8.1, "no visible grid outside build
+ * mode"): hover cell highlight, ghost piece tinted by validity, path-drag
+ * preview, and a local terrain-conforming grid patch around the cursor.
+ */
+
+function CellQuad({
+  terrain,
+  x,
+  z,
+  color,
+  opacity,
+  lift = 0.06,
+}: {
+  terrain: Terrain;
+  x: number;
+  z: number;
+  color: string;
+  opacity: number;
+  lift?: number;
+}) {
+  const wx = (x + 0.5) * CELL_SIZE_METERS;
+  const wz = (z + 0.5) * CELL_SIZE_METERS;
+  const y = terrain.heightAt(wx, wz) + lift;
+  return (
+    <mesh position={[wx, y, wz]} rotation={[-Math.PI / 2, 0, 0]}>
+      <planeGeometry args={[CELL_SIZE_METERS * 0.94, CELL_SIZE_METERS * 0.94]} />
+      <meshBasicMaterial color={color} transparent opacity={opacity} side={DoubleSide} depthWrite={false} />
+    </mesh>
+  );
+}
+
+function GhostPiece({ terrain, file }: { terrain: Terrain; file: string }) {
+  const hover = useGame((state) => state.hover);
+  const rotation = useGame((state) => state.rotation);
+  const subMeshes = usePieceSubMeshes(file);
+  if (!hover) {
+    return null;
+  }
+  const wx = (hover.x + 0.5) * CELL_SIZE_METERS;
+  const wz = (hover.z + 0.5) * CELL_SIZE_METERS;
+  return (
+    <group
+      position={[wx, terrain.heightAt(wx, wz), wz]}
+      rotation={[0, (rotation * Math.PI) / 2, 0]}
+    >
+      {subMeshes.map((subMesh, index) => (
+        <mesh
+          key={index}
+          geometry={subMesh.geometry}
+          matrix={subMesh.nodeMatrix}
+          matrixAutoUpdate={false}
+        >
+          <meshStandardMaterial
+            color={hover.valid ? "#37c871" : "#f0426c"}
+            transparent
+            opacity={0.55}
+            depthWrite={false}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function LocalGrid({ terrain }: { terrain: Terrain }) {
+  const hover = useGame((state) => state.hover);
+  const points = useMemo(() => {
+    if (!hover) {
+      return null;
+    }
+    const radius = 6;
+    const vertices: number[] = [];
+    const push = (wx: number, wz: number): void => {
+      vertices.push(wx, terrain.heightAt(wx, wz) + 0.04, wz);
+    };
+    for (let gx = hover.x - radius; gx <= hover.x + radius + 1; gx++) {
+      for (let gz = hover.z - radius; gz < hover.z + radius + 1; gz++) {
+        if (!terrain.inBounds(gx, gz) && !terrain.inBounds(gx - 1, gz)) {
+          continue;
+        }
+        push(gx * CELL_SIZE_METERS, gz * CELL_SIZE_METERS);
+        push(gx * CELL_SIZE_METERS, (gz + 1) * CELL_SIZE_METERS);
+      }
+    }
+    for (let gz = hover.z - radius; gz <= hover.z + radius + 1; gz++) {
+      for (let gx = hover.x - radius; gx < hover.x + radius + 1; gx++) {
+        if (!terrain.inBounds(gx, gz) && !terrain.inBounds(gx, gz - 1)) {
+          continue;
+        }
+        push(gx * CELL_SIZE_METERS, gz * CELL_SIZE_METERS);
+        push((gx + 1) * CELL_SIZE_METERS, gz * CELL_SIZE_METERS);
+      }
+    }
+    return new Float32Array(vertices);
+  }, [hover, terrain]);
+
+  if (!points) {
+    return null;
+  }
+  return (
+    <lineSegments key={points.length + (hover ? hover.x * 1000 + hover.z : 0)}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" args={[points, 3]} />
+      </bufferGeometry>
+      <lineBasicMaterial color="#ffffff" transparent opacity={0.22} depthWrite={false} />
+    </lineSegments>
+  );
+}
+
+export function BuildOverlay({
+  terrain,
+  fileForPiece,
+}: {
+  terrain: Terrain;
+  fileForPiece: (pieceId: string) => string | null;
+}) {
+  const buildMode = useGame((state) => state.buildMode);
+  const hover = useGame((state) => state.hover);
+  const pathDrag = useGame((state) => state.pathDrag);
+
+  if (buildMode.kind === "inspect") {
+    return null;
+  }
+  const ghostFile = buildMode.kind === "place" ? fileForPiece(buildMode.pieceId) : null;
+
+  return (
+    <group>
+      <LocalGrid terrain={terrain} />
+      {hover ? (
+        <CellQuad
+          terrain={terrain}
+          x={hover.x}
+          z={hover.z}
+          color={
+            buildMode.kind === "bulldoze" ? "#f0426c" : hover.valid ? "#37c871" : "#f0426c"
+          }
+          opacity={0.4}
+        />
+      ) : null}
+      {pathDrag?.map((cell) => (
+        <CellQuad
+          key={`${cell.x}:${cell.z}`}
+          terrain={terrain}
+          x={cell.x}
+          z={cell.z}
+          color="#37c871"
+          opacity={0.3}
+        />
+      ))}
+      {ghostFile ? <GhostPiece terrain={terrain} file={ghostFile} /> : null}
+    </group>
+  );
+}

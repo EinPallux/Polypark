@@ -8,7 +8,10 @@ const executablePath = existsSync(localChromium) ? localChromium : undefined;
 
 export default defineConfig({
   testDir: "e2e",
-  fullyParallel: true,
+  // One worker: the /play specs drive a full 3D scene through software GL in
+  // CI containers — parallel workers starve each other into timing flakes.
+  workers: 1,
+  fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",

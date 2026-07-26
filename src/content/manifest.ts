@@ -26,6 +26,8 @@ export const PILOT_MANIFEST: readonly ManifestEntry[] = [
   { id: "naturekit/path-corner", pack: "Kenney_NatureKit", source: nature("ground_pathCorner.glb"), category: "path", kit: "base", tags: ["path", "tile"] },
   { id: "naturekit/path-cross", pack: "Kenney_NatureKit", source: nature("ground_pathCross.glb"), category: "path", kit: "base", tags: ["path", "tile"] },
   { id: "naturekit/path-end", pack: "Kenney_NatureKit", source: nature("ground_pathEnd.glb"), category: "path", kit: "base", tags: ["path", "tile"] },
+  { id: "naturekit/path-split", pack: "Kenney_NatureKit", source: nature("ground_pathSplit.glb"), category: "path", kit: "base", tags: ["path", "tile"] },
+  { id: "naturekit/path-tile", pack: "Kenney_NatureKit", source: nature("ground_pathTile.glb"), category: "path", kit: "base", tags: ["path", "tile", "plaza"] },
   // Vegetation & rocks
   { id: "naturekit/tree-simple", pack: "Kenney_NatureKit", source: nature("tree_simple.glb"), category: "scenery", kit: "base", tags: ["tree"] },
   { id: "naturekit/tree-pine-small-a", pack: "Kenney_NatureKit", source: nature("tree_pineSmallA.glb"), category: "scenery", kit: "base", tags: ["tree", "pine"] },
@@ -35,6 +37,18 @@ export const PILOT_MANIFEST: readonly ManifestEntry[] = [
   { id: "naturekit/rock-large-b", pack: "Kenney_NatureKit", source: nature("rock_largeB.glb"), category: "scenery", kit: "base", tags: ["rock"] },
   { id: "naturekit/flower-yellow-b", pack: "Kenney_NatureKit", source: nature("flower_yellowB.glb"), category: "scenery", kit: "base", tags: ["flower"] },
   { id: "naturekit/flower-yellow-c", pack: "Kenney_NatureKit", source: nature("flower_yellowC.glb"), category: "scenery", kit: "base", tags: ["flower"] },
+  { id: "naturekit/flower-purple-a", pack: "Kenney_NatureKit", source: nature("flower_purpleA.glb"), category: "scenery", kit: "base", tags: ["flower"] },
+  { id: "naturekit/flower-red-a", pack: "Kenney_NatureKit", source: nature("flower_redA.glb"), category: "scenery", kit: "base", tags: ["flower"] },
+  { id: "naturekit/tree-default", pack: "Kenney_NatureKit", source: nature("tree_default.glb"), category: "scenery", kit: "base", tags: ["tree"] },
+  { id: "naturekit/tree-oak", pack: "Kenney_NatureKit", source: nature("tree_oak.glb"), category: "scenery", kit: "base", tags: ["tree"] },
+  { id: "naturekit/tree-fat", pack: "Kenney_NatureKit", source: nature("tree_fat.glb"), category: "scenery", kit: "base", tags: ["tree"] },
+  { id: "naturekit/grass", pack: "Kenney_NatureKit", source: nature("grass.glb"), category: "scenery", kit: "base", tags: ["grass"] },
+  { id: "naturekit/grass-large", pack: "Kenney_NatureKit", source: nature("grass_large.glb"), category: "scenery", kit: "base", tags: ["grass"] },
+  { id: "naturekit/rock-small-a", pack: "Kenney_NatureKit", source: nature("rock_smallA.glb"), category: "scenery", kit: "base", tags: ["rock"] },
+  { id: "naturekit/rock-small-c", pack: "Kenney_NatureKit", source: nature("rock_smallC.glb"), category: "scenery", kit: "base", tags: ["rock"] },
+  { id: "naturekit/fence-planks", pack: "Kenney_NatureKit", source: nature("fence_planks.glb"), category: "scenery", kit: "base", tags: ["fence"] },
+  { id: "naturekit/fence-corner", pack: "Kenney_NatureKit", source: nature("fence_corner.glb"), category: "scenery", kit: "base", tags: ["fence"] },
+  { id: "naturekit/fence-gate", pack: "Kenney_NatureKit", source: nature("fence_gate.glb"), category: "scenery", kit: "base", tags: ["fence"] },
   // Coaster track vocabulary (steel family)
   { id: "coasterkit/steel-straight", pack: "Kenney_CoasterKit", source: coaster("coaster-steel-straight.glb"), category: "track", kit: "base", tags: ["coaster", "steel"] },
   { id: "coasterkit/steel-curve", pack: "Kenney_CoasterKit", source: coaster("coaster-steel-curve.glb"), category: "track", kit: "base", tags: ["coaster", "steel"] },
@@ -67,12 +81,43 @@ export const PILOT_MANIFEST: readonly ManifestEntry[] = [
   { id: "cubepets/cat", pack: "Kenney_CubePets", source: "Kenney_CubePets/GLB format/animal-cat.glb", category: "character", kit: "cuddle", tags: ["pet"] },
   { id: "cubepets/bunny", pack: "Kenney_CubePets", source: "Kenney_CubePets/GLB format/animal-bunny.glb", category: "character", kit: "cuddle", tags: ["pet"] },
   { id: "blockycharacters/character-a", pack: "Kenney_BlockyCharacters", source: "Kenney_BlockyCharacters/GLB format/character-a.glb", category: "character", kit: "base", tags: ["guest"] },
+  { id: "blockycharacters/character-b", pack: "Kenney_BlockyCharacters", source: "Kenney_BlockyCharacters/GLB format/character-b.glb", category: "character", kit: "base", tags: ["guest"] },
+  { id: "blockycharacters/character-c", pack: "Kenney_BlockyCharacters", source: "Kenney_BlockyCharacters/GLB format/character-c.glb", category: "character", kit: "base", tags: ["guest"] },
+  { id: "blockycharacters/character-d", pack: "Kenney_BlockyCharacters", source: "Kenney_BlockyCharacters/GLB format/character-d.glb", category: "character", kit: "base", tags: ["guest"] },
+  { id: "blockycharacters/character-e", pack: "Kenney_BlockyCharacters", source: "Kenney_BlockyCharacters/GLB format/character-e.glb", category: "character", kit: "base", tags: ["guest"] },
+  { id: "blockycharacters/character-f", pack: "Kenney_BlockyCharacters", source: "Kenney_BlockyCharacters/GLB format/character-f.glb", category: "character", kit: "base", tags: ["guest"] },
+  // Shops (Kenney CoasterKit park stalls — GAME_DESIGN §10)
+  { id: "coasterkit/stall-food", pack: "Kenney_CoasterKit", source: coaster("stall-food.glb"), category: "building", kit: "boardwalk", tags: ["shop", "food"] },
+  { id: "coasterkit/stall-drinks", pack: "Kenney_CoasterKit", source: coaster("stall-drinks.glb"), category: "building", kit: "boardwalk", tags: ["shop", "drink"] },
+  { id: "coasterkit/stall-toilets", pack: "Kenney_CoasterKit", source: coaster("stall-toilets.glb"), category: "building", kit: "base", tags: ["facility", "restroom"] },
   // Theme accents
   { id: "watercraftkit/boat-row-small", pack: "Kenney_WatercraftKit", source: "Kenney_WatercraftKit/GLB format/boat-row-small.glb", category: "prop", kit: "pirate", tags: ["boat"] },
   { id: "piratekit/cannon", pack: "Kenney_PirateKit", source: "Kenney_PirateKit/GLB format/cannon.glb", category: "prop", kit: "pirate", tags: ["pirate"] },
   { id: "holidaykit/tree-decorated-snow", pack: "Kenney_HolidayKit", source: "Kenney_HolidayKit/GLB format/tree-decorated-snow.glb", category: "scenery", kit: "winter", tags: ["tree", "holiday"] },
   { id: "citykitroads/light-curved", pack: "Kenney_CityKitRoads", source: "Kenney_CityKitRoads/GLB format/light-curved.glb", category: "prop", kit: "base", tags: ["lamp", "street"] },
 ];
+
+/**
+ * Emote glyphs (EmotesPack Vector/Style 2 — ONE style family, GAME_BALANCE
+ * §10) copied to public/emotes. Hunger has no pack glyph anywhere — the
+ * renderer draws that one tiny burger itself under P7's UI/SVG exception.
+ */
+export const EMOTE_SOURCES: readonly { id: string; source: string }[] = [
+  "faceHappy",
+  "faceSad",
+  "heart",
+  "anger",
+  "drop",
+  "sleep",
+  "swirl",
+  "question",
+  "cash",
+  "star",
+  "exclamation",
+].map((id) => ({
+  id,
+  source: `Kenney_EmotesPack/PNG/Vector/Style 2/emote_${id}.png`,
+}));
 
 /** Skybox images ship as-is (PNG copy, no mesh pipeline). */
 export const SKYBOX_SOURCES: readonly { id: string; source: string }[] = [
