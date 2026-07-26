@@ -2,7 +2,7 @@
 
 Inventory, licensing, gameplay mapping and pipeline plan for the CC0 packs in `/assets`.
 
-Related: [GAME_DESIGN.md](../GAME_DESIGN.md) §8–10 (what the content becomes) ·
+Related: [GAME_DESIGN.md](../GAME_DESIGN.md) §6/§9–11 (what the content becomes) ·
 [TECHNICAL_ARCHITECTURE.md](../TECHNICAL_ARCHITECTURE.md) §5 (pipeline implementation).
 
 ---
@@ -35,7 +35,13 @@ Key verified details the design relies on:
 - `Kenney_BlockyCharacters` ships one body rig with **18 swap textures** → guest palette variety
   via per‑instance texture index, not extra meshes.
 - `Kenney_CuteCharacters` includes **wheelchair users and mobility props** → inclusive guests by
-  default (GAME_DESIGN §11.1).
+  default (GAME_DESIGN §12.1).
+- `KayKit_CityBits` contains **cars (hatchback/sedan/stationwagon/taxi), roads and
+  streetlights** → Parking Grounds district traffic; `Kenney_CityKitRoads` adds driveways and
+  lot pieces; `Kenney_CityKitSuburban` houses + driveways → Staff Village;
+  `Kenney_CityKitCommercial` buildings a–h → Commerce Quarter. **No bus model exists in any
+  pack** → no buses in the game (kit‑only law, GAME_DESIGN P7); arrivals are cars, taxis and
+  the TrainKit railway station.
 - `Kenney_EmotesPack` ships 530 emote glyphs in 4 styles → `<EmoteBubble>` source
   (UI_UX_DESIGN §3); pick ONE style ("Vector"/flat) for consistency.
 
@@ -78,9 +84,10 @@ Authoritative mapping (GDD is the "what", this is the "from where"):
 | Walkthroughs | GraveyardKit+Spooktober+Skeletons (Haunted Manor) · CastleKit+KayKit Dungeon (Castle Quest) | Interior scenes = curated prefab rooms |
 | Shops/facilities | FoodKit, MiniMarketKit, RestaurantBits, FurnitureKit(+Bits), ModularBuildingsKit, CityBits (ATM) | Toilets verified in FurnitureKit/RestaurantBits |
 | Guests/staff | BlockyCharacters (+18 palettes), CuteCharacters, Skeletons (Spooky entertainers), CubePets (mascot heads, Cuddle Corral) | |
-| Scenery per kit | See GAME_DESIGN §10 table | TDKit/MedievalHexagon feed Storybook props; FactoryKit/SurvivalKit = backstage |
-| Park surroundings | CityKit* roads/buildings vignette outside the gate, MiniForest island rim | Non‑interactive dressing |
-| Skybox & time | Skyboxes pack (5) | morning/day/night cycle; alien+space for Cosmic scenario |
+| Scenery per kit | See GAME_DESIGN §11 table | TDKit/MedievalHexagon feed Storybook props; FactoryKit/SurvivalKit = backstage |
+| **Districts** (GAME_DESIGN §6) | Parking: CityKitRoads driveways/lights + CityBits cars/taxi · Station: TrainKit · Resort: ModularBuildingsKit + HolidayKit cabins + FurnitureKit interiors · Staff Village: CityKitSuburban · Commerce: CityKitCommercial + BuildingKit · Works Yard: FactoryKit + CityKitIndustrial + SurvivalKit | Hotels are assembled from modular pieces (no "hotel" model needed); flavor traffic is render‑side (TECH §6.4) |
+| Site environment | NatureKit (trees, rocks, `ground_path*`), MiniForest, Medieval Hexagon hills (far silhouettes), plant/bush families | Terrain surface itself is generated (splat shader) — packs dress it (TECH §6.4) |
+| Skybox & time | Skyboxes pack (5) | morning/day/night cycle; alien+space for the Cosmic story |
 | Emote bubbles | EmotesPack (one style) | Mapping table in GAME_BALANCE §10 |
 | UI patterns | PatternPack (facet/burst source), custom SVG | Used only as source material for generated UI SVGs |
 | Post‑1.0 reserves | PlatformKit, ModularCaveKit, MiniSkateKit, MiniArena extras, PirateKit ships (sea rides), Medieval Hexagon terrain | Documented so nobody "cleans them up" |
@@ -92,23 +99,33 @@ Authoritative mapping (GDD is the "what", this is the "from where"):
 1. **Select** — read `content/manifest.ts` (allow‑list of pack/piece IDs actually used).
 2. **Normalize** — convert OBJ/GLTF→GLB, Y‑up, meters, origin at footprint center‑bottom,
    merge duplicate materials, strip unused nodes.
-3. **Optimize** — `gltf-transform`: dedupe, prune, weld, quantize + meshopt; palette PNGs
-   verified ≤64 KB; report per‑file before/after sizes.
+3. **Optimize** — `gltf-transform`: dedupe, prune, weld, quantize (KHR_mesh_quantization —
+   decoded natively by three.js, no runtime decoder). Meshopt compression is deliberately
+   deferred to the M6 perf pass (adds a decoder dependency for ~small wins at current sizes);
+   report per‑file before/after sizes.
 4. **Catalog** — emit `public/content/catalog.json`: per piece `{id, pack, file, footprint,
    anchor, tags, kit, category, variants, trackPorts?}` (footprints from AABB + hand overrides in
    `content/overrides/*.ts`). The catalog is the single source of truth the sim/UI/renderer read.
-5. **Thumbnails** — headless render (playwright + three) of every catalog piece → webp grid for
-   the Build Catalog UI.
+5. **Thumbnails** — `scripts/gen-thumbnails.ts`: headless Chromium screenshots of every catalog
+   piece via the `/dev/thumbs` stage → `public/thumbs/<id>.png` (256², webp revisit at M3 when
+   the Build Catalog UI lands). Screenshots aren't byte‑deterministic across GPU stacks, so
+   thumbs are regenerated manually and excluded from the CI drift check.
 6. **Budget gate** — CI fails if: any single GLB >1.5 MB, theme bundle >8 MB, total shipped
    models >60 MB (budgets: TECH §10).
 
-## 6. Gaps & risks (needs sourcing or custom work)
+## 6. Gaps & the kit‑only law
+
+**Kit‑only law (GAME_DESIGN P7, owner directive):** if the packs can't build it, it is not in
+the game — no custom modeling, no external model sourcing. Ferris wheel, bumper cars, horse
+carousel, buses: **excluded**, permanently, unless CC0 pieces for them are added to `/assets`
+by the owner. Permitted non‑pack visuals are generated utility only: terrain surface & water
+shaders, particles (fireworks, leaf poofs, smoke), auto‑foundation skirts, UI/SVG.
 
 | Gap | Impact | Plan |
 |-----|--------|------|
-| **Audio: none in repo** | Blocks §21 audio direction | Add Kenney CC0 audio packs (UI Audio, Interface Sounds, Music Jingles) + CC0 music loops; needs user OK → DECISIONS Q‑05 |
-| No balloon/firework/carousel‑horse models | Minor flavor | Fireworks = shader particles; carousel uses CubePets mounts; balloons post‑1.0 custom |
-| No ride‑specific mechanical parts (swing arms, spin hubs) | Flat rides need armatures | Build tiny generic "mech" set from PrototypeKit/FactoryKit pieces at assembly time *(verify)* |
+| **Audio: none in repo** — **owner‑approved (Q‑05) to add** | Blocks GAME_DESIGN §22 | Add Kenney CC0 audio packs (UI Audio, Interface Sounds, Music Jingles + CC0 music loops) to `/assets` when audio work starts (M6; snap/coin placeholders may land M1–M2); log every pack in §7 |
+| Ride mechanical parts (swing arms, spin hubs) | Flat rides need armatures | Assemble from existing pack pieces (CoasterKit supports/beams, FactoryKit parts) — stays within the law *(verify piece fit at M3)* |
+| Terrain surface textures | Real‑terrain directive | Generated flat‑color palette + noise textures created in‑repo (CC0, ours) — consistent with kit colormaps (TECH §6.4) |
 | UI icons (park‑specific) | Catalog/HUD clarity | Lucide (MIT) + hand‑drawn SVG set in repo style |
 | Fonts | UI identity | Archivo Black / Barlow family via `next/font` (OFL) |
 | Guest animations | Rigs exist; clips minimal | Procedural crowd animation (TECH §6.3) — no external animation packs needed |

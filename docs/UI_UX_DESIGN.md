@@ -37,7 +37,7 @@ Common DNA across all 11 references, ranked by how much it carries the look:
 **Polypark twist:** identical grammar, sunnier soul. We keep the geometry and layout rhythm but
 shift hue to a park palette (sky, sun, grass), swap military iconography for park iconography
 (coaster silhouette, balloon, ticket), and let the low‑poly faceted background pattern double as
-our literal art style (the UI facets echo the Tabletop's polygons).
+our literal art style (the UI facets echo the low‑poly landscape).
 
 ---
 
@@ -99,7 +99,7 @@ Self‑hosted via `next/font` (OFL licenses, no network fetch):
 
 Scale (rem): display 4.5/3.5 · h1 2.25 · h2 1.5 · h3 1.25 · body 1.0 · small 0.875 ·
 micro‑caps 0.75 (letter‑spacing 0.08em, uppercase). Readable‑font accessibility toggle swaps
-Display→Barlow Semi Condensed 700 unskewed (GAME_DESIGN §22).
+Display→Barlow Semi Condensed 700 unskewed (GAME_DESIGN §23).
 
 ### 2.4 Geometry & effects
 
@@ -117,7 +117,7 @@ Display→Barlow Semi Condensed 700 unskewed (GAME_DESIGN §22).
 
 ### 2.5 Motion
 
-Framer Motion (`motion`) with global reduced‑motion switch (GAME_DESIGN §22).
+Framer Motion (`motion`) with global reduced‑motion switch (GAME_DESIGN §23).
 
 | Pattern | Spec |
 |---------|------|
@@ -129,7 +129,7 @@ Framer Motion (`motion`) with global reduced‑motion switch (GAME_DESIGN §22).
 | Celebration | Full‑width diagonal banner sweep + sunburst, 800 ms, park fireworks in 3D (no strobe) |
 | Numbers | Money/XP tick via odometer roll 300 ms, tabular‑nums prevent jitter |
 
-### 2.6 Sound hooks (see GAME_DESIGN §21)
+### 2.6 Sound hooks (see GAME_DESIGN §22)
 
 `ui/snap`, `ui/hover` (subtle, ≤ −24 LUFS), `ui/confirm`, `ui/deny`, `ui/toast-good`,
 `ui/toast-bad`, `ui/coin`, `ui/levelup`, `ui/star`. Every hook fires a caption event into the
@@ -140,8 +140,8 @@ toast log when captions are enabled.
 ## 3. Component library (Polypark UI Kit)
 
 React components in `src/ui/kit/` — Radix primitives underneath for focus/keyboard/a11y.
-Storybook‑style gallery page at `/dev/uikit` (dev builds only) renders every component in every
-state for visual regression.
+Storybook‑style gallery page at `/dev/uikit` (ships unlinked from any menu) renders every
+component in every state for visual regression.
 
 | Component | Anatomy / states | Ref |
 |-----------|------------------|-----|
@@ -160,7 +160,7 @@ state for visual regression.
 | `<DetailPane>` | Left list (icon rows, selected = white card + gold outline) + right live preview panel + description slab | UI_10 (→ ride/piece detail with 3D turntable) |
 | `<StatBars>` | E/I/N bars: label + segmented bar (10 segments) in fixed semantic hues (E gold, I danger‑orange, N green‑sick) with value | new, styled like UI_10 difficulty stars |
 | `<Toast>` | Feed line: icon chip + text + optional action; good/bad/neutral left‑edge color | UI_5 feed |
-| `<ObjectiveChip>` | Top‑center pill: current objective + progress notch bar | UI_5 objective |
+| `<GoalPanel>` | Top‑right stack of up to 3 goal cards: icon, label, progress bar + value, reward chip; per‑card swap/dismiss on hover; collapsible to a pip row | Aquapark ref checklist, rebuilt in our geometry |
 | `<Gauge>` | Circular segmented % gauge (build‑meter, ride cycle) | UI_5 center gauge |
 | `<EmoteBubble>` | In‑world billboard: white rounded‑square + tail + EmotesPack icon; clusters collapse to count chip | Planet‑Coaster readability, drawn in Polypark geometry |
 | `<Modal>` | Corner‑cut frost panel over scrim; title bar w/ skewed header; max 1 at a time, ESC closes | UI_4 |
@@ -181,7 +181,7 @@ ticket, wrench, broom, mascot, loan, star). Filled silhouettes only inside `<Kit
 - **Full screens** (Title/Hub/Reports/Track) may cover 100% with the 3D diorama or facet bg
   behind a scrim.
 - **Z‑layers:** 3D view → in‑world billboards (emotes) → HUD corners → panels → modals → toasts
-  → tutorial coach‑marks.
+  → guidance coach‑marks.
 - Breakpoints: desktop‑first 1280+; playable to 1024; below → "best at desktop" notice screen
   (mobile support is a post‑1.0 architecture requirement only).
 
@@ -191,13 +191,13 @@ ticket, wrench, broom, mascot, loan, star). Filled silhouettes only inside `<Kit
 
 ```
 Boot → Title ─ CONTINUE (last autosave)
-        ├─ PLAY → Hub:Play cards (Career / Sandbox / My Parks / Collection / Profile)
+        ├─ PLAY → Hub cards (My Parks / Stories / Collection / Profile)
         ├─ OPTIONS (tabs: Video · Audio · Controls · Gameplay · Accessibility)
-        └─ EXTRAS (Parkopedia · Replay tutorials · Credits/licenses)
-Hub:Career → Scenario detail → Loading vignette → In‑Game
-Hub:Sandbox → Setup form → In‑Game
+        └─ EXTRAS (Parkopedia · Replay guidance · Credits/licenses)
+Hub:My Parks → New Park (Site select + settings) or Load → In‑Game
+Hub:Stories → Story detail (star objectives) → Loading vignette → In‑Game
 In‑Game overlays: Build Catalog · Inspector · Management (Finance/Guests/Staff/Rating/Loans/
-Marketing) · Park Level Track · Monthly Report · Pause/Options · Photo key
+Marketing/Districts) · Park Level Track · Monthly Report · Pause/Options · Photo key
 ```
 
 Loading vignettes show a rotating 3D diorama slice + one gameplay tip; target < 4 s warm.
@@ -217,25 +217,29 @@ First‑run: name prompt modal ("What's your builder name?") — feeds profile +
 
 ### 6.2 Hub — Play ← UI_2 (OW Play cards)
 
-`PLAY` mega title. Four `<KitCard>`s in a row: **CAREER** (blue, coaster icon, star progress
-meta), **SANDBOX** (green, shovel icon), **MY PARKS** (amber, save icon, "12 parks" meta),
-**COLLECTION** (violet, ticket icon, `NEW!` ribbon when affordable unlock exists). Below‑center:
-`<SlabButton primary>` `CONTINUE LAST PARK`. Profile stats strip bottom (StatTiles: lifetime
-guests, stars, best rating).
+`PLAY` mega title. Four `<KitCard>`s in a row, **MY PARKS first and largest** (sandbox is the
+heart of the game): **MY PARKS** (green, shovel icon, "12 parks" meta), **STORIES** (blue,
+coaster icon, star progress meta), **COLLECTION** (violet, ticket icon, `NEW!` ribbon when an
+affordable unlock exists), **PROFILE** (amber). Below‑center: `<SlabButton primary>`
+`CONTINUE LAST PARK`. Profile stats strip bottom (StatTiles: lifetime guests, stars, best
+rating).
 
-### 6.3 Career select ← UI_1 (Arcade grid)
+### 6.3 Story select ← UI_1 (Arcade grid)
 
-Grid of scenario `<KitCard>`s (kit color per scenario, 2 rows × 4). Card meta: star pips ★★☆,
-"NEW" ribbon, lock state with requirement ("Earn 4★ total"). Top‑right: total stars + 🎟 wallet +
-next‑unlock pips (UI_1's weekly rewards slot). Selecting → **Scenario detail** overlay
-(`<DetailPane>`): left objectives list (1★/2★/3★ rows), right diorama preview turntable +
-`START` primary.
+Grid of story `<KitCard>`s (kit color per story, 2 rows × 4). Card meta: star pips ★★☆, "NEW"
+ribbon, lock state with requirement ("Earn 4★ total"). Top‑right: total stars + 🎟 wallet +
+next‑unlock pips (UI_1's weekly rewards slot). Selecting → **Story detail** overlay
+(`<DetailPane>`): left star objectives list (1★/2★/3★ rows) + a "parks continue after the
+story" note, right landscape preview turntable + `START` primary.
 
-### 6.4 Sandbox setup — Setup form on frost facet bg
+### 6.4 New Park setup (My Parks) — Setup form on frost facet bg
 
-RowControls: plot size, starting cash slider, difficulty stepper, events toggle, all‑unlocked
-toggle, weather profile dropdown, starting kits multi‑select (KitCard minis). Right column: live
-summary card + `CREATE PARK`.
+Two steps in one screen. Left: **Site select** — landscape cards with 3D turntable preview
+(Meadowbrook / Riverbend / Hillcrest…), terrain personality blurb, expansion‑area count.
+Right: RowControls — starting cash slider, difficulty stepper, events toggle, all‑unlocked
+toggle, weather profile dropdown, guidance layer toggle (on by default for first park),
+"classic bankruptcy (hard fail)" toggle (off by default, warning tooltip), starting kits
+multi‑select (KitCard minis) + live summary card + `CREATE PARK`.
 
 ### 6.5 My Parks — save management
 
@@ -262,7 +266,8 @@ tabular numbers. Zero monetization language — the `LUXURY` slot of the ref bec
 
 ### 6.8 Management panels ← UI_6/7 (Career stats) + UI_4 (rows)
 
-One window, `<TabBar>` top: **Finance · Guests · Staff · Rating · Loans · Marketing**.
+One window, `<TabBar>` top: **Finance · Guests · Staff · Rating · Loans · Marketing ·
+Districts**.
 - *Finance:* StatTile row (cash, monthly net, park value) + income/expense DataTable + 12‑month
   sparkline cards.
 - *Guests:* live counters by archetype (StatTiles), needs heat summary, thoughts feed (emote +
@@ -275,6 +280,10 @@ One window, `<TabBar>` top: **Finance · Guests · Staff · Rating · Loans · M
   active loans table with payoff buttons, credit grade badge A–E with tooltip explaining it.
 - *Marketing:* campaign OfferCards (Flyers/Online/Mascot Parade) with duration+reach+cost and a
   live "expected archetype" preview.
+- *Districts:* one row card per district (Parking / Station / Resort / Village / Commerce /
+  Works): locked (unlock level + plot price), or live stats (StatTiles: bays used, rooms
+  occupied, rent/mo, housed staff) + "go to plot" camera button. Receivership, when active,
+  pins a recovery banner + goal chain across the top of this window (GAME_DESIGN §14.3).
 
 ### 6.9 Inspector (click any placed thing) ← UI_10 (detail pane)
 
@@ -284,28 +293,33 @@ demand curve hint), Ops (test/open/close, refurb button with cost, staff assignm
 (riders, income sparkline). Shop: menu price/portion rows + margin readout. Guest: identity card,
 needs bars, thought log, "follow" camera toggle. Staff: trait, zone, energy, praise/raise button.
 
-### 6.10 In‑game HUD ← UI_5 (OW HUD grammar)
+### 6.10 In‑game HUD ← UI_5 (OW HUD grammar) + Aquapark ref (goal checklist top‑right)
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│ ToastFeed(⤓)                ObjectiveChip ▾            IdentityChip │
-│ (events, capped 4)      "★ Reach 3.5 rating 3.2/3.5"   name · 🎟 · ⚙ │
-│                                                                      │
-│                         ( clean 3D center )                          │
-│                                                          MiniMap    │
-│ $ 128,450 ▲ +2,310/mo   ┌ Build dock ────────────┐      ┌────┐     │
-│ ★ 3.2 · 👥 642 · L14 ▓▓░ │ 🎢 🍔 🚻 🌳 🛤 📋 │ ▶▶ 2× ⏸ │      └────┘     │
-└─ wallet & park vitals ──┴─ B: catalog ─ speed ────┴──── HintRail ──┘
+│ ToastFeed(⤓)            Clock·Weather ▾           IdentityChip ⚙    │
+│ (events, capped 4)      09:40 ☀ ▸▸▸ forecast      ┌ GoalPanel ────┐ │
+│                                                   │ ✔▓▓▓▓▓░ 250 👥 │ │
+│                         ( clean 3D center )       │  ▓▓▓░░░ 60% ★ │ │
+│                                                   │  ▓░░░░ E≥6 🎢 │ │
+│                                                   └───────────────┘ │
+│ $ 128,450 ▲ +2,310/mo   ┌ Build dock ────────────┐       MiniMap   │
+│ ★ 3.2 · 👥 642 · L14 ▓▓░ │ 🎢 🍔 🚻 🌳 🛤 🅿 📋 │ ▶▶ 2× ⏸ │       ┌────┐    │
+└─ wallet & park vitals ──┴─ B: catalog ─ speed ───┴────── HintRail ─┘
 ```
 
 - Bottom‑left **vitals cluster**: money (odometer, green/red delta), rating stars, guest count,
   Park Level mini‑bar. Click any → opens matching management tab.
-- Bottom‑center **build dock**: 6 category buttons (opens Catalog filtered) + speed controls
-  (⏸/1×/2×/4×, hotkeys `Space`, `1‑3`).
-- Top‑center `<ObjectiveChip>`; top‑left toast feed; top‑right IdentityChip + settings; minimap
-  above HintRail bottom‑right.
-- Weather+clock strip attaches to the ObjectiveChip's left (icon, time, 3‑day forecast pips).
-- Everything hides in Photo key (`P`) and tutorial can spotlight single clusters.
+- Bottom‑center **build dock**: 7 category buttons incl. Districts 🅿 (opens Catalog filtered) +
+  speed controls (⏸/1×/2×/4×, hotkeys `Space`, `1‑3`).
+- Top‑right **`<GoalPanel>`** under the IdentityChip — the Aquapark‑style checklist in Polypark
+  geometry: up to 3 optional goal cards with progress bars (GAME_DESIGN §18). Cards celebrate
+  completion in place (check flip + coin burst) before the next card deals in. Hover reveals
+  swap/dismiss — goals invite, never order (P4). Collapsible to pips.
+- Top‑center **clock + weather strip** (time, park open/closed toggle, 3‑day forecast pips);
+  top‑left toast feed; minimap above HintRail bottom‑right.
+- Everything hides in Photo key (`P`); the guidance layer can spotlight single clusters
+  (never locks them).
 
 ### 6.11 Monthly Report — full overlay on facet bg
 
@@ -322,12 +336,13 @@ pause‑on‑report) · Accessibility (UI scale slider 80–140, readable font, 
 colorblind‑safe emote variants, hold‑to‑toggle alternatives). Footer: `RESTORE DEFAULTS` +
 per‑tab reset, exactly like the ref.
 
-### 6.13 Onboarding overlays (GAME_DESIGN §19)
+### 6.13 Guidance overlays (GAME_DESIGN §20)
 
 Coach‑marks: corner‑cut frost cards with a skewed accent header, one paragraph max, anchored
-with a notch to their target; dim‑spotlight cutout on the highlighted control; `NEXT` /
-`SKIP TUTORIAL` (always available). Objective steps mirror in the ObjectiveChip. Parkopedia
-opens as a Modal with TabBar sections and search.
+with a notch to their target; dim‑spotlight cutout on the highlighted control; `GOT IT` /
+`DON'T SHOW AGAIN` (both always available — guidance never blocks input or the sim). Opening
+guidance arrives as ordinary Goal Deck cards with a "show me" camera glide, mirrored in the
+`<GoalPanel>`. Parkopedia opens as a Modal with TabBar sections and search.
 
 ---
 
@@ -339,11 +354,12 @@ opens as a Modal with TabBar sections and search.
    never advances while a blocking modal is open (except toasts).
 3. **Hover = truth:** every number, icon and lock state has a tooltip stating cause or unlock
    source. Tooltip delay 300 ms, instant while build‑ghosting.
-4. **One popup at a time:** events arrive as toasts; only bankruptcy/inspection‑result and
-   scenario stars may modal.
+4. **One popup at a time:** events arrive as toasts; only Receivership entry/exit,
+   inspection results and story star cards may modal (the exhaustive list — nothing else
+   interrupts play).
 5. **Feedback triple:** every placement/purchase fires visual (ghost→pop), audio (snap/coin) and
    numeric (ticker) feedback within 100 ms.
-6. **Undo everything buildable** (GAME_DESIGN §7.1); destructive UI actions (delete save,
+6. **Undo everything buildable** (GAME_DESIGN §8.1); destructive UI actions (delete save,
    bulldoze occupied ride) require typed‑name or double‑confirm respectively.
 7. **Keyboard parity** for all non‑pointer‑inherent actions; visible focus rings (gold, 2 px).
 8. **Copy voice:** carnival‑barker warmth, ≤2 sentences per tooltip, verbs first ("Hire a
@@ -372,6 +388,6 @@ opens as a Modal with TabBar sections and search.
 - [ ] Side‑by‑side eyeball test against `/uiinspo` passes for: card grid, options rows, track
       screen, detail pane, HUD corners (internal review checklist).
 - [ ] `/dev/uikit` gallery renders all components × states; Playwright visual snapshots stable.
-- [ ] Keyboard‑only full playthrough of tutorial possible; axe‑core audit: 0 critical issues.
+- [ ] Keyboard‑only playthrough of the guided opening possible; axe‑core audit: 0 critical issues.
 - [ ] Reduced‑motion + readable‑font + 140% scale modes verified on all §6 screens.
 - [ ] All copy strings externalized (i18n‑ready), no lorem ipsum anywhere.

@@ -5,15 +5,15 @@ agent guide** — if the two ever disagree, CLAUDE.md wins and this file needs a
 
 ## Project
 
-Polypark: browser‑based 3D low‑poly theme‑park tycoon. Single player, no accounts, Vercel
-deployment, friends leaderboard as the final phase. Start with [README.md](README.md) for the
-doc index and [GAME_DESIGN.md](GAME_DESIGN.md) for the game itself.
+Polypark: browser‑based 3D low‑poly resort tycoon — theme park + districts on real terrain,
+sandbox‑first, no hard end. Single player, no accounts, Vercel deployment, friends leaderboard
+as the final phase. Start with [README.md](README.md) for the doc index and
+[GAME_DESIGN.md](GAME_DESIGN.md) for the game itself.
 
-## Phase gate
+## Phase
 
-⛔ **No implementation yet.** Planning docs are the current deliverable; write source code,
-scaffolding or dependency changes only after the user explicitly approves starting ROADMAP M0.
-Doc improvements and analysis are always allowed.
+✅ **Implementation approved (owner, 2026‑07‑26). ROADMAP M0 in progress.** All engineering
+rules in CLAUDE.md are in force; docs stay load‑bearing (update them with behavior changes).
 
 ## Non‑negotiable rules (full detail in CLAUDE.md)
 
@@ -24,6 +24,9 @@ Doc improvements and analysis are always allowed.
    comes only from the generated pipeline output.
 4. CC0‑only assets, permissive‑only dependencies, family‑friendly content, no monetization, no
    analytics/telemetry, no accounts.
+4b. **Kit‑only law:** every game element is assembled from `/assets` packs — no custom or
+   external game models, ever (ADR‑16). **Never forced, no hard end:** no mandatory steps, no
+   save‑ending fail states (ADR‑15).
 5. Once coding: TS strict; `sim/` stays pure (no react/three/UI imports, no wall clock, seeded
    RNG only, commands for all mutations); UI uses design tokens from `docs/UI_UX_DESIGN.md`;
    performance budgets in `TECHNICAL_ARCHITECTURE.md` §10 are hard requirements; Conventional
@@ -35,7 +38,7 @@ Doc improvements and analysis are always allowed.
 
 | File | Owns |
 |------|------|
-| `GAME_DESIGN.md` | Game vision, systems, content, scenarios, tone |
+| `GAME_DESIGN.md` | Game vision, systems, districts, content, stories, tone |
 | `TECHNICAL_ARCHITECTURE.md` | Stack, sim/render architecture, saves, budgets, testing, deploy |
 | `ROADMAP.md` | Milestones M0–M8, acceptance criteria, phase gate |
 | `docs/UI_UX_DESIGN.md` | Tokens, UI kit, screen specs (must match `/uiinspo` style) |

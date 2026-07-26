@@ -1,32 +1,38 @@
 # 🎢 Polypark
 
-**Snap together the park of your dreams.** A 3D low‑poly theme‑park tycoon for the browser —
-build coasters piece by piece from toy kits, delight blocky guests, survive storms, loans and
-safety inspections, and grow a roadside lot into a five‑star wonderland. Single player, no
-account, runs on Vercel.
+**Snap together the resort of your dreams.** A 3D low‑poly tycoon for the browser — build a
+theme park piece by piece from toy kits on lush rolling terrain, then the world around it:
+the parking lot, the hotel row, the office quarter. Delight blocky guests, survive storms,
+loans and inspections. Your park never ends; it only grows. Single player, no account, runs
+on Vercel.
 
-> **Status: 📋 Planning complete — implementation not started.**
-> Coding begins at [ROADMAP](ROADMAP.md) M0 after explicit owner approval (phase gate).
+> **Status: 🚧 In development — [ROADMAP](ROADMAP.md) M0 (Foundations) in progress.**
+> Implementation approved by the owner on 2026‑07‑26.
 
 ## The pitch
 
-- **Toybox building:** grid‑snap construction and a piece‑by‑piece coaster track builder using
-  real CC0 low‑poly kits (Kenney, KayKit) — 50 packs, ~4,100 models, all in this repo.
+- **Toybox building on real terrain:** grid‑snap construction and a piece‑by‑piece coaster
+  track builder on handcrafted landscape Sites — every element assembled from the CC0 kits in
+  this repo (Kenney, KayKit: 50 packs, ~4,100 models). If the kits can't build it, it isn't in
+  the game.
 - **A legible living park:** up to ~1,200 guests with needs, moods and emote bubbles; problems
   are visible in the world before they're numbers in a panel.
-- **Real stakes, warm tone:** loans and credit grades, breakdowns, inspections, weather and an
-  event deck — consequences are financial, never gruesome.
-- **Modern‑game shell:** title screen, hub, career (8 scenarios incl. a full tutorial),
-  sandbox, options with deep accessibility, save slots + export files.
-- **UI** in the style of the reference screens in [`/uiinspo`](uiinspo) (Overwatch/Marvel
-  Rivals language: skewed display type, flat color cards, frosted panels).
+- **Beyond the gate:** districts with real hooks — Parking Grounds (arrival capacity), Resort
+  Row hotels (multi‑day guests), Staff Village, Commerce Quarter, Works Yard.
+- **Real stakes, no game‑over:** loans and credit grades, breakdowns, inspections, weather, an
+  event deck — and Receivership instead of bankruptcy: setbacks are chapters, never endings.
+- **Guided, never forced:** an adaptive Goal Deck of optional cards replaces tutorials and
+  mandatory objectives; eight Park Stories offer curated starts whose parks live on forever.
+- **Modern‑game shell:** title screen, hub, options with deep accessibility, save slots +
+  export files — **UI** in the style of the reference screens in [`/uiinspo`](uiinspo)
+  (Overwatch/Marvel Rivals language: skewed display type, flat color cards, frosted panels).
 - **Later, last of all:** a no‑login friends leaderboard via share codes.
 
 ## Documentation index
 
 | Read | For |
 |------|-----|
-| [GAME_DESIGN.md](GAME_DESIGN.md) | The full game: pillars, systems, content, scenarios, tutorial |
+| [GAME_DESIGN.md](GAME_DESIGN.md) | The full game: pillars, systems, districts, content, stories, guidance |
 | [TECHNICAL_ARCHITECTURE.md](TECHNICAL_ARCHITECTURE.md) | Stack (Next.js + R3F + bespoke sim), budgets, testing, deploy |
 | [ROADMAP.md](ROADMAP.md) | Milestones M0–M8 with acceptance criteria |
 | [docs/UI_UX_DESIGN.md](docs/UI_UX_DESIGN.md) | Design tokens, component kit, every screen spec |

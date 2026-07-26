@@ -13,9 +13,9 @@ Related: [GAME_DESIGN.md](../GAME_DESIGN.md) · [TECHNICAL_ARCHITECTURE.md](../T
 
 ## 1. Tuning principles
 
-1. **First 30 minutes must sing:** tutorial park reaches profitability inside 3 months with the
-   guided build order; the player should never see <$5k cash in scenario 1 unless they ignore
-   the Advisor.
+1. **First 30 minutes must sing:** a first park following the guided opening card chain reaches
+   profitability inside 3 months; a Story‑1 player should never see <$5k cash unless they
+   ignore every card and the Advisor.
 2. **Tension, not starvation:** Standard difficulty targets 65–75% of months cash‑positive for a
    competent player; Tycoon 50–60%.
 3. **Every price has a visible demand response** within one month (guests are elastic, §4.3).
@@ -36,19 +36,38 @@ Related: [GAME_DESIGN.md](../GAME_DESIGN.md) · [TECHNICAL_ARCHITECTURE.md](../T
 | Event cadence (avg/month) | 0.75 | 1.25 | 1.75 |
 | Inspection spot‑check chance/month | 5% | 10% | 18% |
 | Star Ticket payout | ×0.75 | ×1.0 | ×1.25 |
-| Bankruptcy grace | 3 months | 2 | 1 |
+| Receivership entry (consecutive insolvent months) | 3 | 2 | 1 |
 
-## 3. Starting conditions & land
+## 3. Starting conditions, land & districts
+
+### 3.1 Starting conditions
 
 | Item | Value |
 |------|-------|
-| Scenario 1 start (Standard) | $50,000 cash · 32×32 plot · Boardwalk kit · entry $10 preset |
-| Sandbox default | $75,000 · 48×48 · difficulty Standard · events on |
-| Land chunk (8×8 cells) | 1st $6,000, then ×1.35 each (2nd $8,100, 3rd $10,935…) |
+| Story 1 start (Standard) | $50,000 cash · Meadowbrook‑Small site · Boardwalk kit · entry $10 preset |
+| New sandbox park default | $75,000 · Meadowbrook · difficulty Standard · events on · hard‑fail off |
+
+### 3.2 Land & construction
+
+| Item | Value |
+|------|-------|
+| Expansion area (authored, ~8×8‑cell equivalent) | 1st $6,000, then ×1.35 each (2nd $8,100, 3rd $10,935…) |
 | Path piece / plaza cell | $40 / $60 · queue piece $60 |
 | Scenery props | $25–$400 by size class (S/M/L/XL = $25/$80/$180/$400) |
-| Surface paint | $5 per cell · water cell dig $120 |
-| Bulldoze refund | 70% (100% ≤30 s after placement) |
+| Surface paint | $5 per cell · pool basin dig (flat ground) $120/cell |
+| Auto‑foundation on gentle slope | +10% of piece cost (shown in ghost price) |
+| Bulldoze refund | 70% (100% ≤30 s after placement; +10% with Works Yard reclaimer) |
+
+### 3.3 Districts (unlocks by Park Level; all optional)
+
+| District (plot price · unlock) | Buildables | Numbers |
+|--------------------------------|-----------|---------|
+| **Parking Grounds** ($4,000 · L3) | Parking row $150/bay‑piece (2 cars ≈ 5 guests peak) · taxi rank $2,000 · lot greenery | Arrival capacity = 60 gate base + 5/bay + 40/taxi rank; lot Wonder dressing gives +2 Value first impression; full lot ⇒ visible car queue + turnaways |
+| **Arrival Station** ($18,000 · L18) | Station platform + track stub, one per site | +250 arrivals/day in 4 scheduled bursts; burst size scales with rating |
+| **Resort Row** ($12,000 · L10) | Cabin (2 rooms) $1,700 · hotel floor piece (4 rooms) $3,400 · gardens | Nightly rate default $30/room (player‑set, elasticity as §4.1); occupancy = f(rating, night hours open); hotel guests return next day with wallet ×0.8, Energy +40; upkeep $6/room/mo |
+| **Staff Village** ($8,000 · L8) | House $2,400 (lodges 3 staff) · gardens | Staff cap = 12 base + 3/house; housed staff +10% effectiveness, −10% wage |
+| **Commerce Quarter** ($15,000 · L14) | Office building $9,000 · shopfront $5,500 · billboard $800 | Rent/building/mo = $150 × rating × min(guests/500, 2) (shopfront ×0.6); +1 sponsor slot per 2 buildings; billboards +10% marketing efficiency each (max 3 counted) |
+| **Works Yard** ($10,000 · L12) | Workshop $7,500 · depot $6,000 · reclaimer $4,500 (one each) | Workshop: ride upkeep −15%, repair time −25% · depot: piece costs −8% · reclaimer: +10% bulldoze refund |
 
 ## 4. Park‑level formulas
 
@@ -204,13 +223,20 @@ Credit grade: start C; +1 grade per 6 clean months; −1 per missed payment; flo
 collections (train repossession event) at 2 misses. Debt ratio >65% of park value blocks new
 offers.
 
+**Receivership (no game‑over — GAME_DESIGN §14.3):** entry after N consecutive insolvent
+months (§2). While active: marketing frozen · construction limited to items ≤$1,000 ·
+50% of monthly profit auto‑pays oldest debt · recovery goal chain deals in (repair all rides →
+one profitable month → debts current). Exit when debts current and cash ≥ $0 → "comeback"
+press story (+0.2★ over 2 months). Optional sandbox toggle "Classic bankruptcy" replaces
+Receivership with a hard fail — off by default, never available in Stories.
+
 ## 9. Progression
 
 ### 9.1 Park XP sources
 
-Guest‑exit joy (1–6 XP by mood) · milestones (first 100 guests: 500 XP…) · objectives ·
-monthly rating bonus (rating × 60) · coaster completions (E×40). No XP from spending money
-(no pay‑to‑level loop).
+Guest‑exit joy (1–6 XP by mood) · milestones (first 100 guests: 500 XP…) · **Goal Deck cards**
+(small 60–150 XP, horizon cards 400–800 XP) · monthly rating bonus (rating × 60) · coaster
+completions (E×40). No XP from spending money (no pay‑to‑level loop).
 
 ### 9.2 Level curve (1→30)
 
@@ -220,10 +246,19 @@ park. Every 5th level = Milestone node (fireworks + 🎟1).
 
 ### 9.3 Star Tickets & Collection prices
 
-Scenario stars: 1★=2🎟, 2★=+3🎟, 3★=+5🎟 (80🎟 total in career). Milestones/events small 🎟 drips
-(~20 across a career). Collection: Theme Kit unlock 8🎟 · blueprint pack 3🎟 · cosmetic path/
-fence skin set 2🎟. Career finale requires ≥5 kits unlocked — earnable by scenario 6 without
-3★‑everything (no grind wall).
+Story stars: 1★=2🎟, 2★=+3🎟, 3★=+5🎟 (80🎟 total across the 8 Stories). Goal Deck horizon
+cards and milestones drip ~20🎟 more per long park. Collection: Theme Kit unlock 8🎟 ·
+blueprint pack 3🎟 · cosmetic path/fence skin set 2🎟. Story 8 assumes ≥5 kits unlocked —
+earnable by Story 6 without 3★‑everything, or by sandbox play alone (no grind wall, no
+mandatory Stories).
+
+### 9.4 Goal Deck dealing rules
+
+Max 3 active cards; a completed/dismissed card is replaced within 30 s (game time) from the
+highest‑priority eligible pool: recovery (receivership) > first‑time guidance > need‑gap
+("guests are hungry") > growth ("reach 700 guests") > mastery ("coaster E≥7 with N≤5") >
+flavor. Dismissed themes cool down 2 months, then re‑enter evolved. Every pool keeps ≥1 card
+eligible at all times (invariant #11); no card ever expires on a timer.
 
 ## 10. Emote mapping (EmotesPack → meaning)
 
@@ -237,17 +272,23 @@ fence skin set 2🎟. Career finale requires ≥5 kits unlocked — earnable by 
 | Wallet empty | `emote_cash`* strike variant |
 
 \* exact glyph ids confirmed against pack contents during M2 (530 available; ASSET_GUIDE §1).
-One style family only; colorblind‑safe variants add shape borders (UI_UX §2, GAME_DESIGN §22).
+One style family only; colorblind‑safe variants add shape borders (UI_UX §2, GAME_DESIGN §23).
 
 ## 11. Tuning invariants (become Vitest tests, TECH §11.1)
 
-1. Tutorial build order (scripted commands) ends month 3 with cash ≥ $8,000 and rating ≥ 2.0★.
+1. The guided opening card chain (scripted commands) ends month 3 with cash ≥ $8,000 and
+   rating ≥ 2.0★.
 2. Same seed + same command log ⇒ identical state hash at tick 30,000 (determinism).
 3. No need decays full→critical(22) in <45 game‑min under Standard decay with zero amenities.
 4. Default‑priced Snack Shack near a 200‑guest flow is profitable within 1 month.
 5. A 40‑piece Steelwind with 2 drops + 1 loop scores E ∈ [6.0, 8.0], N ≤ 6.5 (formula sanity).
 6. Piggy Bank loan fully amortizes to $0 within term at min payments (money math exactness).
 7. Storm event never fires twice within cooldown; deck respects prerequisites at 10k simulated months.
-8. Bankruptcy cannot trigger while cash ≥ 0 (guard against double‑penalty bugs).
+8. Receivership cannot trigger while cash ≥ 0, and a scripted recovery playbook always exits it
+   within 6 months (no inescapable debt spiral — GAME_DESIGN P3).
 9. L30 reachable ≤ 200k cumulative XP under §9.1 sources at target pacing (no dead‑end curve).
-10. Every catalog ride/shop id referenced in this doc exists in `catalog.json` (content link check).
+10. Every catalog ride/shop/district id referenced in this doc exists in `catalog.json`, and
+    every catalog entry maps to a real `/assets` source file (kit‑only law, P7).
+11. Goal Deck: at any reachable park state, ≥1 eligible card exists per active horizon tier,
+    and zero cards are mandatory (P4 encoded as a test).
+12. Arrival capacity is monotonic: adding a parking bay/taxi/station never reduces arrivals.

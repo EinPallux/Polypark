@@ -70,16 +70,18 @@ src/
   app/            # Next.js routes: /, /hub/*, /play, /dev/uikit; api/ (leaderboard, final phase)
   sim/            # ★ Pure TS simulation. NO imports from react/three/ui/render.
     core/         #   loop, scheduler, RNG, command bus, event bus, serialization
-    world/        #   grid, cells, land chunks, water, path graph
-    guests/       #   spawner, needs, decisions, movement along paths
+    world/        #   grid cells on terrain (heights, slope classes), sites, expansion areas, water, path graph
+    guests/       #   spawner (arrival capacity), needs, decisions, movement along paths
     rides/        #   ride FSMs, track graph, trains kinematics, reliability
-    economy/      #   ledger, pricing, loans/credit, monthly report
-    staff/        #   roles, patrol zones, jobs queue
+    economy/      #   ledger, pricing, loans/credit, receivership, monthly report
+    districts/    #   parking, station, resort, staff village, commerce, works yard hooks
+    staff/        #   roles, patrol zones, housing/morale, jobs queue
     events/       #   event deck, weather, inspections
     rating/       #   sub‑scores, park level XP
+    goals/        #   Goal Deck: card pools, dealing rules, progress tracking
     api.ts        #   SimFacade: the ONLY surface UI/render may call
-  content/        # catalog types, manifest, piece/ride/shop/scenario/track definitions (data!)
-  render/         # R3F scene: chunks, instancing, crowds, tracks, water, sky, FX, camera
+  content/        # catalog types, manifest, piece/ride/shop/site/story/track/goal definitions (data!)
+  render/         # R3F scene: terrain, chunks, instancing, crowds, tracks, water, sky, FX, camera
   ui/             # DOM UI: kit/ (components), screens/, hud/, panels/, input/, theme/
   save/           # slots, autosave, migrations, export/import, thumbnails
   audio/          # buses, sprite maps, caption events
@@ -100,7 +102,7 @@ This keeps the sim testable headless and portable to a worker (§4.4) or future 
 - **Fixed timestep: 10 ticks/s** of *game time*; game speed multiplies ticks consumed per real
   frame (pause=0, 1×, 2×, 4×). Render interpolates entity transforms between ticks — sim cost
   is independent of frame rate.
-- Time model: 1 real s = 2 game min at 1× (GAME_DESIGN §15) ⇒ 1 tick = 12 game‑seconds.
+- Time model: 1 real s = 2 game min at 1× (GAME_DESIGN §16) ⇒ 1 tick = 12 game‑seconds.
   Month = 3,000 ticks. All durations authored in game‑time units.
 - Systems run in a **fixed order** each tick (determinism): commands → weather/events → guests
   (staged: decide→move→interact) → rides → staff → economy accrual → rating → XP → emitted
@@ -120,7 +122,7 @@ data (placed pieces, shops config) are plain object maps keyed by branded IDs. G
 Single serialized `mulberry32` root seed → named child streams (`rng.guests`, `rng.events`…)
 so system order changes don't reshuffle unrelated rolls. All sim mutations flow through the
 **command bus** (`PlacePiece`, `SetPrice`, `HireStaff`…) — commands are validated, applied,
-journaled (undo/redo, GAME_DESIGN §7.1) and replayable (debug + challenge seeds). Wall clock
+journaled (undo/redo, GAME_DESIGN §8.1) and replayable (debug + challenge seeds). Wall clock
 never read inside `sim/`.
 
 ### 4.4 Worker readiness
@@ -139,7 +141,7 @@ complexity); double‑buffered transfers instead.
   congestion slowdown from a per‑cell density counter (also feeds Flow rating).
 - Queues are explicit lanes (ordered slots on queue pieces); transport rides (Poly Express)
   register stations as portal edges in the region graph — pathfinding naturally routes guests
-  through train rides (GAME_DESIGN §8).
+  through train rides (GAME_DESIGN §9).
 
 ### 4.6 Ride logic
 
@@ -153,13 +155,35 @@ lateral‑G proxy from curve radius @ speed, airtime pieces, scenery proximity s
 time). Flat rides: parametric animation programs (spin/swing/drop curves) driven by ride FSM
 phase — no physics.
 
+### 4.7 Terrain, sites, districts & goals (sim side)
+
+- **Sites are content, not code:** each Site ships as a descriptor (`content/sites/*`) +
+  authored maps: 16‑bit heightmap, surface/splat control map, water mask, buildable + expansion
+  + district‑plot masks, vegetation/prop scatter maps (deterministic placements derived from an
+  authored seed). The sim samples heights once at load into per‑cell `height` +
+  `slopeClass` (flat ≤3° / gentle ≤8° / steep) — placement validation (GAME_DESIGN §8.1) and
+  auto‑foundation decisions are pure grid lookups, so terrain adds zero per‑tick cost.
+- **Movement on terrain:** pathfinding stays 2D on the cell graph; walkers get a height offset
+  from the cell height field + a small slope speed factor. Determinism unaffected.
+- **Districts** are land masks with their own catalog categories and per‑district state
+  (parking bay count → arrival capacity curve, hotel rooms/occupancy, staff housing, commerce
+  rent accrual, works‑yard modifiers). They plug into existing systems (spawner, economy,
+  staff) through narrow interfaces — no district‑internal guest simulation at 1.0; visible
+  flavor agents (parking cars, arriving taxis, morning hotel wave) are render‑side actors fed
+  by district state, not simulated individuals.
+- **Goal Deck engine:** data‑driven card pools (`content/goals/*`) with prerequisites, park
+  telemetry predicates (typed selectors over sim state), progress tracking and rewards.
+  Dealing rules guarantee ≥1 available card per horizon tier and never require any card
+  (GAME_DESIGN §18). Receivership (GAME_DESIGN §14.3) is an economy state machine that swaps
+  in a recovery card chain.
+
 ## 5. Content pipeline
 
 Implemented per ASSET_GUIDE §5: `scripts/build-content.ts` selects allow‑listed pieces from
-`/assets`, normalizes to GLB (Y‑up, meters, footprint‑bottom origin), optimizes
-(gltf‑transform: dedupe/prune/weld/quantize+meshopt), emits `public/content/catalog.json`
+`/assets`, normalizes to GLB, optimizes (gltf‑transform: dedupe/prune/weld/quantize; meshopt
+compression deferred to the M6 perf pass), emits `public/content/catalog.json`
 (zod‑validated at build AND at runtime load) + webp thumbnails + size report. Definitions in
-`src/content/*` (rides, shops, kits, scenarios, events, track pieces) are **TypeScript data
+`src/content/*` (rides, shops, kits, sites, stories, goals, events, track pieces) are **TypeScript data
 files** referencing catalog IDs — adding content = adding data, not code (architecture goal).
 CI regenerates and fails on drift (committed catalog must match sources) and on budget breach.
 
@@ -190,7 +214,29 @@ array index (BlockyCharacters palettes). Nearest ~24 guests swap to a **hero poo
 skinned models (idle/walk/sit/cheer clips) for close‑ups and guest‑follow camera. LOD: bubbles
 cluster to count chips beyond 40 m (UI_UX_DESIGN §3 `<EmoteBubble>`).
 
-### 6.4 Frame budget management
+### 6.4 Terrain & environment rendering
+
+The owner‑set quality bar is the Aquapark Tycoon reference: lush rolling lawns, dense trees,
+organic paths, soft depth‑of‑field — "a landscape, not a board".
+
+- **Terrain mesh:** chunked grid mesh displaced by the site heightmap (~1 m vertex density near
+  camera via 2–3 chunk LOD rings); skirt strips hide LOD seams. One material: a 4‑layer splat
+  shader (grass/gravel/sand/snow) using flat‑color palette textures with subtle value noise —
+  matches the low‑poly look and keeps texture memory trivial.
+- **Paths on terrain:** path pieces render as conforming ribbon geometry with a soft splat
+  blend under their edges (decal strip into the splat map) — organic gravel ribbons, never a
+  checkerboard. The build grid appears only as a projected glow overlay while placing.
+- **Vegetation & set dressing:** instanced trees/bushes/rocks from the site scatter maps
+  (NatureKit/MiniForest/Medieval Hexagon silhouettes for far hills), cheap vertex‑sway wind
+  shader, density scaling by quality preset. Expansion purchase despawns its scatter group
+  with a leaf‑poof particle burst.
+- **Framing FX:** distance haze fog, subtle color grade per time‑of‑day, optional **tilt‑shift
+  depth‑of‑field** (High preset, off in accessibility preset) for the diorama feel, water plane
+  with vertex ripple + fresnel on authored ponds and dug basins.
+- **Flavor actors:** parking cars, taxis and the arrival train are render‑side instanced actors
+  animated from district state (spawn/park/leave curves) — life without sim cost (§4.7).
+
+### 6.5 Frame budget management
 
 `three-mesh-bvh` for picking; frustum + per‑chunk occlusion‑ish culling (chunk AABBs);
 `renderer.info` surfaced in a dev perf HUD (`F3`): fps, draw calls, tick ms, worker lag,
@@ -221,7 +267,7 @@ drives both handling and the Options rebind table (UI_UX_DESIGN §8).
 
 ## 9. App shell & screens
 
-Routes: `/` (title), `/hub/(play|career|sandbox|parks|collection|profile)`, `/play` (game,
+Routes: `/` (title), `/hub/(play|parks|stories|collection|profile)`, `/play` (game,
 client‑only), `/dev/uikit` (dev). Shell screens are server‑renderable but the app ships as a
 **static export**; the 3D title diorama lazy‑mounts. Asset loading: boot loads shell + fonts
 (<300 KB gz JS budget for title); entering a park streams its kit manifests with a loading
@@ -234,7 +280,8 @@ vignette (<4 s warm target, §10); further kits prefetch on unlock in idle time.
 |--------|--------|
 | Frame rate reference machine (2021 mid laptop, 1080p, Medium) | ≥60 fps steady state; ≥45 fps worst case megapark |
 | Sim tick (1,200 guests, 96×96) | ≤6 ms average on reference; ≤10 ms p99 |
-| Draw calls / triangles | ≤300 / ≤2.5 M at Medium |
+| Draw calls / triangles | ≤300 / ≤2.5 M at Medium (incl. terrain) |
+| Terrain + vegetation | ≤30 draw calls · ≤60k scatter instances · ≤4 ms GPU on reference at Medium |
 | Title route JS (gz) | ≤300 KB; game chunk lazy ≤900 KB |
 | Shipped models total / per kit bundle / single GLB | ≤60 MB / ≤8 MB / ≤1.5 MB |
 | Save size / save+load time | ≤2 MB / ≤500 ms save, ≤1.5 s load (excl. first model fetch) |
@@ -250,7 +297,7 @@ budget fails CI the same as a failing test.
 
 Sim runs headless: golden‑seed determinism tests (same seed+commands ⇒ identical state hash),
 system tests per module (needs decay, loan schedules, event weights sanity), **balance
-invariants** from GAME_BALANCE §11 (e.g., "tutorial build order breaks even by month 3",
+invariants** from GAME_BALANCE §11 (e.g., "guided opening breaks even by month 3",
 "no need hits critical from full in <45 game‑min"), save round‑trip + migration matrix, catalog
 schema validation. Target: sim core ≥80% line coverage, 100% of money math.
 
@@ -262,7 +309,8 @@ Kit components (states/aria/keyboard), panel logic against a mocked facade, i18n
 ### 11.3 E2E & visual (Playwright, Chromium pre‑installed)
 
 Boot→title→new sandbox→place path+shop+ride→open park→guests spawn→save→reload→state matches.
-Tutorial first 6 beats. Visual snapshots of `/dev/uikit` and each §6 screen (UI_UX acceptance).
+Guided‑opening first 6 cards. Visual snapshots of `/dev/uikit` and each §6 screen (UI_UX
+acceptance).
 Perf smoke: scripted megapark save, measure fps/tick against §10 on CI hardware
 (relative thresholds).
 
@@ -281,7 +329,7 @@ Kept out of every earlier phase; designed now so nothing blocks it:
 - **Share codes:** `POLY-XXXX-XXXX` per profile; friends exchange codes to form a local friends
   list (codes resolvable via API, no discovery/search of strangers).
 - **Submission:** explicit "Publish park stats" action posts a compact snapshot `{profileId,
-  name, parkName, mode/scenario, stars, rating, guests, parkValue, playTime, appVersion,
+  name, parkName, mode/story, stars, rating, guests, parkValue, playTime, appVersion,
   statsHash}` to `/api/leaderboard` (Next.js API route + Vercel Postgres/KV — final choice at
   implementation, ADR‑10 placeholder). Payload zod‑validated; HMAC with local secret prevents
   trivial third‑party spoofing of someone's profileId.
@@ -298,8 +346,9 @@ Kept out of every earlier phase; designed now so nothing blocks it:
 Touch/mobile: input layer isolates pointer abstractions; HUD clusters are relocatable — no
 desktop‑only assumptions in sim/render. i18n: all strings through a `t()` layer from day one
 (English shipped; German first candidate — DECISIONS Q‑03). Mods/user content: catalog is
-data‑driven; a future "custom kit" importer slots into the same pipeline. Terrain height &
-caves: grid reserves a height field per cell (unused at 1.0) so save format won't break.
+data‑driven; a future "custom kit" importer slots into the same pipeline. Player terraforming &
+caves: the cell height field is authored‑only at 1.0; the save format stores it per cell so a
+future sculpting tool won't break saves.
 WebGPU: renderer seam + no three internals leaked outside `render/`.
 
 ## 14. Technical risk register
@@ -309,7 +358,8 @@ WebGPU: renderer seam + no three internals leaked outside `render/`.
 | Crowd perf misses 60 fps target | M×H | Budgets from M1, perf smoke in CI, worker escape hatch (§4.4), LOD/cluster fallbacks, guest cap slider |
 | Track builder combinatorics (ports/validation) balloon | M×H | Catalog‑generated port metadata, golden layout tests, constrain 1.0 piece set, prefab blueprints as pressure valve |
 | Chunk rebuild hitches on big edits | M×M | Async rebuild + ghost retention, edit batching, per‑chunk caps |
+| Terrain‑aware placement edge cases (slopes, foundations, path ribbons) | M×M | Slope classes are coarse by design; golden placement tests per class; authored sites guarantee generous flat zones; foundation mesh is generated, not authored |
 | Save format churn during dev | H×M | `formatVersion` from first save ever written; migration tests in CI from M2 |
 | Asset heterogeneity (scales/origins across 50 packs) | H×M | Pipeline normalization + per‑piece overrides + visual catalog review page |
 | Browser storage eviction loses saves | L×H | `navigator.storage.persist()`, export nudges, autosave ring |
-| Scope creep vs 1.0 | H×H | GAME_DESIGN §24 non‑goals + ROADMAP phase gates + DECISIONS process |
+| Scope creep vs 1.0 | H×H | GAME_DESIGN §25 non‑goals + ROADMAP phase gates + DECISIONS process |

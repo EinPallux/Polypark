@@ -6,16 +6,16 @@ Read this first; it tells you what the project is, where truth lives, and the ru
 
 ## What this project is
 
-**Polypark** — a browser‑based 3D low‑poly theme‑park tycoon (Planet Coaster × Two Point ×
-Aquapark Tycoon energy), single player, no accounts, deployed on Vercel, with a friends
-leaderboard as the very last phase. Full pitch: [GAME_DESIGN.md](GAME_DESIGN.md).
+**Polypark** — a browser‑based 3D low‑poly **resort tycoon**: a theme park plus its districts
+(parking, hotels, staff village, offices, works yard) on real, handcrafted terrain. Sandbox‑
+first, guided but never forcing, no hard end. Single player, no accounts, deployed on Vercel,
+friends leaderboard as the very last phase. Full pitch: [GAME_DESIGN.md](GAME_DESIGN.md).
 
-## ⛔ Current phase gate
+## ✅ Current phase
 
-**Planning is complete; implementation has NOT been approved yet.** Do not scaffold the app,
-add dependencies, or write source code until the user explicitly says to start (then begin at
-ROADMAP M0). Documentation improvements, planning refinements and answering questions are
-always fine.
+**Implementation approved by the owner on 2026‑07‑26 ("Yes Start M0").** ROADMAP **M0
+(Foundations) is in progress**. The engineering rules below are now in force. Keep this
+section current as milestones complete.
 
 ## Where truth lives (read before changing anything)
 
@@ -44,12 +44,28 @@ If you find a real contradiction, fix the docs in the same change and note it in
    reference material — never shipped, never deleted.
 4. **CC0 or it doesn't ship.** New assets (audio pending, DECISIONS Q‑05) must be CC0 and
    logged in ASSET_GUIDE §7. Code deps: permissive licenses only (MIT/ISC/BSD/OFL/Apache‑2).
-5. **Family‑friendly always** (GAME_DESIGN §23): no injury/gore, no gambling, no monetization,
+5. **Family‑friendly always** (GAME_DESIGN §24): no injury/gore, no gambling, no monetization,
    no dark patterns — including in copy, names and test fixtures.
 6. **No accounts, no tracking.** Nothing phones home except the M8 leaderboard API as specced
    (TECH §12). No analytics/telemetry libraries.
+7. **Kit‑only content law** (ADR‑16, GAME_DESIGN P7): every game element is assembled from the
+   packs in `/assets` — never model, generate or source new game objects (no ferris wheel: no
+   pieces, no ride). Generated visuals are limited to terrain/water shaders, particles,
+   foundation skirts and UI/SVG.
+8. **Guided, never forced; no hard end** (ADR‑15): never design or implement a mandatory step,
+   a timed forced choice, or a fail state that ends a save. Insolvency flows through
+   Receivership (GAME_DESIGN §14.3).
 
-## Engineering rules (once M0 is approved)
+## Dev commands
+
+`pnpm dev` (dev server) · `pnpm gate` (typecheck+lint+depcruise+unit+build+budgets — run before
+pushing) · `pnpm e2e` (Playwright smoke; needs a `pnpm build` first) · `pnpm content:build` /
+`content:check` (regenerate / drift‑check `public/content|models`) · `pnpm thumbs` (regenerate
+catalog thumbnails; manual, not drift‑checked) · `/dev/uikit` + `/dev/thumbs` are unlinked dev
+pages. Local gotcha: `next start` daemonizes as `next-server` — kill with
+`pkill -f "[n]ext-server"` before rebuilding, or chunks 404 from the stale server.
+
+## Engineering rules (in force since M0)
 
 - TypeScript strict; no `any`/`as any` outside a justified `// why:` comment; branded types for
   Money/ids per TECH §4.2 (money is integer cents — never floats).

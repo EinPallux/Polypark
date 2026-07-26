@@ -1,0 +1,108 @@
+@import "tailwindcss";
+@import "../ui/theme/tokens.css";
+
+/* Map tokens into Tailwind utilities (bg-ink-900, text-sun-500, font-display, …). */
+@theme inline {
+  --color-ink-900: var(--ink-900);
+  --color-ink-700: var(--ink-700);
+  --color-ink-500: var(--ink-500);
+  --color-frost-100: var(--frost-100);
+  --color-frost-200: var(--frost-200);
+  --color-frost-300: var(--frost-300);
+  --color-sun-500: var(--sun-500);
+  --color-sun-600: var(--sun-600);
+  --color-gold-400: var(--gold-400);
+  --color-sky-500: var(--sky-500);
+  --color-grass-500: var(--grass-500);
+  --color-danger-500: var(--danger-500);
+  --color-kit-boardwalk: var(--kit-boardwalk);
+  --color-kit-pirate: var(--kit-pirate);
+  --color-kit-cosmic: var(--kit-cosmic);
+  --color-kit-spooky: var(--kit-spooky);
+  --color-kit-storybook: var(--kit-storybook);
+  --color-kit-winter: var(--kit-winter);
+  --color-kit-gp: var(--kit-gp);
+  --color-kit-rails: var(--kit-rails);
+  --color-kit-putt: var(--kit-putt);
+  --color-kit-cuddle: var(--kit-cuddle);
+  --color-kit-marble: var(--kit-marble);
+  --font-display: var(--font-display);
+  --font-ui: var(--font-ui);
+  --font-body: var(--font-body);
+  --font-numeral: var(--font-numeral);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--frost-200);
+  color: var(--ink-700);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The reference language: skewed geometry with upright-enough content. */
+.skew-ui {
+  transform: skewX(var(--skew-ui));
+}
+.skew-display {
+  transform: skewX(var(--skew-display));
+}
+.unskew-ui {
+  transform: skewX(calc(-1 * var(--skew-ui)));
+}
+
+/* Corner-cut frost panel (UI_UX §2.4 --cut). */
+.panel-cut {
+  clip-path: polygon(
+    var(--cut) 0,
+    100% 0,
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    0 100%,
+    0 var(--cut)
+  );
+}
+
+/* Faceted low-poly background (UI_UX §2.4) — generated, self-contained. */
+.facet-bg {
+  background-color: var(--frost-200);
+  background-image:
+    linear-gradient(105deg, rgba(16, 21, 31, 0.04) 25%, transparent 25.5%),
+    linear-gradient(-105deg, rgba(16, 21, 31, 0.03) 25%, transparent 25.5%),
+    linear-gradient(15deg, rgba(255, 255, 255, 0.5) 45%, transparent 45.5%),
+    linear-gradient(165deg, rgba(16, 21, 31, 0.02) 60%, transparent 60.5%);
+  background-size:
+    280px 190px,
+    240px 170px,
+    320px 220px,
+    260px 200px;
+}
+
+/* Sunburst rays for card headers (UI_UX §2.4) — pure CSS, GPU-cheap. */
+.sunburst {
+  background-image: repeating-conic-gradient(
+    from 0deg at 50% 42%,
+    rgba(255, 255, 255, 0.14) 0deg 15deg,
+    transparent 15deg 30deg
+  );
+}
+
+/* Focus visibility (UI_UX §7.7): gold, 2px, everywhere. */
+:focus-visible {
+  outline: 2px solid var(--gold-400);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
