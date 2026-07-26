@@ -104,10 +104,12 @@ This keeps the sim testable headless and portable to a worker (§4.4) or future 
   is independent of frame rate.
 - Time model: 1 real s = 2 game min at 1× (GAME_DESIGN §16) ⇒ 1 tick = 12 game‑seconds.
   Month = 3,000 ticks. All durations authored in game‑time units.
-- Systems run in a **fixed order** each tick (determinism): commands → weather/events → guests
-  (staged: decide→move→interact) → rides → staff → economy accrual → rating → XP → emitted
-  events. Heavy systems (guest decide, pathfind) are **time‑sliced** across ticks with strict
-  per‑tick budgets; correctness never depends on slice timing.
+- Systems run in a **fixed order** each tick (determinism). Shipped order as of M3:
+  commands → guests (staged: decide→move→interact) → staff (janitors → mechanics) → rides →
+  goals/XP → economy (ledger) → emitted events; weather/events and rating splice in at their
+  milestones without reordering what exists. Heavy systems (guest decide, pathfind) are
+  **time‑sliced** across ticks with strict per‑tick budgets; correctness never depends on
+  slice timing.
 
 ### 4.2 Data layout
 

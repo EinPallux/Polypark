@@ -10,8 +10,9 @@ import { expect, test, type Page } from "@playwright/test";
  */
 test.use({ viewport: { width: 1600, height: 900 } });
 
-// Software-GL scene boots eat most of the default 30 s cap by themselves.
-test.setTimeout(120_000);
+// Software-GL scene boots eat most of the default 30 s cap by themselves —
+// and the two long flow tests build whole parks through the real UI.
+test.setTimeout(180_000);
 
 async function bootFreshPark(page: Page): Promise<void> {
   await page.goto("/play?new=1");
@@ -82,6 +83,50 @@ test("title CONTINUE goes live once a save exists", async ({ page }) => {
   await expect(page.getByTestId("menu-continue")).toBeEnabled();
   await page.getByTestId("menu-continue").click();
   await expect(page).toHaveURL(/\/play$/);
+});
+
+test("M3: snap a coaster circuit, test it, open it", async ({ page }) => {
+  await bootFreshPark(page);
+  // A short path spine so the park has walkable ground near the ride.
+  await page.getByTestId("dock-paths").click();
+  await page.mouse.move(800, 780);
+  await page.mouse.down();
+  for (let y = 780; y >= 430; y -= 20) {
+    await page.mouse.move(800, y);
+  }
+  await page.mouse.up();
+  await page.keyboard.press("Escape");
+
+  // Pause the sim while snapping — builders do, and the panel stays snappy
+  // on the software-GL runner.
+  await page.keyboard.press(" ");
+  // Start a Mousetrap west of the spine and snap the starter oval.
+  await page.getByTestId("dock-rides").click();
+  await page.getByTestId("ride-start-mouse").click();
+  await page.mouse.click(640, 560);
+  await expect(page.getByTestId("track-builder")).toBeVisible();
+  for (const id of [
+    "piece-straight",
+    "piece-corner-small",
+    "piece-corner-small",
+    "piece-straight",
+    "piece-straight",
+    "piece-corner-small",
+    "piece-corner-small",
+  ]) {
+    await page.getByTestId(id).click();
+  }
+  await expect(page.getByTestId("builder-status")).toHaveText(/closed/i);
+  await expect(page.getByTestId("builder-stats")).toBeVisible();
+
+  // Unpause, test at 4×, then open from the inspector once the test passes.
+  await page.getByTestId("builder-test").click();
+  await page.getByTestId("speed-4").click();
+  await page.getByTestId("builder-done").click();
+  await expect(page.getByTestId("ride-inspector")).toBeVisible();
+  await expect(page.getByTestId("ride-open")).toBeVisible({ timeout: 30_000 });
+  await page.getByTestId("ride-open").click();
+  await expect(page.getByTestId("ride-state")).toHaveText(/open/i);
 });
 
 test("M2: open the park and guests arrive; goals progress", async ({ page }) => {

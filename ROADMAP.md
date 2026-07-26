@@ -84,17 +84,39 @@ congestion (plain A* + cache ships; revisit at M6 perf pass) · vomit + First Ai
 M3) · emote cluster chips + hero guest pool (M6 polish) · country‑road car flavor (M4 Parking) ·
 shop price editing UI (M3 economy pass).
 
-## M3 · Rides & the track builder — "the marquee toy" (≈3 weeks)
+## M3 · Rides & the track builder — ✅ complete 2026‑07‑26
 
-Ride FSMs, queues, breakdown/repair + Mechanic · flat‑ride set v1 (Teacups, Carousel, Galleon,
-Rocket, Pumpkin Drop) with parametric animation · **track builder** (ports/snapping/validation/
-energy check) for Mousetrap + Steelwind, trains kinematics, E/I/N computation + live preview ·
-ride inspector (pricing/ops/stats) · Build Catalog screen v1 (roster grid, UI_UX §6.6) ·
-double‑click ride‑along camera.
+Shipped: **the track builder** for Steelwind (steel) + Mousetrap (mouse) — measured port
+metadata for 12 piece kinds (`src/content/track.ts`), 1 m pose lattice with 0.5 m levels,
+attach‑by‑either‑end flipping (drops and right turns are mirrored twins for free), occupancy
+rasterization with terrain/clearance/track‑stacking rules, piecewise‑constant energy model
+(chain lifts engage on would‑stall climbs; loops demand entry speed; valleys/overspeed reject
+with builder‑readable reasons) and live E/I/N per GAME_BALANCE §5.3 · ride FSMs
+closed→testing→open→broken with test‑before‑open, virtual FIFO entrance queues, boarding/
+fares/fun payouts by archetype E‑band, breakdown rolls (MTBF × age × coverage) · Mechanics
+(hire/fire, nearest‑job dispatch, 20–60 game‑min repairs, $950/mo wages) · trains playing back
+the measured speed profile (interpolated cars, hill pitch, full 360° loop sweep) · flat‑ride
+set v1 — Teacup Twirl, Critter Carousel, Galleon Swing, Rocket Orbit, Pumpkin Drop — as pure
+kit compositions with parametric spin/swing/drop programs (P7: pad tiles, supports, pirate
+ship, rockets, pumpkins, CubePets mounts) · builder UI (piece palette filtered by live
+dry‑runs, mirror toggle, circuit status, cost ticker), ride inspector (test/open/close, ±price,
+stats, queue/riders/cycles, edit/demolish), RIDES dock palette with roster · double‑click
+ride‑along chase camera (Esc hops off) · rides join arrivals appeal + fairEntry (§4.1 M3 note)
+and the ledger (ride income category, per‑piece upkeep, mechanic wages) · save v4 with v3
+migration · 5 new goal cards.
 
-**Demo:** snap a custom Steelwind circuit, test it, open it, ride it, price it, break it, fix it.
-**Accept:** track golden‑layout tests (5 canonical circuits validate & score in bands, invariant
-#5) · builder rejects all invalid‑port fuzz cases · 60 fps with 6 running coasters + 800 guests.
+**Acceptance:** golden‑layout tests — 5 canonical circuits (starter oval, lift‑and‑drop,
+airtime out‑and‑back, double‑loop marquee, mouse switchback ladder) validate and score in
+designed E/I/N bands (invariant #5) · 300‑layout invalid‑port fuzz: nothing invalid ever
+validates, nothing crashes · bench: **6 running coasters + 1,261–1,500 live guests at
+2.26 ms/tick avg (7.3 ms worst)** vs the 6 ms budget (`scripts/bench-guests.ts`; frame‑rate on
+real GPUs via Vercel preview, owner eyeball — same posture as M1) · e2e: snap a Mousetrap
+circuit through the real UI → circuit closes with live stats → test → open · live probe:
+teacups placed/tested/opened via roster + inspector, guests admitted, fares collected.
+**Deferred, named:** painted queue‑path pieces (virtual queues ship; CoasterKit queue tiles
+land M4) · banked "skew" pieces + Sky Serpent/Splashlog families (M5 coaster depth) · Build
+Catalog screen v1 (M4, with the tycoon layer's unlock surface) · refurbishment + visible aging
+(M4 economy pass) · staff pathfinding on paths (mechanics beeline; M4 staff polish).
 
 ## M4 · The tycoon layer — "real stakes" (≈3 weeks)
 
