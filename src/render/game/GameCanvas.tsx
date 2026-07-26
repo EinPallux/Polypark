@@ -6,12 +6,15 @@ import { CELL_SIZE_METERS } from "@/shared/grid";
 import { useGame } from "@/ui/game/store";
 import { BuildOverlay } from "./BuildOverlay";
 import { CameraRig } from "./CameraRig";
+import { FlatRides } from "./FlatRides";
 import { Guests } from "./Guests";
 import { PlacedPieces } from "./PlacedPieces";
 import { Scatter } from "./Scatter";
 import { SimDriver } from "./SimDriver";
 import { SkyRig } from "./SkyRig";
 import { TerrainMesh } from "./TerrainMesh";
+import { Tracks } from "./Tracks";
+import { Trains } from "./Trains";
 import { Water } from "./Water";
 
 /** Mounts once the surrounding Suspense boundary resolves — flips the store flag. */
@@ -64,6 +67,9 @@ export function GameCanvas() {
         <Water terrain={terrain} />
         <Scatter terrain={terrain} fileForPiece={fileForPiece} />
         <PlacedPieces terrain={terrain} fileForPiece={fileForPiece} />
+        <Tracks terrain={terrain} fileForPiece={fileForPiece} />
+        <Trains terrain={terrain} />
+        <FlatRides terrain={terrain} fileForPiece={fileForPiece} />
         <Guests terrain={terrain} />
         <BuildOverlay terrain={terrain} fileForPiece={fileForPiece} />
         <SceneReadyFlag />

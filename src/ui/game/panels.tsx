@@ -121,6 +121,8 @@ export function StaffPopover({ open, onClose }: { open: boolean; onClose: () => 
   const hud = useGame((state) => state.hud);
   const hire = useGame((state) => state.hireJanitor);
   const fire = useGame((state) => state.fireJanitor);
+  const hireMech = useGame((state) => state.hireMechanic);
+  const fireMech = useGame((state) => state.fireMechanic);
   if (!open || !hud) {
     return null;
   }
@@ -149,6 +151,23 @@ export function StaffPopover({ open, onClose }: { open: boolean; onClose: () => 
             {t("staff.hire")}
           </SlabButton>
           <SlabButton variant="secondary" onClick={fire} disabled={hud.janitorCount === 0}>
+            {t("staff.fire")}
+          </SlabButton>
+        </div>
+        <div className="mt-4 flex items-center justify-between border-t border-ink-700/15 pt-3">
+          <span className="font-ui text-sm font-semibold text-ink-700">
+            {t("staff.mechanics")}:{" "}
+            <span data-testid="mechanic-count" className="font-numeral tabular-nums">
+              {hud.mechanicCount}
+            </span>
+          </span>
+          <span className="font-ui text-xs text-ink-500">🔧 {hud.brokenRideCount}</span>
+        </div>
+        <div className="mt-3 flex gap-2">
+          <SlabButton data-testid="hire-mechanic" onClick={hireMech}>
+            {t("staff.hireMechanic")}
+          </SlabButton>
+          <SlabButton variant="secondary" onClick={fireMech} disabled={hud.mechanicCount === 0}>
             {t("staff.fire")}
           </SlabButton>
         </div>

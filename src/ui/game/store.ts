@@ -10,14 +10,18 @@ import {
   createFixedStepper,
   createSim,
   type FixedStepper,
+  type FlatRideView,
   type GameSpeed,
   type HudView,
   type MonthlyReport,
   type Rotation,
   type SimFacade,
   type SimStateSnapshot,
+  type TrackedRideView,
 } from "@/sim/api";
 import { readSlot, writeSlot, requestPersistence, type SlotMeta } from "@/save/store";
+import { type FlatRideId } from "@/content/rides";
+import { type TrackFamilyId, type TrackKind } from "@/content/track";
 import { SAVE_FORMAT_VERSION, type SaveFile } from "@/save/schema";
 import { t } from "@/ui/i18n/t";
 
@@ -31,7 +35,10 @@ export type BuildMode =
   | { readonly kind: "inspect" }
   | { readonly kind: "place"; readonly pieceId: string }
   | { readonly kind: "path" }
-  | { readonly kind: "bulldoze" };
+  | { readonly kind: "bulldoze" }
+  | { readonly kind: "place-ride"; readonly defId: FlatRideId }
+  /** Track builder: rideId null = choosing the station spot; set = appending. */
+  | { readonly kind: "track"; readonly family: TrackFamilyId; readonly rideId: number | null };
 
 export interface Toast {
   readonly id: number;
@@ -52,6 +59,9 @@ interface GameState {
   facade: SimFacade | null;
   snapshot: SimStateSnapshot | null;
   hud: HudView | null;
+  rides: { tracked: TrackedRideView[]; flat: FlatRideView[] } | null;
+  selectedRide: number | null;
+  rideAlong: number | null;
   stepper: FixedStepper;
   selectedGuest: number | null;
   monthReport: MonthlyReport | null;
@@ -88,6 +98,15 @@ interface GameState {
   setEntryFee: (cents: number) => void;
   hireJanitor: () => void;
   fireJanitor: () => void;
+  hireMechanic: () => void;
+  fireMechanic: () => void;
+  appendTrackPiece: (kind: TrackKind, flipped: boolean) => void;
+  popTrackPiece: () => void;
+  setRideState: (key: number, to: "closed" | "testing" | "open") => void;
+  setRidePrice: (key: number, cents: number) => void;
+  demolishRide: (key: number) => void;
+  selectRide: (key: number | null) => void;
+  setRideAlong: (key: number | null) => void;
   dismissGoal: (cardId: string) => void;
   selectGuest: (slot: number | null) => void;
   closeReport: () => void;
@@ -110,6 +129,9 @@ export const useGame = create<GameState>()(
     facade: null,
     snapshot: null,
     hud: null,
+    rides: null,
+    selectedRide: null,
+    rideAlong: null,
     stepper: createFixedStepper(),
     selectedGuest: null,
     monthReport: null,
@@ -191,6 +213,7 @@ export const useGame = create<GameState>()(
       const worldVersion = facade.worldVersion();
       set((current) => ({
         hud: facade.hud(),
+        rides: facade.ridesView(),
         worldVersion,
         ...(current.worldVersion !== worldVersion ? { snapshot: facade.snapshot() } : {}),
       }));
@@ -212,6 +235,12 @@ export const useGame = create<GameState>()(
           get().pushToast("good", t("play.levelUp", { level: event.level }));
         } else if (event.type === "park/monthReport") {
           set({ monthReport: event.report });
+        } else if (event.type === "ride/broke") {
+          get().pushToast("bad", t("ride.brokeToast"));
+        } else if (event.type === "ride/repaired") {
+          get().pushToast("good", t("ride.repairedToast"));
+        } else if (event.type === "ride/testPassed") {
+          get().pushToast("good", t("ride.testPassedToast"));
         }
       }
     },
@@ -250,6 +279,18 @@ export const useGame = create<GameState>()(
       } else if (buildMode.kind === "path") {
         const check = facade.checkPaintPath(x, z);
         set({ hover: { x, z, valid: check.ok } });
+      } else if (buildMode.kind === "track" && buildMode.rideId === null) {
+        const reason = facade.checkStartTrack(buildMode.family, x * 2 + 1, z * 2, rotation);
+        set({
+          hover: {
+            x,
+            z,
+            valid: reason === null,
+            ...(reason ? { reason: DENIAL_TEXT[reason] ?? reason } : {}),
+          },
+        });
+      } else if (buildMode.kind === "place-ride") {
+        set({ hover: { x, z, valid: true } });
       } else if (buildMode.kind === "bulldoze") {
         set({ hover: { x, z, valid: true } });
       } else {
@@ -280,6 +321,41 @@ export const useGame = create<GameState>()(
         }
         state.syncFromSim();
         state.hoverCell(x, z);
+      } else if (buildMode.kind === "place-ride") {
+        const result = facade.dispatch({
+          type: "build/placeFlatRide",
+          defId: buildMode.defId,
+          x,
+          z,
+          rot: rotation,
+        });
+        if (!result.ok) {
+          state.pushToast("bad", DENIAL_TEXT[result.reason] ?? t("play.deny.generic"));
+        } else {
+          set({ buildMode: { kind: "inspect" } });
+        }
+        state.syncFromSim();
+      } else if (buildMode.kind === "track" && buildMode.rideId === null) {
+        const result = facade.dispatch({
+          type: "ride/startTrack",
+          family: buildMode.family,
+          mx: x * 2 + 1,
+          mz: z * 2,
+          heading: rotation,
+        });
+        if (!result.ok) {
+          state.pushToast("bad", DENIAL_TEXT[result.reason] ?? t("play.deny.generic"));
+        } else {
+          const rides = facade.ridesView().tracked;
+          const newest = rides[rides.length - 1];
+          if (newest) {
+            set({
+              buildMode: { kind: "track", family: buildMode.family, rideId: newest.key },
+              selectedRide: newest.key,
+            });
+          }
+        }
+        state.syncFromSim();
       } else if (buildMode.kind === "path") {
         set({ pathDrag: [{ x, z }] });
       } else if (buildMode.kind === "bulldoze") {
@@ -370,6 +446,77 @@ export const useGame = create<GameState>()(
     fireJanitor() {
       get().facade?.dispatch({ type: "staff/fireJanitor" });
       get().syncFromSim();
+    },
+    hireMechanic() {
+      const result = get().facade?.dispatch({ type: "staff/hireMechanic" });
+      if (result && !result.ok && result.reason === "not-enough-money") {
+        get().pushToast("bad", t("play.deny.money"));
+      }
+      get().syncFromSim();
+    },
+    fireMechanic() {
+      get().facade?.dispatch({ type: "staff/fireMechanic" });
+      get().syncFromSim();
+    },
+    appendTrackPiece(kind, flipped) {
+      const state = get();
+      const { facade, buildMode } = state;
+      if (!facade || buildMode.kind !== "track" || buildMode.rideId === null) {
+        return;
+      }
+      const result = facade.dispatch({
+        type: "ride/appendPiece",
+        rideId: buildMode.rideId,
+        kind,
+        flipped,
+      });
+      if (!result.ok) {
+        state.pushToast("bad", DENIAL_TEXT[result.reason] ?? t("ride.deny.append"));
+      }
+      state.syncFromSim();
+    },
+    popTrackPiece() {
+      const state = get();
+      const { facade, buildMode } = state;
+      if (!facade || buildMode.kind !== "track" || buildMode.rideId === null) {
+        return;
+      }
+      facade.dispatch({ type: "ride/popPiece", rideId: buildMode.rideId });
+      state.syncFromSim();
+    },
+    setRideState(key, to) {
+      const state = get();
+      const result = state.facade?.dispatch({ type: "ride/setState", rideId: key, to });
+      if (result && !result.ok) {
+        state.pushToast("bad", t("ride.deny.state"));
+      }
+      state.syncFromSim();
+    },
+    setRidePrice(key, cents) {
+      get().facade?.dispatch({ type: "ride/setPrice", rideId: key, cents });
+      get().syncFromSim();
+    },
+    demolishRide(key) {
+      const state = get();
+      if (!state.facade) {
+        return;
+      }
+      if (key > 0) {
+        state.facade.dispatch({ type: "ride/demolish", rideId: key });
+      } else {
+        state.facade.dispatch({ type: "build/removeFlatRide", id: -key, refund: "bulldoze" });
+      }
+      set({
+        selectedRide: null,
+        ...(state.buildMode.kind === "track" ? { buildMode: { kind: "inspect" as const } } : {}),
+      });
+      state.syncFromSim();
+    },
+    selectRide(key) {
+      set({ selectedRide: key });
+    },
+    setRideAlong(key) {
+      set({ rideAlong: key });
     },
     dismissGoal(cardId) {
       get().facade?.dispatch({ type: "goal/dismiss", cardId });

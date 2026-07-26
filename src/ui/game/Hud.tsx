@@ -99,9 +99,11 @@ function SpeedControls() {
 function Dock({
   onOpenPalette,
   onToggleStaff,
+  onOpenRides,
 }: {
   onOpenPalette: (category: "path" | "scenery" | "shops") => void;
   onToggleStaff: () => void;
+  onOpenRides: () => void;
 }) {
   const buildMode = useGame((state) => state.buildMode);
   const setBuildMode = useGame((state) => state.setBuildMode);
@@ -133,6 +135,13 @@ function Dock({
       icon: "🍔",
       active: buildMode.kind === "place",
       onClick: () => onOpenPalette("shops"),
+    },
+    {
+      id: "rides",
+      label: t("play.dock.rides"),
+      icon: "🎢",
+      active: buildMode.kind === "track" || buildMode.kind === "place-ride",
+      onClick: onOpenRides,
     },
     {
       id: "staff",
@@ -169,19 +178,6 @@ function Dock({
           </span>
           <span className="unskew-ui mt-0.5">{button.label}</span>
         </button>
-      ))}
-      <span className="mx-1 w-px bg-white/15" aria-hidden />
-      {[{ icon: "🎢", label: t("play.dock.rides"), milestone: "M3" }].map((stub) => (
-        <span
-          key={stub.label}
-          title={t("hub.arrives", { milestone: stub.milestone })}
-          className="skew-ui flex flex-col items-center px-3 py-1.5 font-ui text-xs font-bold text-frost-300/35 uppercase"
-        >
-          <span className="unskew-ui text-lg leading-none" aria-hidden>
-            {stub.icon}
-          </span>
-          <span className="unskew-ui mt-0.5">{stub.label}</span>
-        </span>
       ))}
     </div>
   );
@@ -242,9 +238,11 @@ function ContextHints() {
 export function Hud({
   onOpenPalette,
   onToggleStaff,
+  onOpenRides,
 }: {
   onOpenPalette: (category: "path" | "scenery" | "shops") => void;
   onToggleStaff: () => void;
+  onOpenRides: () => void;
 }) {
   const parkName = useGame((state) => state.hud?.parkName);
   const [hintCollapsed] = useState(false);
@@ -267,7 +265,7 @@ export function Hud({
       <div className="flex items-end justify-between gap-4">
         <Vitals />
         <div className="flex items-center gap-2">
-          <Dock onOpenPalette={onOpenPalette} onToggleStaff={onToggleStaff} />
+          <Dock onOpenPalette={onOpenPalette} onToggleStaff={onToggleStaff} onOpenRides={onOpenRides} />
           <SpeedControls />
         </div>
         {hintCollapsed ? <Keycap>?</Keycap> : <ContextHints />}
