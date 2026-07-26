@@ -36,6 +36,146 @@
     {
       "aabb": {
         "max": [
+          0.8,
+          2.7,
+          0.4
+        ],
+        "min": [
+          -0.8,
+          0,
+          -0.4
+        ]
+      },
+      "category": "character",
+      "file": "models/blockycharacters/character-b.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "blockycharacters/character-b",
+      "kit": "base",
+      "pack": "Kenney_BlockyCharacters",
+      "sizeBytes": 62456,
+      "source": "Kenney_BlockyCharacters/GLB format/character-b.glb",
+      "tags": [
+        "guest"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.8,
+          2.7,
+          0.4
+        ],
+        "min": [
+          -0.8,
+          0,
+          -0.4
+        ]
+      },
+      "category": "character",
+      "file": "models/blockycharacters/character-c.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "blockycharacters/character-c",
+      "kit": "base",
+      "pack": "Kenney_BlockyCharacters",
+      "sizeBytes": 59664,
+      "source": "Kenney_BlockyCharacters/GLB format/character-c.glb",
+      "tags": [
+        "guest"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.8,
+          2.7,
+          0.4
+        ],
+        "min": [
+          -0.8,
+          0,
+          -0.4
+        ]
+      },
+      "category": "character",
+      "file": "models/blockycharacters/character-d.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "blockycharacters/character-d",
+      "kit": "base",
+      "pack": "Kenney_BlockyCharacters",
+      "sizeBytes": 60000,
+      "source": "Kenney_BlockyCharacters/GLB format/character-d.glb",
+      "tags": [
+        "guest"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.8,
+          2.7,
+          0.4
+        ],
+        "min": [
+          -0.8,
+          0,
+          -0.4
+        ]
+      },
+      "category": "character",
+      "file": "models/blockycharacters/character-e.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "blockycharacters/character-e",
+      "kit": "base",
+      "pack": "Kenney_BlockyCharacters",
+      "sizeBytes": 61360,
+      "source": "Kenney_BlockyCharacters/GLB format/character-e.glb",
+      "tags": [
+        "guest"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.8,
+          2.7,
+          0.4
+        ],
+        "min": [
+          -0.8,
+          0,
+          -0.4
+        ]
+      },
+      "category": "character",
+      "file": "models/blockycharacters/character-f.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "blockycharacters/character-f",
+      "kit": "base",
+      "pack": "Kenney_BlockyCharacters",
+      "sizeBytes": 62732,
+      "source": "Kenney_BlockyCharacters/GLB format/character-f.glb",
+      "tags": [
+        "guest"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
           0.209,
           0.308,
           0.466
@@ -203,6 +343,93 @@
       "source": "Kenney_CoasterKit/GLB format/queue-straight.glb",
       "tags": [
         "queue"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.5,
+          1.88,
+          0.5
+        ],
+        "min": [
+          -0.5,
+          0,
+          -0.7
+        ]
+      },
+      "category": "building",
+      "file": "models/coasterkit/stall-drinks.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "coasterkit/stall-drinks",
+      "kit": "boardwalk",
+      "pack": "Kenney_CoasterKit",
+      "sizeBytes": 19812,
+      "source": "Kenney_CoasterKit/GLB format/stall-drinks.glb",
+      "tags": [
+        "shop",
+        "drink"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.519,
+          1.545,
+          0.5
+        ],
+        "min": [
+          -0.523,
+          0,
+          -0.7
+        ]
+      },
+      "category": "building",
+      "file": "models/coasterkit/stall-food.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "coasterkit/stall-food",
+      "kit": "boardwalk",
+      "pack": "Kenney_CoasterKit",
+      "sizeBytes": 21084,
+      "source": "Kenney_CoasterKit/GLB format/stall-food.glb",
+      "tags": [
+        "shop",
+        "food"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.5,
+          1.4,
+          0.5
+        ],
+        "min": [
+          -0.5,
+          0,
+          -0.56
+        ]
+      },
+      "category": "building",
+      "file": "models/coasterkit/stall-toilets.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "coasterkit/stall-toilets",
+      "kit": "base",
+      "pack": "Kenney_CoasterKit",
+      "sizeBytes": 17384,
+      "source": "Kenney_CoasterKit/GLB format/stall-toilets.glb",
+      "tags": [
+        "facility",
+        "restroom"
       ]
     },
     {

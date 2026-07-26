@@ -81,12 +81,43 @@ export const PILOT_MANIFEST: readonly ManifestEntry[] = [
   { id: "cubepets/cat", pack: "Kenney_CubePets", source: "Kenney_CubePets/GLB format/animal-cat.glb", category: "character", kit: "cuddle", tags: ["pet"] },
   { id: "cubepets/bunny", pack: "Kenney_CubePets", source: "Kenney_CubePets/GLB format/animal-bunny.glb", category: "character", kit: "cuddle", tags: ["pet"] },
   { id: "blockycharacters/character-a", pack: "Kenney_BlockyCharacters", source: "Kenney_BlockyCharacters/GLB format/character-a.glb", category: "character", kit: "base", tags: ["guest"] },
+  { id: "blockycharacters/character-b", pack: "Kenney_BlockyCharacters", source: "Kenney_BlockyCharacters/GLB format/character-b.glb", category: "character", kit: "base", tags: ["guest"] },
+  { id: "blockycharacters/character-c", pack: "Kenney_BlockyCharacters", source: "Kenney_BlockyCharacters/GLB format/character-c.glb", category: "character", kit: "base", tags: ["guest"] },
+  { id: "blockycharacters/character-d", pack: "Kenney_BlockyCharacters", source: "Kenney_BlockyCharacters/GLB format/character-d.glb", category: "character", kit: "base", tags: ["guest"] },
+  { id: "blockycharacters/character-e", pack: "Kenney_BlockyCharacters", source: "Kenney_BlockyCharacters/GLB format/character-e.glb", category: "character", kit: "base", tags: ["guest"] },
+  { id: "blockycharacters/character-f", pack: "Kenney_BlockyCharacters", source: "Kenney_BlockyCharacters/GLB format/character-f.glb", category: "character", kit: "base", tags: ["guest"] },
+  // Shops (Kenney CoasterKit park stalls — GAME_DESIGN §10)
+  { id: "coasterkit/stall-food", pack: "Kenney_CoasterKit", source: coaster("stall-food.glb"), category: "building", kit: "boardwalk", tags: ["shop", "food"] },
+  { id: "coasterkit/stall-drinks", pack: "Kenney_CoasterKit", source: coaster("stall-drinks.glb"), category: "building", kit: "boardwalk", tags: ["shop", "drink"] },
+  { id: "coasterkit/stall-toilets", pack: "Kenney_CoasterKit", source: coaster("stall-toilets.glb"), category: "building", kit: "base", tags: ["facility", "restroom"] },
   // Theme accents
   { id: "watercraftkit/boat-row-small", pack: "Kenney_WatercraftKit", source: "Kenney_WatercraftKit/GLB format/boat-row-small.glb", category: "prop", kit: "pirate", tags: ["boat"] },
   { id: "piratekit/cannon", pack: "Kenney_PirateKit", source: "Kenney_PirateKit/GLB format/cannon.glb", category: "prop", kit: "pirate", tags: ["pirate"] },
   { id: "holidaykit/tree-decorated-snow", pack: "Kenney_HolidayKit", source: "Kenney_HolidayKit/GLB format/tree-decorated-snow.glb", category: "scenery", kit: "winter", tags: ["tree", "holiday"] },
   { id: "citykitroads/light-curved", pack: "Kenney_CityKitRoads", source: "Kenney_CityKitRoads/GLB format/light-curved.glb", category: "prop", kit: "base", tags: ["lamp", "street"] },
 ];
+
+/**
+ * Emote glyphs (EmotesPack Vector/Style 2 — ONE style family, GAME_BALANCE
+ * §10) copied to public/emotes. Hunger has no pack glyph anywhere — the
+ * renderer draws that one tiny burger itself under P7's UI/SVG exception.
+ */
+export const EMOTE_SOURCES: readonly { id: string; source: string }[] = [
+  "faceHappy",
+  "faceSad",
+  "heart",
+  "anger",
+  "drop",
+  "sleep",
+  "swirl",
+  "question",
+  "cash",
+  "star",
+  "exclamation",
+].map((id) => ({
+  id,
+  source: `Kenney_EmotesPack/PNG/Vector/Style 2/emote_${id}.png`,
+}));
 
 /** Skybox images ship as-is (PNG copy, no mesh pipeline). */
 export const SKYBOX_SOURCES: readonly { id: string; source: string }[] = [

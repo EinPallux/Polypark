@@ -1,5 +1,6 @@
 import { money, type Money } from "@/shared/money";
 import { type CatalogPiece } from "./schema";
+import { SHOP_DEFS } from "./shops";
 
 /**
  * M1 placement costs straight from GAME_BALANCE §3.2: paths $40/cell, scenery
@@ -14,6 +15,10 @@ const SIZE_CLASS_COST_CENTS = [25_00, 80_00, 180_00, 400_00] as const;
 export function pieceCost(piece: CatalogPiece): Money {
   if (piece.category === "path") {
     return PATH_COST;
+  }
+  const shop = SHOP_DEFS[piece.id];
+  if (shop) {
+    return shop.buildCost;
   }
   const size = Math.max(
     piece.aabb.max[0] - piece.aabb.min[0],
