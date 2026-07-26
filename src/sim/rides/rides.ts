@@ -115,9 +115,11 @@ export function stationEntranceCell(anchor: TrackPose): { x: number; z: number }
   const midMz = anchor.mz + (anchor.heading === 0 ? 2 : anchor.heading === 2 ? -2 : 0);
   const rightX = [1, 0, -1, 0][anchor.heading]!;
   const rightZ = [0, -1, 0, 1][anchor.heading]!;
+  // 3.5 m from the rail centerline: one clear cell BEYOND the platform edge
+  // (the claimed rect ends at 2.5 m — landing inside it strands the queue).
   return {
-    x: Math.floor((midMx + rightX * 2.5) / 2),
-    z: Math.floor((midMz + rightZ * 2.5) / 2),
+    x: Math.floor((midMx + rightX * 3.5) / 2),
+    z: Math.floor((midMz + rightZ * 3.5) / 2),
   };
 }
 
