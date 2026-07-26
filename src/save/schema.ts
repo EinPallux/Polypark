@@ -8,9 +8,11 @@ import { z } from "zod";
  *
  * v1 (M0): tick/seed/parkName/rng.
  * v2 (M1): + money, + world (siteId, nextInstanceId, placed pieces, path cells).
+ * v3 (M2): + the living park — park open/fee, guests, litter, janitors,
+ *          ledger, stats, goals, xp.
  */
 
-export const SAVE_FORMAT_VERSION = 2;
+export const SAVE_FORMAT_VERSION = 3;
 
 export const RngStreamStateSchema = z.object({
   name: z.string(),
@@ -27,6 +29,9 @@ export const PlacedPieceSchema = z.object({
   paidCents: z.number().int().nonnegative(),
 });
 
+const numberArray = z.array(z.number());
+const intArray = z.array(z.number().int());
+
 export const SimSnapshotSchema = z.object({
   tick: z.number().int().nonnegative(),
   seed: z.number().int(),
@@ -38,6 +43,57 @@ export const SimSnapshotSchema = z.object({
     nextInstanceId: z.number().int().positive(),
     placed: z.array(PlacedPieceSchema),
     pathCells: z.array(z.number().int().min(0).max(1)),
+  }),
+  parkOpen: z.boolean(),
+  entryFeeCents: z.number().int().nonnegative(),
+  spawnAccumulator: z.number(),
+  monthNumber: z.number().int().nonnegative(),
+  lastMonthGuests: z.number().int().nonnegative(),
+  xp: z.number().nonnegative(),
+  ledger: z.object({
+    income: z.record(z.string(), z.number()),
+    expense: z.record(z.string(), z.number()),
+  }),
+  stats: z.record(z.string(), z.number()),
+  goals: z.object({
+    active: z.array(z.object({ cardId: z.string(), baseValue: z.number() })),
+    completed: z.array(z.string()),
+    cooldowns: z.record(z.string(), z.number()),
+  }),
+  litter: z.array(
+    z.object({ id: z.number().int(), cellX: z.number().int(), cellZ: z.number().int() }),
+  ),
+  janitors: z.array(
+    z.object({
+      id: z.number().int(),
+      x: z.number(),
+      z: z.number(),
+      path: intArray,
+      targetLitterId: z.number().int(),
+      cleanTicks: z.number().int(),
+    }),
+  ),
+  guests: z.object({
+    count: z.number().int().nonnegative(),
+    freeList: intArray,
+    state: intArray,
+    archetype: intArray,
+    variant: intArray,
+    x: numberArray,
+    z: numberArray,
+    hunger: numberArray,
+    thirst: numberArray,
+    bladder: numberArray,
+    energy: numberArray,
+    fun: numberArray,
+    wallet: intArray,
+    emote: intArray,
+    emoteTtl: intArray,
+    serveTicks: intArray,
+    servingShop: intArray,
+    enteredAtTick: intArray,
+    paths: z.array(z.tuple([z.number().int(), intArray])),
+    thoughts: z.array(z.tuple([z.number().int(), z.array(z.string())])),
   }),
 });
 

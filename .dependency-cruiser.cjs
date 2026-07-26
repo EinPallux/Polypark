@@ -7,9 +7,13 @@ module.exports = {
   forbidden: [
     {
       name: "no-circular",
+      comment:
+        "Runtime import cycles only. Cycles closed exclusively by `import type` edges are " +
+        "erased at compile time (verbatimModuleSyntax) — the sim system modules legitimately " +
+        "type-reference SimState while state.ts aggregates their value types (TECH §4.1).",
       severity: "error",
       from: {},
-      to: { circular: true },
+      to: { circular: true, viaOnly: { dependencyTypesNot: ["type-only"] } },
     },
     {
       name: "sim-is-pure",

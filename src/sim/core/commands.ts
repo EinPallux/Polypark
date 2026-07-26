@@ -1,5 +1,8 @@
 import { addMoney, money, scaleMoney, subMoney } from "@/shared/money";
+import { SHOP_DEFS } from "@/content/shops";
 import { type SimState } from "../state";
+import { invalidatePathCache } from "../guests/guests";
+import { dismissGoal } from "../goals/goals";
 import {
   cellIndex,
   checkPaintPath,
@@ -47,6 +50,11 @@ export type Command =
       readonly cells: readonly { readonly x: number; readonly z: number }[];
       readonly refundCentsPerCell?: number;
     }
+  | { readonly type: "park/setOpen"; readonly open: boolean }
+  | { readonly type: "park/setEntryFee"; readonly cents: number }
+  | { readonly type: "staff/hireJanitor" }
+  | { readonly type: "staff/fireJanitor" }
+  | { readonly type: "goal/dismiss"; readonly cardId: string }
   | { readonly type: "debug/noop" };
 
 export type CommandFailure = PlaceDenial | "invalid" | "nothing-to-do";
@@ -116,6 +124,14 @@ const handlers: HandlerMap = {
       state.world.occupancy[cellIndex(state.world, cell.x, cell.z)] = id;
     }
     state.money = subMoney(state.money, cost);
+    state.ledger.expense.construction += cost;
+    if (command.forceId === undefined) {
+      if (SHOP_DEFS[command.pieceId]) {
+        state.stats.shopsBuilt += 1;
+      } else if (def.category === "scenery" || def.category === "prop") {
+        state.stats.sceneryPlaced += 1;
+      }
+    }
     return {
       ok: true,
       inverse: { type: "build/remove", id, refund: "exact" },
@@ -143,6 +159,7 @@ const handlers: HandlerMap = {
       }
     }
     state.money = addMoney(state.money, refund);
+    state.ledger.expense.construction -= refund;
     return {
       ok: true,
       inverse: {
@@ -186,10 +203,17 @@ const handlers: HandlerMap = {
       state.world.occupancy[index] = PATH_OCCUPANT;
     }
     state.money = subMoney(state.money, total);
+    state.ledger.expense.construction += total;
+    if (command.forceCostCentsPerCell === undefined) {
+      state.stats.pathCellsBuilt += applied.length;
+    }
+    invalidatePathCache();
     return {
       ok: true,
       inverse: { type: "build/erasePath", cells: applied, refundCentsPerCell: perCell },
-      replay: { ...command, cells: applied },
+      // Pin the per-cell cost so redo charges identically AND skips the
+      // monotonic stat counters (they must not double-count on redo).
+      replay: { ...command, cells: applied, forceCostCentsPerCell: perCell },
     };
   },
 
@@ -216,6 +240,8 @@ const handlers: HandlerMap = {
       state.world.occupancy[index] = 0;
     }
     state.money = addMoney(state.money, money(refundPerCell * applied.length));
+    state.ledger.expense.construction -= refundPerCell * applied.length;
+    invalidatePathCache();
     return {
       ok: true,
       inverse: {
@@ -227,6 +253,51 @@ const handlers: HandlerMap = {
     };
   },
 
+  // Session/management commands are deliberately NOT undoable (no inverse):
+  // Ctrl+Z is for construction, not for un-closing your park.
+  "park/setOpen": (state, command) => {
+    state.parkOpen = command.open;
+    return { ok: true };
+  },
+  "park/setEntryFee": (state, command) => {
+    if (!Number.isInteger(command.cents) || command.cents < 0 || command.cents > 100_00) {
+      return { ok: false, reason: "invalid" };
+    }
+    state.entryFeeCents = command.cents;
+    return { ok: true };
+  },
+  "staff/hireJanitor": (state) => {
+    const HIRE_FEE = money(150_00); // GAME_BALANCE §7
+    if (state.money < HIRE_FEE) {
+      return { ok: false, reason: "not-enough-money" };
+    }
+    state.money = subMoney(state.money, HIRE_FEE);
+    state.ledger.expense.wages += HIRE_FEE;
+    const gate = state.world.terrain.site.gate;
+    state.janitors.push({
+      id: state.nextJanitorId,
+      x: (gate.x + 0.5) * 2,
+      z: (gate.z + 0.5) * 2,
+      path: [],
+      targetLitterId: -1,
+      cleanTicks: 0,
+    });
+    state.nextJanitorId += 1;
+    state.stats.janitorsHired += 1;
+    return { ok: true };
+  },
+  "staff/fireJanitor": (state) => {
+    if (state.janitors.length === 0) {
+      return { ok: false, reason: "nothing-to-do" };
+    }
+    state.janitors.pop();
+    return { ok: true };
+  },
+  "goal/dismiss": (state, command) => {
+    return dismissGoal(state, command.cardId)
+      ? { ok: true }
+      : { ok: false, reason: "nothing-to-do" };
+  },
   "debug/noop": () => ({ ok: true }),
 };
 

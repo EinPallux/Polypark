@@ -1,0 +1,110 @@
+/**
+ * Sim-only guest throughput bench (ROADMAP M2 acceptance: 1,200 guests ≤6 ms/tick
+ * on the reference machine). Not part of `pnpm gate` — run manually:
+ *
+ *   pnpm tsx scripts/bench-guests.ts
+ *
+ * Builds Meadowbrook with a big central plaza + shop ring, opens the gate free,
+ * grows the crowd, then times advance(1) at peak population. Node's perf timer
+ * lives here in scripts/ — sim/ itself stays wall-clock free.
+ */
+import { performance } from "node:perf_hooks";
+import { money } from "../src/shared/money";
+import { MEADOWBROOK } from "../src/content/sites/meadowbrook";
+import { SHOP_DEFS } from "../src/content/shops";
+import { createSim } from "../src/sim/api";
+import { type SimPieceDef } from "../src/content/costs";
+
+const pieceDefs: SimPieceDef[] = [
+  { id: "bench/tree", category: "scenery", footprint: { w: 1, d: 1 }, cost: money(25_00) },
+  ...Object.keys(SHOP_DEFS).map((id) => ({
+    id,
+    category: "building" as const,
+    footprint: { w: 1, d: 1 },
+    cost: SHOP_DEFS[id]!.buildCost,
+  })),
+];
+
+// A funded park: plaza + 30 shops overrun the $75k sandbox start, so boost the
+// bankroll through the public snapshot/resume seam (no sim internals touched).
+const seedSim = createSim({
+  seed: 4242,
+  parkName: "Bench Park",
+  site: MEADOWBROOK,
+  pieceDefs,
+});
+const sim = createSim({
+  seed: 4242,
+  parkName: "Bench Park",
+  site: MEADOWBROOK,
+  pieceDefs,
+  resumeFrom: { ...seedSim.snapshot(), money: 500_000_00 },
+});
+
+// Plaza: a wide band north of the gate painted wherever terrain allows, with
+// unpainted island cells left free so shops can sit inside the crowd (every
+// island neighbor is path, so serve access is guaranteed).
+const isIsland = (x: number, z: number): boolean => x % 4 === 2 && z % 4 === 2;
+const cells: { x: number; z: number }[] = [];
+for (let z = MEADOWBROOK.gate.z; z >= 8; z--) {
+  for (let x = 8; x <= MEADOWBROOK.cells.w - 8; x++) {
+    if (!isIsland(x, z) && sim.checkPaintPath(x, z).ok) {
+      cells.push({ x, z });
+    }
+  }
+}
+const paint = sim.dispatch({ type: "build/paintPath", cells });
+if (!paint.ok) {
+  throw new Error(`bench: path paint failed: ${paint.reason}`);
+}
+
+// Shops on the islands so needs get met and guests linger.
+const shopIds = Object.keys(SHOP_DEFS);
+let placed = 0;
+for (let z = 8; z <= MEADOWBROOK.gate.z; z++) {
+  for (let x = 8; x <= MEADOWBROOK.cells.w - 8; x++) {
+    if (isIsland(x, z)) {
+      const pieceId = shopIds[placed % shopIds.length]!;
+      if (sim.dispatch({ type: "build/place", pieceId, x, z, rot: 0 }).ok) {
+        placed += 1;
+      }
+    }
+  }
+}
+
+sim.dispatch({ type: "park/setEntryFee", cents: 0 });
+sim.dispatch({ type: "park/setOpen", open: true });
+
+// Grow the crowd, then time per-tick advance strictly inside opening hours
+// (gate stops admitting at 21:00 = tick 3600 and the crowd drains).
+const TARGET = 1_200;
+const SAMPLES = 300;
+while (sim.hud().guestCount < TARGET && sim.hud().tick < 3_600 - SAMPLES) {
+  sim.advance(25);
+}
+const popAtStart = sim.hud().guestCount;
+
+let totalMs = 0;
+let worstMs = 0;
+let popPeak = popAtStart;
+for (let i = 0; i < SAMPLES; i++) {
+  const start = performance.now();
+  sim.advance(1);
+  const ms = performance.now() - start;
+  totalMs += ms;
+  worstMs = Math.max(worstMs, ms);
+  popPeak = Math.max(popPeak, sim.hud().guestCount);
+}
+
+const avg = totalMs / SAMPLES;
+console.log(`shops placed        ${placed}`);
+console.log(`plaza path cells    ${cells.length}`);
+console.log(`population timed    ${popAtStart} → peak ${popPeak} (target ${TARGET})`);
+console.log(`avg tick            ${avg.toFixed(3)} ms`);
+console.log(`worst tick          ${worstMs.toFixed(3)} ms`);
+const LIMIT_MS = 6;
+if (popAtStart >= TARGET && avg > LIMIT_MS) {
+  console.error(`FAIL: avg ${avg.toFixed(3)} ms > ${LIMIT_MS} ms at ${popAtStart} guests`);
+  process.exit(1);
+}
+console.log(avg <= LIMIT_MS ? "OK    within the 6 ms/tick budget" : "NOTE  under-populated run");

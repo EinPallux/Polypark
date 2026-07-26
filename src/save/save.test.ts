@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { gzipSync, strToU8 } from "fflate";
-import { createSim } from "@/sim/api";
+import { createSim, type SimStateSnapshot } from "@/sim/api";
 import { findOpenFlat, TEST_PIECES, TEST_SITE } from "@/sim/testing/fixture";
 import { decodeSave, encodeSave, SaveCorruptError } from "./codec";
 import { runMigrations, SaveVersionError, type Migration } from "./migrations";
@@ -27,7 +27,7 @@ function makeSave(): SaveFile {
     formatVersion: SAVE_FORMAT_VERSION,
     appVersion: "0.1.0",
     meta: { name: "Roundtrip Park", savedAtIso: "2026-07-26T12:00:00.000Z" },
-    sim: structuredClone(sim.snapshot()) as SaveFile["sim"],
+    sim: structuredClone(sim.snapshot()) as unknown as SaveFile["sim"],
   };
 }
 
@@ -46,13 +46,13 @@ describe("save codec (TECH §8)", () => {
       seed: decoded.sim.seed,
       site: TEST_SITE,
       pieceDefs: TEST_PIECES,
-      resumeFrom: decoded.sim,
+      resumeFrom: decoded.sim as unknown as SimStateSnapshot,
     });
     const control = createSim({
       seed: save.sim.seed,
       site: TEST_SITE,
       pieceDefs: TEST_PIECES,
-      resumeFrom: save.sim,
+      resumeFrom: save.sim as unknown as SimStateSnapshot,
     });
     resumed.advance(100);
     control.advance(100);

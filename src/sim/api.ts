@@ -18,6 +18,16 @@ import {
   type SimStateSnapshot,
 } from "./state";
 import {
+  guestNeedsSnapshot,
+  liveGuestCount,
+  moodOf,
+  tickGuests,
+  type GuestSoA,
+} from "./guests/guests";
+import { tickJanitors } from "./staff/janitors";
+import { goalProgress, levelForXp, tickGoals, type GoalProgress } from "./goals/goals";
+import { tickLedger } from "./economy/ledger";
+import {
   checkPaintPath,
   checkPlace,
   resolveAllPathTiles,
@@ -39,7 +49,42 @@ export type {
   Rotation,
   Terrain,
 };
-export { createFixedStepper, TICKS_PER_SECOND, GAME_SECONDS_PER_TICK, type GameSpeed } from "./core/loop";
+export {
+  createFixedStepper,
+  TICKS_PER_SECOND,
+  TICKS_PER_GAME_MONTH,
+  GAME_SECONDS_PER_TICK,
+  type FixedStepper,
+  type GameSpeed,
+} from "./core/loop";
+export { type MonthlyReport } from "./economy/ledger";
+export { EMOTE, GUEST_STATE } from "./guests/guests";
+
+/** Live read-only views into the guest SoA for the crowd renderer (zero-copy). */
+export interface GuestRenderView {
+  readonly count: number;
+  readonly state: Uint8Array;
+  readonly variant: Uint8Array;
+  readonly emote: Uint8Array;
+  readonly x: Float32Array;
+  readonly z: Float32Array;
+  readonly px: Float32Array;
+  readonly pz: Float32Array;
+}
+
+export interface HudView {
+  readonly tick: number;
+  readonly money: number;
+  readonly parkName: string;
+  readonly parkOpen: boolean;
+  readonly entryFeeCents: number;
+  readonly guestCount: number;
+  readonly janitorCount: number;
+  readonly litterCount: number;
+  readonly xp: number;
+  readonly level: number;
+  readonly goals: readonly GoalProgress[];
+}
 
 export interface SimFacade {
   advance(ticks: number): void;
@@ -59,6 +104,9 @@ export interface SimFacade {
   checkPaintPath(x: number, z: number): PlaceCheck;
   pathTiles(): ResolvedPathTile[];
   placedPieces(): PlacedPiece[];
+  hud(): HudView;
+  guestView(): GuestRenderView;
+  guestInfo(slot: number): ReturnType<typeof guestNeedsSnapshot> | null;
 }
 
 export interface CreateSimOptions {
@@ -92,10 +140,25 @@ export function createSim(options: CreateSimOptions): SimFacade {
 
   return {
     advance(ticks: number): void {
-      // System order is fixed and versioned (TECH §4.1). Systems land M2+;
-      // each appends its slice here, never reorders existing ones.
+      // System order is fixed and versioned (TECH §4.1): guests → staff →
+      // goals → ledger. New systems append, never reorder.
       for (let i = 0; i < ticks; i++) {
         state.tick += 1;
+        tickGuests(state);
+        tickJanitors(state);
+        for (const done of tickGoals(state)) {
+          const before = levelForXp(state.xp);
+          state.xp += done.rewardXp;
+          events.emit({ type: "goal/completed", cardId: done.cardId, rewardXp: done.rewardXp });
+          const after = levelForXp(state.xp);
+          if (after > before) {
+            events.emit({ type: "park/levelUp", level: after });
+          }
+        }
+        const report = tickLedger(state);
+        if (report) {
+          events.emit({ type: "park/monthReport", report });
+        }
       }
     },
     dispatch(command: Command): CommandResult {
@@ -131,5 +194,36 @@ export function createSim(options: CreateSimOptions): SimFacade {
     checkPaintPath: (x, z) => checkPaintPath(state.world, x, z),
     pathTiles: () => resolveAllPathTiles(state.world),
     placedPieces: () => [...state.world.placed.values()],
+    hud: () => ({
+      tick: state.tick,
+      money: state.money,
+      parkName: state.parkName,
+      parkOpen: state.parkOpen,
+      entryFeeCents: state.entryFeeCents,
+      guestCount: liveGuestCount(state.guests),
+      janitorCount: state.janitors.length,
+      litterCount: state.litter.length,
+      xp: state.xp,
+      level: levelForXp(state.xp),
+      goals: goalProgress(state),
+    }),
+    guestView: () => ({
+      count: state.guests.count,
+      state: state.guests.state,
+      variant: state.guests.variant,
+      emote: state.guests.emote,
+      x: state.guests.x,
+      z: state.guests.z,
+      px: state.guests.px,
+      pz: state.guests.pz,
+    }),
+    guestInfo: (slot: number) => {
+      const g: GuestSoA = state.guests;
+      if (slot < 0 || slot >= g.count || g.state[slot] === 0) {
+        return null;
+      }
+      void moodOf; // (kept in the facade surface via guestNeedsSnapshot)
+      return guestNeedsSnapshot(g, slot);
+    },
   };
 }

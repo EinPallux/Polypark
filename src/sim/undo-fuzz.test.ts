@@ -6,11 +6,17 @@ import { TEST_PIECES, TEST_SITE } from "./testing/fixture";
 /**
  * ROADMAP M1 acceptance: 100-step undo/redo fuzz. Undo-all must return to the
  * initial buildable state; redo-all must reproduce the exact final state.
- * nextInstanceId is monotonic by design (ids are never reused), so the
- * undo-all comparison strips it; the redo-all comparison is exact.
+ * nextInstanceId and the lifetime stat counters are monotonic by design
+ * (ids are never reused; "built" achievements survive undo), so the undo-all
+ * comparison strips them; the redo-all comparison is exact.
  */
 function stripCounters(snapshot: SimStateSnapshot): unknown {
-  return { ...snapshot, world: { ...snapshot.world, nextInstanceId: 0 } };
+  return {
+    ...snapshot,
+    world: { ...snapshot.world, nextInstanceId: 0 },
+    stats: {},
+    goals: {}, // goal deals key off the monotonic stats
+  };
 }
 
 describe("undo/redo fuzz", () => {
