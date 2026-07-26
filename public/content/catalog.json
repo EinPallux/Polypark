@@ -780,6 +780,146 @@
     {
       "aabb": {
         "max": [
+          0.5,
+          0.295,
+          0.5
+        ],
+        "min": [
+          -0.5,
+          -0.05,
+          -0.5
+        ]
+      },
+      "category": "scenery",
+      "file": "models/naturekit/fence-corner.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "naturekit/fence-corner",
+      "kit": "base",
+      "pack": "Kenney_NatureKit",
+      "sizeBytes": 5072,
+      "source": "Kenney_NatureKit/GLTF format/fence_corner.glb",
+      "tags": [
+        "fence"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.5,
+          0.295,
+          -0.43
+        ],
+        "min": [
+          -0.5,
+          -0.05,
+          -0.5
+        ]
+      },
+      "category": "scenery",
+      "file": "models/naturekit/fence-gate.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "naturekit/fence-gate",
+      "kit": "base",
+      "pack": "Kenney_NatureKit",
+      "sizeBytes": 16604,
+      "source": "Kenney_NatureKit/GLTF format/fence_gate.glb",
+      "tags": [
+        "fence"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.5,
+          0.295,
+          -0.43
+        ],
+        "min": [
+          -0.5,
+          -0.05,
+          -0.526
+        ]
+      },
+      "category": "scenery",
+      "file": "models/naturekit/fence-planks.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "naturekit/fence-planks",
+      "kit": "base",
+      "pack": "Kenney_NatureKit",
+      "sizeBytes": 4260,
+      "source": "Kenney_NatureKit/GLTF format/fence_planks.glb",
+      "tags": [
+        "fence"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.055,
+          0.192,
+          0.091
+        ],
+        "min": [
+          -0.105,
+          -0.05,
+          -0.091
+        ]
+      },
+      "category": "scenery",
+      "file": "models/naturekit/flower-purple-a.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "naturekit/flower-purple-a",
+      "kit": "base",
+      "pack": "Kenney_NatureKit",
+      "sizeBytes": 4364,
+      "source": "Kenney_NatureKit/GLTF format/flower_purpleA.glb",
+      "tags": [
+        "flower"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.055,
+          0.242,
+          0.091
+        ],
+        "min": [
+          -0.105,
+          -0.05,
+          -0.091
+        ]
+      },
+      "category": "scenery",
+      "file": "models/naturekit/flower-red-a.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "naturekit/flower-red-a",
+      "kit": "base",
+      "pack": "Kenney_NatureKit",
+      "sizeBytes": 4360,
+      "source": "Kenney_NatureKit/GLTF format/flower_redA.glb",
+      "tags": [
+        "flower"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
           0.079,
           0.108,
           0.12
@@ -831,6 +971,62 @@
       "source": "Kenney_NatureKit/GLTF format/flower_yellowC.glb",
       "tags": [
         "flower"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.182,
+          0.204,
+          0.153
+        ],
+        "min": [
+          -0.199,
+          -0.05,
+          -0.239
+        ]
+      },
+      "category": "scenery",
+      "file": "models/naturekit/grass.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "naturekit/grass",
+      "kit": "base",
+      "pack": "Kenney_NatureKit",
+      "sizeBytes": 6204,
+      "source": "Kenney_NatureKit/GLTF format/grass.glb",
+      "tags": [
+        "grass"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.21,
+          0.204,
+          0.196
+        ],
+        "min": [
+          -0.199,
+          -0.05,
+          -0.212
+        ]
+      },
+      "category": "scenery",
+      "file": "models/naturekit/grass-large.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "naturekit/grass-large",
+      "kit": "base",
+      "pack": "Kenney_NatureKit",
+      "sizeBytes": 9720,
+      "source": "Kenney_NatureKit/GLTF format/grass_large.glb",
+      "tags": [
+        "grass"
       ]
     },
     {
@@ -963,6 +1159,35 @@
         ]
       },
       "category": "path",
+      "file": "models/naturekit/path-split.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "naturekit/path-split",
+      "kit": "base",
+      "pack": "Kenney_NatureKit",
+      "sizeBytes": 4352,
+      "source": "Kenney_NatureKit/GLTF format/ground_pathSplit.glb",
+      "tags": [
+        "path",
+        "tile"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.5,
+          -0.05,
+          0.5
+        ],
+        "min": [
+          -0.5,
+          -0.1,
+          -0.5
+        ]
+      },
+      "category": "path",
       "file": "models/naturekit/path-straight.glb",
       "footprint": {
         "d": 1,
@@ -976,6 +1201,36 @@
       "tags": [
         "path",
         "tile"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.5,
+          -0.05,
+          0.5
+        ],
+        "min": [
+          -0.5,
+          -0.1,
+          -0.5
+        ]
+      },
+      "category": "path",
+      "file": "models/naturekit/path-tile.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "naturekit/path-tile",
+      "kit": "base",
+      "pack": "Kenney_NatureKit",
+      "sizeBytes": 4652,
+      "source": "Kenney_NatureKit/GLTF format/ground_pathTile.glb",
+      "tags": [
+        "path",
+        "tile",
+        "plaza"
       ]
     },
     {
@@ -1004,6 +1259,146 @@
       "source": "Kenney_NatureKit/GLTF format/rock_largeB.glb",
       "tags": [
         "rock"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.18,
+          0.141,
+          0.18
+        ],
+        "min": [
+          -0.18,
+          -0.05,
+          -0.18
+        ]
+      },
+      "category": "scenery",
+      "file": "models/naturekit/rock-small-a.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "naturekit/rock-small-a",
+      "kit": "base",
+      "pack": "Kenney_NatureKit",
+      "sizeBytes": 2308,
+      "source": "Kenney_NatureKit/GLTF format/rock_smallA.glb",
+      "tags": [
+        "rock"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.18,
+          0.073,
+          0.18
+        ],
+        "min": [
+          -0.18,
+          -0.05,
+          -0.18
+        ]
+      },
+      "category": "scenery",
+      "file": "models/naturekit/rock-small-c.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "naturekit/rock-small-c",
+      "kit": "base",
+      "pack": "Kenney_NatureKit",
+      "sizeBytes": 2312,
+      "source": "Kenney_NatureKit/GLTF format/rock_smallC.glb",
+      "tags": [
+        "rock"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.377,
+          1.658,
+          0.327
+        ],
+        "min": [
+          -0.377,
+          -0.05,
+          -0.327
+        ]
+      },
+      "category": "scenery",
+      "file": "models/naturekit/tree-default.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "naturekit/tree-default",
+      "kit": "base",
+      "pack": "Kenney_NatureKit",
+      "sizeBytes": 5500,
+      "source": "Kenney_NatureKit/GLTF format/tree_default.glb",
+      "tags": [
+        "tree"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.378,
+          1.1,
+          0.327
+        ],
+        "min": [
+          -0.378,
+          -0.05,
+          -0.327
+        ]
+      },
+      "category": "scenery",
+      "file": "models/naturekit/tree-fat.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "naturekit/tree-fat",
+      "kit": "base",
+      "pack": "Kenney_NatureKit",
+      "sizeBytes": 3568,
+      "source": "Kenney_NatureKit/GLTF format/tree_fat.glb",
+      "tags": [
+        "tree"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.32,
+          1.176,
+          0.37
+        ],
+        "min": [
+          -0.32,
+          -0.05,
+          -0.37
+        ]
+      },
+      "category": "scenery",
+      "file": "models/naturekit/tree-oak.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "naturekit/tree-oak",
+      "kit": "base",
+      "pack": "Kenney_NatureKit",
+      "sizeBytes": 8120,
+      "source": "Kenney_NatureKit/GLTF format/tree_oak.glb",
+      "tags": [
+        "tree"
       ]
     },
     {

@@ -9,8 +9,26 @@ import { SAVE_FORMAT_VERSION } from "./schema";
  */
 export type Migration = (raw: Record<string, unknown>) => Record<string, unknown>;
 
-/** Keyed by the version the migration upgrades FROM. v1 is current — empty. */
-export const MIGRATIONS: Readonly<Record<number, Migration>> = {};
+/** Keyed by the version the migration upgrades FROM. */
+export const MIGRATIONS: Readonly<Record<number, Migration>> = {
+  // v1 (M0) → v2 (M1): the world layer and money did not exist yet.
+  1: (raw) => {
+    const sim = (raw["sim"] ?? {}) as Record<string, unknown>;
+    return {
+      ...raw,
+      sim: {
+        ...sim,
+        money: 75_000_00, // STARTING_MONEY at the time of the migration
+        world: {
+          siteId: "meadowbrook",
+          nextInstanceId: 1,
+          placed: [],
+          pathCells: [], // restore pads to the site's cell count
+        },
+      },
+    };
+  },
+};
 
 export class SaveVersionError extends Error {
   constructor(
