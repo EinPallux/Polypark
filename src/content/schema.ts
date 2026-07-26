@@ -14,6 +14,8 @@ export const PIECE_CATEGORIES = [
   "prop",
   "vehicle",
   "character",
+  /** Kit pieces consumed by ride compositions — never placeable on their own. */
+  "ride-part",
 ] as const;
 
 export const KIT_IDS = [

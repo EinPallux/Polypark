@@ -176,6 +176,34 @@
     {
       "aabb": {
         "max": [
+          0.8,
+          2.7,
+          0.4
+        ],
+        "min": [
+          -0.8,
+          0,
+          -0.4
+        ]
+      },
+      "category": "character",
+      "file": "models/blockycharacters/character-g.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "blockycharacters/character-g",
+      "kit": "base",
+      "pack": "Kenney_BlockyCharacters",
+      "sizeBytes": 62920,
+      "source": "Kenney_BlockyCharacters/GLB format/character-g.glb",
+      "tags": [
+        "staff"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
           0.209,
           0.308,
           0.466
@@ -287,6 +315,394 @@
       "tags": [
         "lamp",
         "street"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.25,
+          -0.9,
+          4
+        ],
+        "min": [
+          -0.25,
+          -1.499,
+          0
+        ]
+      },
+      "category": "track",
+      "file": "models/coasterkit/mouse-bump-down.glb",
+      "footprint": {
+        "d": 2,
+        "w": 1
+      },
+      "id": "coasterkit/mouse-bump-down",
+      "kit": "base",
+      "pack": "Kenney_CoasterKit",
+      "sizeBytes": 17536,
+      "source": "Kenney_CoasterKit/GLB format/coaster-mouse-straight-bump-down.glb",
+      "tags": [
+        "coaster",
+        "mouse",
+        "dip"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.25,
+          -0.401,
+          4
+        ],
+        "min": [
+          -0.25,
+          -1,
+          0
+        ]
+      },
+      "category": "track",
+      "file": "models/coasterkit/mouse-bump-up.glb",
+      "footprint": {
+        "d": 2,
+        "w": 1
+      },
+      "id": "coasterkit/mouse-bump-up",
+      "kit": "base",
+      "pack": "Kenney_CoasterKit",
+      "sizeBytes": 17532,
+      "source": "Kenney_CoasterKit/GLB format/coaster-mouse-straight-bump-up.glb",
+      "tags": [
+        "coaster",
+        "mouse",
+        "airtime"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.25,
+          -0.9,
+          4.25
+        ],
+        "min": [
+          -4,
+          -1,
+          0
+        ]
+      },
+      "category": "track",
+      "file": "models/coasterkit/mouse-corner-large.glb",
+      "footprint": {
+        "d": 3,
+        "w": 3
+      },
+      "id": "coasterkit/mouse-corner-large",
+      "kit": "base",
+      "pack": "Kenney_CoasterKit",
+      "sizeBytes": 19948,
+      "source": "Kenney_CoasterKit/GLB format/coaster-mouse-corner-large.glb",
+      "tags": [
+        "coaster",
+        "mouse",
+        "turn"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.25,
+          0.1,
+          4.25
+        ],
+        "min": [
+          -4,
+          -1,
+          0
+        ]
+      },
+      "category": "track",
+      "file": "models/coasterkit/mouse-corner-large-ramp.glb",
+      "footprint": {
+        "d": 3,
+        "w": 3
+      },
+      "id": "coasterkit/mouse-corner-large-ramp",
+      "kit": "base",
+      "pack": "Kenney_CoasterKit",
+      "sizeBytes": 19968,
+      "source": "Kenney_CoasterKit/GLB format/coaster-mouse-corner-large-ramp.glb",
+      "tags": [
+        "coaster",
+        "mouse",
+        "turn",
+        "hill"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.25,
+          -0.9,
+          2.25
+        ],
+        "min": [
+          -2,
+          -1,
+          0
+        ]
+      },
+      "category": "track",
+      "file": "models/coasterkit/mouse-corner-small.glb",
+      "footprint": {
+        "d": 2,
+        "w": 2
+      },
+      "id": "coasterkit/mouse-corner-small",
+      "kit": "base",
+      "pack": "Kenney_CoasterKit",
+      "sizeBytes": 16464,
+      "source": "Kenney_CoasterKit/GLB format/coaster-mouse-corner-small.glb",
+      "tags": [
+        "coaster",
+        "mouse",
+        "turn"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.25,
+          0.1,
+          2.25
+        ],
+        "min": [
+          -2,
+          -1,
+          0
+        ]
+      },
+      "category": "track",
+      "file": "models/coasterkit/mouse-corner-small-ramp.glb",
+      "footprint": {
+        "d": 2,
+        "w": 2
+      },
+      "id": "coasterkit/mouse-corner-small-ramp",
+      "kit": "base",
+      "pack": "Kenney_CoasterKit",
+      "sizeBytes": 16480,
+      "source": "Kenney_CoasterKit/GLB format/coaster-mouse-corner-small-ramp.glb",
+      "tags": [
+        "coaster",
+        "mouse",
+        "turn",
+        "hill"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.25,
+          -0.9,
+          4
+        ],
+        "min": [
+          -2.25,
+          -1,
+          0
+        ]
+      },
+      "category": "track",
+      "file": "models/coasterkit/mouse-curve.glb",
+      "footprint": {
+        "d": 2,
+        "w": 2
+      },
+      "id": "coasterkit/mouse-curve",
+      "kit": "base",
+      "pack": "Kenney_CoasterKit",
+      "sizeBytes": 18028,
+      "source": "Kenney_CoasterKit/GLB format/coaster-mouse-curve.glb",
+      "tags": [
+        "coaster",
+        "mouse"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.25,
+          0.1,
+          4
+        ],
+        "min": [
+          -0.25,
+          -1,
+          0
+        ]
+      },
+      "category": "track",
+      "file": "models/coasterkit/mouse-hill-complete.glb",
+      "footprint": {
+        "d": 2,
+        "w": 1
+      },
+      "id": "coasterkit/mouse-hill-complete",
+      "kit": "base",
+      "pack": "Kenney_CoasterKit",
+      "sizeBytes": 17552,
+      "source": "Kenney_CoasterKit/GLB format/coaster-mouse-straight-hill-complete.glb",
+      "tags": [
+        "coaster",
+        "mouse",
+        "hill"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.25,
+          -0.4,
+          4
+        ],
+        "min": [
+          -0.25,
+          -1,
+          0
+        ]
+      },
+      "category": "track",
+      "file": "models/coasterkit/mouse-hill-half.glb",
+      "footprint": {
+        "d": 2,
+        "w": 1
+      },
+      "id": "coasterkit/mouse-hill-half",
+      "kit": "base",
+      "pack": "Kenney_CoasterKit",
+      "sizeBytes": 17564,
+      "source": "Kenney_CoasterKit/GLB format/coaster-mouse-straight-hill-complete-half.glb",
+      "tags": [
+        "coaster",
+        "mouse",
+        "hill"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.25,
+          2.992,
+          1.996
+        ],
+        "min": [
+          -1.25,
+          -1,
+          -2
+        ]
+      },
+      "category": "track",
+      "file": "models/coasterkit/mouse-looping.glb",
+      "footprint": {
+        "d": 2,
+        "w": 1
+      },
+      "id": "coasterkit/mouse-looping",
+      "kit": "base",
+      "pack": "Kenney_CoasterKit",
+      "sizeBytes": 27900,
+      "source": "Kenney_CoasterKit/GLB format/coaster-mouse-looping.glb",
+      "tags": [
+        "coaster",
+        "mouse",
+        "inversion"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.25,
+          0.1,
+          0.5
+        ],
+        "min": [
+          -0.25,
+          0,
+          -0.5
+        ]
+      },
+      "category": "track",
+      "file": "models/coasterkit/mouse-station-track.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "coasterkit/mouse-station-track",
+      "kit": "base",
+      "pack": "Kenney_CoasterKit",
+      "sizeBytes": 11624,
+      "source": "Kenney_CoasterKit/GLB format/coaster-mouse-track.glb",
+      "tags": [
+        "coaster",
+        "mouse",
+        "station"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.25,
+          -0.9,
+          4
+        ],
+        "min": [
+          -0.25,
+          -1,
+          0
+        ]
+      },
+      "category": "track",
+      "file": "models/coasterkit/mouse-straight.glb",
+      "footprint": {
+        "d": 2,
+        "w": 1
+      },
+      "id": "coasterkit/mouse-straight",
+      "kit": "base",
+      "pack": "Kenney_CoasterKit",
+      "sizeBytes": 16732,
+      "source": "Kenney_CoasterKit/GLB format/coaster-mouse-straight.glb",
+      "tags": [
+        "coaster",
+        "mouse"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.5,
+          0.4,
+          0.5
+        ],
+        "min": [
+          -0.5,
+          0,
+          -0.5
+        ]
+      },
+      "category": "path",
+      "file": "models/coasterkit/queue-corner.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "coasterkit/queue-corner",
+      "kit": "base",
+      "pack": "Kenney_CoasterKit",
+      "sizeBytes": 16452,
+      "source": "Kenney_CoasterKit/GLB format/queue-corner.glb",
+      "tags": [
+        "queue"
       ]
     },
     {
@@ -464,6 +880,217 @@
     {
       "aabb": {
         "max": [
+          0.75,
+          0.63,
+          0.5
+        ],
+        "min": [
+          -0.75,
+          0,
+          -0.5
+        ]
+      },
+      "category": "building",
+      "file": "models/coasterkit/station-gate.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "coasterkit/station-gate",
+      "kit": "base",
+      "pack": "Kenney_CoasterKit",
+      "sizeBytes": 20432,
+      "source": "Kenney_CoasterKit/GLB format/station-gate.glb",
+      "tags": [
+        "coaster",
+        "station"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.35,
+          -0.7,
+          4
+        ],
+        "min": [
+          -0.35,
+          -1.499,
+          0
+        ]
+      },
+      "category": "track",
+      "file": "models/coasterkit/steel-bump-down.glb",
+      "footprint": {
+        "d": 2,
+        "w": 1
+      },
+      "id": "coasterkit/steel-bump-down",
+      "kit": "base",
+      "pack": "Kenney_CoasterKit",
+      "sizeBytes": 24688,
+      "source": "Kenney_CoasterKit/GLB format/coaster-steel-straight-bump-down.glb",
+      "tags": [
+        "coaster",
+        "steel",
+        "dip"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.35,
+          -0.202,
+          4
+        ],
+        "min": [
+          -0.35,
+          -1,
+          0
+        ]
+      },
+      "category": "track",
+      "file": "models/coasterkit/steel-bump-up.glb",
+      "footprint": {
+        "d": 2,
+        "w": 1
+      },
+      "id": "coasterkit/steel-bump-up",
+      "kit": "base",
+      "pack": "Kenney_CoasterKit",
+      "sizeBytes": 24664,
+      "source": "Kenney_CoasterKit/GLB format/coaster-steel-straight-bump-up.glb",
+      "tags": [
+        "coaster",
+        "steel",
+        "airtime"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.35,
+          -0.7,
+          4.35
+        ],
+        "min": [
+          -4,
+          -1,
+          0
+        ]
+      },
+      "category": "track",
+      "file": "models/coasterkit/steel-corner-large.glb",
+      "footprint": {
+        "d": 3,
+        "w": 3
+      },
+      "id": "coasterkit/steel-corner-large",
+      "kit": "base",
+      "pack": "Kenney_CoasterKit",
+      "sizeBytes": 29548,
+      "source": "Kenney_CoasterKit/GLB format/coaster-steel-corner-large.glb",
+      "tags": [
+        "coaster",
+        "steel",
+        "turn"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.35,
+          0.3,
+          4.35
+        ],
+        "min": [
+          -4,
+          -1,
+          0
+        ]
+      },
+      "category": "track",
+      "file": "models/coasterkit/steel-corner-large-ramp.glb",
+      "footprint": {
+        "d": 3,
+        "w": 3
+      },
+      "id": "coasterkit/steel-corner-large-ramp",
+      "kit": "base",
+      "pack": "Kenney_CoasterKit",
+      "sizeBytes": 29568,
+      "source": "Kenney_CoasterKit/GLB format/coaster-steel-corner-large-ramp.glb",
+      "tags": [
+        "coaster",
+        "steel",
+        "turn",
+        "hill"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.35,
+          -0.7,
+          2.35
+        ],
+        "min": [
+          -2,
+          -1,
+          0
+        ]
+      },
+      "category": "track",
+      "file": "models/coasterkit/steel-corner-small.glb",
+      "footprint": {
+        "d": 2,
+        "w": 2
+      },
+      "id": "coasterkit/steel-corner-small",
+      "kit": "base",
+      "pack": "Kenney_CoasterKit",
+      "sizeBytes": 23132,
+      "source": "Kenney_CoasterKit/GLB format/coaster-steel-corner-small.glb",
+      "tags": [
+        "coaster",
+        "steel",
+        "turn"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.35,
+          0.3,
+          2.35
+        ],
+        "min": [
+          -2,
+          -1,
+          0
+        ]
+      },
+      "category": "track",
+      "file": "models/coasterkit/steel-corner-small-ramp.glb",
+      "footprint": {
+        "d": 2,
+        "w": 2
+      },
+      "id": "coasterkit/steel-corner-small-ramp",
+      "kit": "base",
+      "pack": "Kenney_CoasterKit",
+      "sizeBytes": 23152,
+      "source": "Kenney_CoasterKit/GLB format/coaster-steel-corner-small-ramp.glb",
+      "tags": [
+        "coaster",
+        "steel",
+        "turn",
+        "hill"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
           0.35,
           -0.7,
           4
@@ -524,6 +1151,36 @@
       "aabb": {
         "max": [
           0.35,
+          -0.2,
+          4
+        ],
+        "min": [
+          -0.35,
+          -1,
+          0
+        ]
+      },
+      "category": "track",
+      "file": "models/coasterkit/steel-hill-half.glb",
+      "footprint": {
+        "d": 2,
+        "w": 1
+      },
+      "id": "coasterkit/steel-hill-half",
+      "kit": "base",
+      "pack": "Kenney_CoasterKit",
+      "sizeBytes": 24696,
+      "source": "Kenney_CoasterKit/GLB format/coaster-steel-straight-hill-complete-half.glb",
+      "tags": [
+        "coaster",
+        "steel",
+        "hill"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.35,
           2.991,
           1.995
         ],
@@ -554,6 +1211,36 @@
       "aabb": {
         "max": [
           0.35,
+          0.3,
+          0.5
+        ],
+        "min": [
+          -0.35,
+          0,
+          -0.5
+        ]
+      },
+      "category": "track",
+      "file": "models/coasterkit/steel-station-track.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "coasterkit/steel-station-track",
+      "kit": "base",
+      "pack": "Kenney_CoasterKit",
+      "sizeBytes": 12296,
+      "source": "Kenney_CoasterKit/GLB format/coaster-steel-track.glb",
+      "tags": [
+        "coaster",
+        "steel",
+        "station"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.35,
           -0.7,
           4
         ],
@@ -577,6 +1264,35 @@
       "tags": [
         "coaster",
         "steel"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.24,
+          1,
+          0.24
+        ],
+        "min": [
+          -0.24,
+          0,
+          -0.24
+        ]
+      },
+      "category": "track",
+      "file": "models/coasterkit/support-large.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "coasterkit/support-large",
+      "kit": "base",
+      "pack": "Kenney_CoasterKit",
+      "sizeBytes": 11472,
+      "source": "Kenney_CoasterKit/GLB format/support-large.glb",
+      "tags": [
+        "coaster",
+        "support"
       ]
     },
     {
@@ -696,6 +1412,122 @@
     {
       "aabb": {
         "max": [
+          1.098,
+          1.594,
+          0.725
+        ],
+        "min": [
+          -1.098,
+          0,
+          -0.625
+        ]
+      },
+      "category": "ride-part",
+      "file": "models/cubepets/chick.glb",
+      "footprint": {
+        "d": 1,
+        "w": 2
+      },
+      "id": "cubepets/chick",
+      "kit": "cuddle",
+      "pack": "Kenney_CubePets",
+      "sizeBytes": 49884,
+      "source": "Kenney_CubePets/GLB format/animal-chick.glb",
+      "tags": [
+        "pet",
+        "ride"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.77,
+          1.612,
+          0.835
+        ],
+        "min": [
+          -0.77,
+          0,
+          -0.625
+        ]
+      },
+      "category": "ride-part",
+      "file": "models/cubepets/cow.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "cubepets/cow",
+      "kit": "cuddle",
+      "pack": "Kenney_CubePets",
+      "sizeBytes": 53188,
+      "source": "Kenney_CubePets/GLB format/animal-cow.glb",
+      "tags": [
+        "pet",
+        "ride"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.77,
+          1.993,
+          0.935
+        ],
+        "min": [
+          -0.77,
+          0,
+          -0.625
+        ]
+      },
+      "category": "ride-part",
+      "file": "models/cubepets/deer.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "cubepets/deer",
+      "kit": "cuddle",
+      "pack": "Kenney_CubePets",
+      "sizeBytes": 52492,
+      "source": "Kenney_CubePets/GLB format/animal-deer.glb",
+      "tags": [
+        "pet",
+        "ride"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.635,
+          1.584,
+          0.876
+        ],
+        "min": [
+          -0.625,
+          0,
+          -0.625
+        ]
+      },
+      "category": "ride-part",
+      "file": "models/cubepets/dog.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "cubepets/dog",
+      "kit": "cuddle",
+      "pack": "Kenney_CubePets",
+      "sizeBytes": 48168,
+      "source": "Kenney_CubePets/GLB format/animal-dog.glb",
+      "tags": [
+        "pet",
+        "ride"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
           0.189,
           0.22,
           0.189
@@ -782,6 +1614,35 @@
     {
       "aabb": {
         "max": [
+          0.122,
+          0.2,
+          0.115
+        ],
+        "min": [
+          -0.115,
+          0,
+          -0.177
+        ]
+      },
+      "category": "ride-part",
+      "file": "models/foodkit/cup-tea-ride.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "foodkit/cup-tea-ride",
+      "kit": "boardwalk",
+      "pack": "Kenney_FoodKit",
+      "sizeBytes": 16368,
+      "source": "Kenney_FoodKit/GLB format/cup-tea.glb",
+      "tags": [
+        "ride",
+        "teacup"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
           0.4,
           0.47,
           0
@@ -862,6 +1723,35 @@
       "tags": [
         "tree",
         "holiday"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.5,
+          0,
+          0.5
+        ],
+        "min": [
+          -0.5,
+          0,
+          -0.5
+        ]
+      },
+      "category": "ride-part",
+      "file": "models/miniarena/floor.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "miniarena/floor",
+      "kit": "base",
+      "pack": "Kenney_MiniArena",
+      "sizeBytes": 10668,
+      "source": "Kenney_MiniArena/GLB format/floor.glb",
+      "tags": [
+        "ride",
+        "platform"
       ]
     },
     {
@@ -1740,6 +2630,122 @@
       "source": "Kenney_PirateKit/GLB format/cannon.glb",
       "tags": [
         "pirate"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          2.4,
+          9.964,
+          4.6
+        ],
+        "min": [
+          -2.4,
+          0,
+          -4.2
+        ]
+      },
+      "category": "ride-part",
+      "file": "models/piratekit/ship-pirate-small.glb",
+      "footprint": {
+        "d": 5,
+        "w": 3
+      },
+      "id": "piratekit/ship-pirate-small",
+      "kit": "pirate",
+      "pack": "Kenney_PirateKit",
+      "sizeBytes": 55840,
+      "source": "Kenney_PirateKit/GLB format/ship-pirate-small.glb",
+      "tags": [
+        "ride",
+        "galleon"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          2.9,
+          1.6,
+          2.4
+        ],
+        "min": [
+          1.1,
+          0,
+          0.6
+        ]
+      },
+      "category": "ride-part",
+      "file": "models/spacekit/rocket-base-a.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "spacekit/rocket-base-a",
+      "kit": "cosmic",
+      "pack": "Kenney_SpaceKit",
+      "sizeBytes": 12316,
+      "source": "Kenney_SpaceKit/GLTF format/rocket_baseA.glb",
+      "tags": [
+        "ride",
+        "rocket"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          2.5,
+          0.8,
+          2
+        ],
+        "min": [
+          1.5,
+          0,
+          1
+        ]
+      },
+      "category": "ride-part",
+      "file": "models/spacekit/rocket-top-a.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "spacekit/rocket-top-a",
+      "kit": "cosmic",
+      "pack": "Kenney_SpaceKit",
+      "sizeBytes": 4216,
+      "source": "Kenney_SpaceKit/GLTF format/rocket_topA.glb",
+      "tags": [
+        "ride",
+        "rocket"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.48,
+          0.365,
+          0.48
+        ],
+        "min": [
+          -0.481,
+          -0.416,
+          -0.471
+        ]
+      },
+      "category": "ride-part",
+      "file": "models/spooktober/pumpkin-large.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "spooktober/pumpkin-large",
+      "kit": "spooky",
+      "pack": "KayKit_Spooktober",
+      "sizeBytes": 19928,
+      "source": "KayKit_Spooktober/Models/gltf/pumpkinLarge.gltf.glb",
+      "tags": [
+        "ride",
+        "pumpkin"
       ]
     },
     {

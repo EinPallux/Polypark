@@ -95,6 +95,47 @@ export const PILOT_MANIFEST: readonly ManifestEntry[] = [
   { id: "piratekit/cannon", pack: "Kenney_PirateKit", source: "Kenney_PirateKit/GLB format/cannon.glb", category: "prop", kit: "pirate", tags: ["pirate"] },
   { id: "holidaykit/tree-decorated-snow", pack: "Kenney_HolidayKit", source: "Kenney_HolidayKit/GLB format/tree-decorated-snow.glb", category: "scenery", kit: "winter", tags: ["tree", "holiday"] },
   { id: "citykitroads/light-curved", pack: "Kenney_CityKitRoads", source: "Kenney_CityKitRoads/GLB format/light-curved.glb", category: "prop", kit: "base", tags: ["lamp", "street"] },
+
+  // ——— M3: the track vocabulary (steel + mouse families, GAME_DESIGN §8.2) ———
+  // Steel (Steelwind) — steel-straight/curve/hill-complete/looping shipped in M0.
+  { id: "coasterkit/steel-corner-small", pack: "Kenney_CoasterKit", source: coaster("coaster-steel-corner-small.glb"), category: "track", kit: "base", tags: ["coaster", "steel", "turn"] },
+  { id: "coasterkit/steel-corner-large", pack: "Kenney_CoasterKit", source: coaster("coaster-steel-corner-large.glb"), category: "track", kit: "base", tags: ["coaster", "steel", "turn"] },
+  { id: "coasterkit/steel-corner-small-ramp", pack: "Kenney_CoasterKit", source: coaster("coaster-steel-corner-small-ramp.glb"), category: "track", kit: "base", tags: ["coaster", "steel", "turn", "hill"] },
+  { id: "coasterkit/steel-corner-large-ramp", pack: "Kenney_CoasterKit", source: coaster("coaster-steel-corner-large-ramp.glb"), category: "track", kit: "base", tags: ["coaster", "steel", "turn", "hill"] },
+  { id: "coasterkit/steel-hill-half", pack: "Kenney_CoasterKit", source: coaster("coaster-steel-straight-hill-complete-half.glb"), category: "track", kit: "base", tags: ["coaster", "steel", "hill"] },
+  { id: "coasterkit/steel-bump-up", pack: "Kenney_CoasterKit", source: coaster("coaster-steel-straight-bump-up.glb"), category: "track", kit: "base", tags: ["coaster", "steel", "airtime"] },
+  { id: "coasterkit/steel-bump-down", pack: "Kenney_CoasterKit", source: coaster("coaster-steel-straight-bump-down.glb"), category: "track", kit: "base", tags: ["coaster", "steel", "dip"] },
+  { id: "coasterkit/steel-station-track", pack: "Kenney_CoasterKit", source: coaster("coaster-steel-track.glb"), category: "track", kit: "base", tags: ["coaster", "steel", "station"] },
+  // Mouse (Mousetrap) — the whole compact family.
+  { id: "coasterkit/mouse-straight", pack: "Kenney_CoasterKit", source: coaster("coaster-mouse-straight.glb"), category: "track", kit: "base", tags: ["coaster", "mouse"] },
+  { id: "coasterkit/mouse-curve", pack: "Kenney_CoasterKit", source: coaster("coaster-mouse-curve.glb"), category: "track", kit: "base", tags: ["coaster", "mouse"] },
+  { id: "coasterkit/mouse-corner-small", pack: "Kenney_CoasterKit", source: coaster("coaster-mouse-corner-small.glb"), category: "track", kit: "base", tags: ["coaster", "mouse", "turn"] },
+  { id: "coasterkit/mouse-corner-large", pack: "Kenney_CoasterKit", source: coaster("coaster-mouse-corner-large.glb"), category: "track", kit: "base", tags: ["coaster", "mouse", "turn"] },
+  { id: "coasterkit/mouse-corner-small-ramp", pack: "Kenney_CoasterKit", source: coaster("coaster-mouse-corner-small-ramp.glb"), category: "track", kit: "base", tags: ["coaster", "mouse", "turn", "hill"] },
+  { id: "coasterkit/mouse-corner-large-ramp", pack: "Kenney_CoasterKit", source: coaster("coaster-mouse-corner-large-ramp.glb"), category: "track", kit: "base", tags: ["coaster", "mouse", "turn", "hill"] },
+  { id: "coasterkit/mouse-hill-complete", pack: "Kenney_CoasterKit", source: coaster("coaster-mouse-straight-hill-complete.glb"), category: "track", kit: "base", tags: ["coaster", "mouse", "hill"] },
+  { id: "coasterkit/mouse-hill-half", pack: "Kenney_CoasterKit", source: coaster("coaster-mouse-straight-hill-complete-half.glb"), category: "track", kit: "base", tags: ["coaster", "mouse", "hill"] },
+  { id: "coasterkit/mouse-bump-up", pack: "Kenney_CoasterKit", source: coaster("coaster-mouse-straight-bump-up.glb"), category: "track", kit: "base", tags: ["coaster", "mouse", "airtime"] },
+  { id: "coasterkit/mouse-bump-down", pack: "Kenney_CoasterKit", source: coaster("coaster-mouse-straight-bump-down.glb"), category: "track", kit: "base", tags: ["coaster", "mouse", "dip"] },
+  { id: "coasterkit/mouse-looping", pack: "Kenney_CoasterKit", source: coaster("coaster-mouse-looping.glb"), category: "track", kit: "base", tags: ["coaster", "mouse", "inversion"] },
+  { id: "coasterkit/mouse-station-track", pack: "Kenney_CoasterKit", source: coaster("coaster-mouse-track.glb"), category: "track", kit: "base", tags: ["coaster", "mouse", "station"] },
+  // Shared coaster hardware
+  { id: "coasterkit/station-gate", pack: "Kenney_CoasterKit", source: coaster("station-gate.glb"), category: "building", kit: "base", tags: ["coaster", "station"] },
+  { id: "coasterkit/support-large", pack: "Kenney_CoasterKit", source: coaster("support-large.glb"), category: "track", kit: "base", tags: ["coaster", "support"] },
+  { id: "coasterkit/queue-corner", pack: "Kenney_CoasterKit", source: coaster("queue-corner.glb"), category: "path", kit: "base", tags: ["queue"] },
+  // ——— M3: flat-ride compositions (kit assemblies per GAME_DESIGN §9 / P7) ———
+  { id: "piratekit/ship-pirate-small", pack: "Kenney_PirateKit", source: "Kenney_PirateKit/GLB format/ship-pirate-small.glb", category: "ride-part", kit: "pirate", tags: ["ride", "galleon"] },
+  { id: "spacekit/rocket-base-a", pack: "Kenney_SpaceKit", source: "Kenney_SpaceKit/GLTF format/rocket_baseA.glb", category: "ride-part", kit: "cosmic", tags: ["ride", "rocket"] },
+  { id: "spacekit/rocket-top-a", pack: "Kenney_SpaceKit", source: "Kenney_SpaceKit/GLTF format/rocket_topA.glb", category: "ride-part", kit: "cosmic", tags: ["ride", "rocket"] },
+  { id: "spooktober/pumpkin-large", pack: "KayKit_Spooktober", source: "KayKit_Spooktober/Models/gltf/pumpkinLarge.gltf.glb", category: "ride-part", kit: "spooky", tags: ["ride", "pumpkin"] },
+  { id: "foodkit/cup-tea-ride", pack: "Kenney_FoodKit", source: "Kenney_FoodKit/GLB format/cup-tea.glb", category: "ride-part", kit: "boardwalk", tags: ["ride", "teacup"] },
+  { id: "miniarena/floor", pack: "Kenney_MiniArena", source: "Kenney_MiniArena/GLB format/floor.glb", category: "ride-part", kit: "base", tags: ["ride", "platform"] },
+  { id: "cubepets/dog", pack: "Kenney_CubePets", source: "Kenney_CubePets/GLB format/animal-dog.glb", category: "ride-part", kit: "cuddle", tags: ["pet", "ride"] },
+  { id: "cubepets/chick", pack: "Kenney_CubePets", source: "Kenney_CubePets/GLB format/animal-chick.glb", category: "ride-part", kit: "cuddle", tags: ["pet", "ride"] },
+  { id: "cubepets/deer", pack: "Kenney_CubePets", source: "Kenney_CubePets/GLB format/animal-deer.glb", category: "ride-part", kit: "cuddle", tags: ["pet", "ride"] },
+  { id: "cubepets/cow", pack: "Kenney_CubePets", source: "Kenney_CubePets/GLB format/animal-cow.glb", category: "ride-part", kit: "cuddle", tags: ["pet", "ride"] },
+  // Mechanic uniform (BlockyCharacters palette g — staff, TECH §6.3)
+  { id: "blockycharacters/character-g", pack: "Kenney_BlockyCharacters", source: "Kenney_BlockyCharacters/GLB format/character-g.glb", category: "character", kit: "base", tags: ["staff"] },
 ];
 
 /**
