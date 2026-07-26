@@ -12,8 +12,9 @@ as the final phase. Start with [README.md](README.md) for the doc index and
 
 ## Phase
 
-✅ **Implementation approved (owner, 2026‑07‑26). ROADMAP M0 in progress.** All engineering
-rules in CLAUDE.md are in force; docs stay load‑bearing (update them with behavior changes).
+✅ **Implementation approved (owner, 2026‑07‑26). ROADMAP M0–M2 complete; next M3 (Rides), on
+owner go‑ahead.** All engineering rules in CLAUDE.md are in force; docs stay load‑bearing
+(update them with behavior changes).
 
 ## Non‑negotiable rules (full detail in CLAUDE.md)
 

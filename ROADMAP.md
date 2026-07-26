@@ -58,20 +58,31 @@ overlay by construction). **Frame‑rate note:** container GL is software‑rend
 60 fps/10k‑piece check runs on real GPUs via the Vercel preview + `?bench=10000` (owner
 eyeball); CI asserts everything else.
 
-## M2 · Life — "guests arrive" (≈2–3 weeks)
+## M2 · Life — "guests arrive" — ✅ complete 2026‑07‑26
 
-Guest spawner/archetypes (gate‑side arrivals until Parking lands in M4; country‑road car
-flavor) · needs/mood/emotes (bubble billboards + cluster chips) · hierarchical A* + congestion ·
-crowd instanced rendering + hero pool · gate/entry fee · first shops (Snack Shack, Sip Station,
-Restroom) with serve loops · litter/vomit + Janitor · money ledger + HUD tickers · guest
-inspector card · monthly tick + first Monthly Report screen · **Goal Deck engine v1** (card
-pools, dealing, progress — the guidance backbone arrives with the first guests).
+Shipped: guest sim on SoA typed arrays (cap 1,500) with the five archetypes, wallets, seeded
+variants and staggered decision ticks · needs/mood per GAME_BALANCE §4.3 with thought log +
+emote bubbles (EmotesPack billboards) · A* routing on path cells with LRU cache invalidated on
+edits; gate‑forecourt walkability so day‑one parks route · gate open/close + entry fee
+steppers (fee → ledger on entry; §4.1 M2 interim arrivals/elasticity model) · Snack Shack /
+Sip Station / Restroom serve loops with per‑serving margins and litter · Janitors
+(hire/fire, nearest‑litter pursuit, month‑end wages) · double‑entry‑lite money ledger + monthly
+tick + Monthly Report modal · guest inspector card (needs bars + recent thoughts) · **Goal Deck
+engine v1** (12 cards across guidance/growth/mastery, deal‑to‑3, dismiss+cooldown, prereq
+stats, XP + level curve §9.2) with the HUD goal panel · crowd instanced rendering (per‑variant
+pools, interpolated positions, walk bob, click‑to‑inspect) + janitor uniforms + litter bits ·
+save format v3 (guests/ledger/goals/stats) with v2→v3 migration; HUD v2 (guest ticker, XP
+chip, staff popover).
 
-**Demo:** open the gate, watch 300 guests flow, eat, emote and complain; complete three goal
-cards; end a month in profit.
-**Accept:** 1,200 simulated guests ≤6 ms/tick reference · balance invariants #3/#4/#11 green ·
-guest thought log matches sim causes (spot test) · goal cards never block or force (API has no
-"required" concept — reviewed).
+**Acceptance:** bench `scripts/bench-guests.ts` — 1,229→1,500 live guests at **1.19 ms/tick
+avg (3.2 ms worst)** on the software‑GL container, vs the 6 ms budget · invariants #3/#4/#11
+green in `src/sim/m2.test.ts` (need‑decay floor, default‑price stall profitable, goals never
+block/force — the card type has no "required" concept) · determinism hash + save v3 round‑trip
+with a living crowd · thought‑log spot test via the guest inspector (browser session) · e2e:
+open gate → guests counted in HUD → hire janitor. **Deferred, named:** hierarchical A* +
+congestion (plain A* + cache ships; revisit at M6 perf pass) · vomit + First Aid (with rides,
+M3) · emote cluster chips + hero guest pool (M6 polish) · country‑road car flavor (M4 Parking) ·
+shop price editing UI (M3 economy pass).
 
 ## M3 · Rides & the track builder — "the marquee toy" (≈3 weeks)
 

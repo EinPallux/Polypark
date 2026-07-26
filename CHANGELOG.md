@@ -7,6 +7,42 @@ only where a migration ships — see TECHNICAL_ARCHITECTURE §8).
 
 ## [Unreleased]
 
+### M2 — Life (✅ completed 2026‑07‑26)
+- **Guest simulation (`src/sim/guests`):** SoA typed‑array crowd (cap 1,500) with the five
+  GAME_BALANCE §4.3 archetypes (weights/wallets), needs decay + mood, staggered decisions, A*
+  on path cells with an LRU route cache (invalidated on path edits), thought log and emote
+  state; arrivals via the §4.1 M2 interim appeal/elasticity model with gate hours and day
+  rhythm; the gate forecourt (±4 cells, dry + non‑steep) is walkable so freshly painted parks
+  route from day one.
+- **Shops & economy:** Snack Shack / Sip Station / Restroom serve loops
+  (`src/content/shops.ts`) with per‑serving unit costs, satisfaction and litter chance; money
+  ledger (`src/sim/economy/ledger.ts`) tracking entry/food/drink/facility income vs
+  goods/wages/upkeep/construction; monthly tick posts wages + shop upkeep and emits the first
+  Monthly Report (modal in the HUD).
+- **Staff:** Janitors — hire/fire commands ($150 fee, $620/mo month‑end wages), nearest‑litter
+  claiming, A* pursuit, cleaning stat.
+- **Goal Deck v1 (`src/sim/goals`, `src/content/goals.ts`):** 12 cards over
+  guidance/growth/mastery tiers with stat prereqs, deal‑to‑3, dismiss with 2‑month cooldown,
+  XP rewards + §9.2 level curve; invariant #11 upheld — no "required" concept anywhere, every
+  card dismissible, deck refills. HUD goal panel with live progress bars + XP chip.
+- **Render & UI:** instanced crowd renderer (per‑variant pools, fixed‑step interpolation, walk
+  bob, heading, click‑to‑inspect), janitor uniforms (palette f), emote billboard bubbles from
+  the EmotesPack, litter bits; park OPEN/CLOSED toggle + entry‑fee steppers, guest ticker,
+  staff popover, guest inspector card (needs bars + thoughts), Monthly Report modal; dock gains
+  SHOPS/STAFF.
+- **Save format v3:** guests/ledger/goals/stats/park‑open/entry‑fee with v2→v3 migration and
+  round‑trip tests; determinism hash covers the living crowd.
+- **Content:** +8 pieces (5 guest character variants, 3 coasterkit stalls) → 64 pieces
+  · 11 emote PNGs shipped via the pipeline (`public/emotes`).
+- **Quality:** unit tests 57 → 55+M2 suites (guests, ledger, janitors, goals, m2 integration =
+  new); `scripts/bench-guests.ts` sim throughput bench — 1,229–1,500 live guests at 1.19 ms/tick
+  avg (limit 6 ms); depcruise `no-circular` now scopes to runtime cycles only (type‑only
+  back‑edges are erased by `verbatimModuleSyntax`; rule re‑proven red on a value cycle); new e2e
+  covering open‑gate → guests arrive → hire janitor.
+- **Balance doc sync:** §3.1 sandbox entry preset $5 (pre‑rides), §4.1 M2 interim
+  arrivals/elasticity note, §4.3 strolling Fun replenishment, §6/§7 M2 shipped subsets,
+  §9.1 M2 XP sources note.
+
 ### M1 — The Valley (✅ completed 2026‑07‑26)
 - **Terrain system (ADR‑19):** sites authored as landform descriptors + seeded noise
   (`src/content/sites/meadowbrook.ts`); sim precomputes cell heights, slope classes

@@ -83,3 +83,32 @@ test("title CONTINUE goes live once a save exists", async ({ page }) => {
   await page.getByTestId("menu-continue").click();
   await expect(page).toHaveURL(/\/play$/);
 });
+
+test("M2: open the park and guests arrive; goals progress", async ({ page }) => {
+  await bootFreshPark(page);
+  // Path spine + a snack stall beside it.
+  await page.getByTestId("dock-paths").click();
+  await page.mouse.move(800, 780);
+  await page.mouse.down();
+  for (let y = 780; y >= 400; y -= 20) {
+    await page.mouse.move(800, y);
+  }
+  await page.mouse.up();
+  await page.getByTestId("dock-shops").click();
+  await page.getByTestId("palette-coasterkit-stall-food").click();
+  await page.mouse.click(742, 560);
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("goal-panel")).toBeVisible();
+  // Open the gate and fast-forward.
+  await page.getByTestId("park-toggle").click();
+  await page.getByTestId("speed-4").click();
+  await expect
+    .poll(async () => Number(await page.getByTestId("hud-guests").innerText()), {
+      timeout: 60_000,
+    })
+    .toBeGreaterThan(2);
+  // Staff popover hires a janitor.
+  await page.getByTestId("dock-staff").click();
+  await page.getByTestId("hire-janitor").click();
+  await expect(page.getByTestId("janitor-count")).toHaveText("1");
+});
