@@ -1,0 +1,11 @@
+assets/
+uiinspo/
+public/content/
+public/models/
+public/thumbs/
+public/skyboxes/
+.next/
+node_modules/
+pnpm-lock.yaml
+playwright-report/
+test-results/
