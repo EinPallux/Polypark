@@ -99,13 +99,17 @@ Authoritative mapping (GDD is the "what", this is the "from where"):
 1. **Select** — read `content/manifest.ts` (allow‑list of pack/piece IDs actually used).
 2. **Normalize** — convert OBJ/GLTF→GLB, Y‑up, meters, origin at footprint center‑bottom,
    merge duplicate materials, strip unused nodes.
-3. **Optimize** — `gltf-transform`: dedupe, prune, weld, quantize + meshopt; palette PNGs
-   verified ≤64 KB; report per‑file before/after sizes.
+3. **Optimize** — `gltf-transform`: dedupe, prune, weld, quantize (KHR_mesh_quantization —
+   decoded natively by three.js, no runtime decoder). Meshopt compression is deliberately
+   deferred to the M6 perf pass (adds a decoder dependency for ~small wins at current sizes);
+   report per‑file before/after sizes.
 4. **Catalog** — emit `public/content/catalog.json`: per piece `{id, pack, file, footprint,
    anchor, tags, kit, category, variants, trackPorts?}` (footprints from AABB + hand overrides in
    `content/overrides/*.ts`). The catalog is the single source of truth the sim/UI/renderer read.
-5. **Thumbnails** — headless render (playwright + three) of every catalog piece → webp grid for
-   the Build Catalog UI.
+5. **Thumbnails** — `scripts/gen-thumbnails.ts`: headless Chromium screenshots of every catalog
+   piece via the `/dev/thumbs` stage → `public/thumbs/<id>.png` (256², webp revisit at M3 when
+   the Build Catalog UI lands). Screenshots aren't byte‑deterministic across GPU stacks, so
+   thumbs are regenerated manually and excluded from the CI drift check.
 6. **Budget gate** — CI fails if: any single GLB >1.5 MB, theme bundle >8 MB, total shipped
    models >60 MB (budgets: TECH §10).
 

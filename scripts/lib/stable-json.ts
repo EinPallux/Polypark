@@ -8,9 +8,10 @@ function sortValue(value: unknown): unknown {
     return value.map(sortValue);
   }
   if (value !== null && typeof value === "object") {
+    const record = value as Record<string, unknown>;
     const sorted: Record<string, unknown> = {};
-    for (const key of Object.keys(value as Record<string, unknown>).sort()) {
-      sorted[key] = sortValue((value as Record<string, unknown>)[key]);
+    for (const key of Object.keys(record).sort()) {
+      sorted[key] = sortValue(record[key]);
     }
     return sorted;
   }

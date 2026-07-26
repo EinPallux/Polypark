@@ -56,6 +56,15 @@ If you find a real contradiction, fix the docs in the same change and note it in
    a timed forced choice, or a fail state that ends a save. Insolvency flows through
    Receivership (GAME_DESIGN §14.3).
 
+## Dev commands
+
+`pnpm dev` (dev server) · `pnpm gate` (typecheck+lint+depcruise+unit+build+budgets — run before
+pushing) · `pnpm e2e` (Playwright smoke; needs a `pnpm build` first) · `pnpm content:build` /
+`content:check` (regenerate / drift‑check `public/content|models`) · `pnpm thumbs` (regenerate
+catalog thumbnails; manual, not drift‑checked) · `/dev/uikit` + `/dev/thumbs` are unlinked dev
+pages. Local gotcha: `next start` daemonizes as `next-server` — kill with
+`pkill -f "[n]ext-server"` before rebuilding, or chunks 404 from the stale server.
+
 ## Engineering rules (in force since M0)
 
 - TypeScript strict; no `any`/`as any` outside a justified `// why:` comment; branded types for

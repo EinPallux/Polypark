@@ -20,18 +20,21 @@ GAME_BALANCE, ROADMAP, DECISIONS, CLAUDE/AGENTS, CHANGELOG, README. Owner answer
 and four directives (kit‑only content law, districts scope, real terrain, sandbox‑first with no
 hard end) are incorporated — see [docs/DECISIONS.md](docs/DECISIONS.md) ADR‑13…17.
 
-## M0 · Foundations — "the empty stage" (≈1 week)
+## M0 · Foundations — "the empty stage" — ✅ complete 2026‑07‑26
 
-Next.js 15 + TS strict + Tailwind v4 + R3F scaffold · module boundaries + lint/dep‑cruiser
-rules · CI pipeline (typecheck/lint/test/build + Vercel previews) · design tokens + fonts +
-`/dev/uikit` shell · content pipeline v1 (`build-content.ts`: normalize→optimize→catalog for
-~40 pilot pieces + thumbnails) · Vitest/Playwright harnesses · save‑format skeleton with
-`formatVersion:1`.
+Shipped: Next.js 15 + TS strict + Tailwind v4 + R3F scaffold · module boundaries enforced by
+ESLint AND dependency‑cruiser · CI workflow (content drift → typecheck → lint → boundaries →
+unit → build → budgets → e2e) · design tokens + self‑hosted fonts + `/dev/uikit` gallery ·
+content pipeline v1 (42 pilot pieces optimized + zod‑validated catalog + 42 thumbnails via
+`/dev/thumbs`) · Vitest (28 tests: money, RNG, stepper, golden‑seed determinism, save
+round‑trip/migrations) + Playwright (7 smoke tests) · save format `formatVersion:1` with
+migration chain · title screen with live 3D diorama + hub/options/extras shells.
 
-**Demo:** deployed Vercel URL shows the title screen (static diorama, working menu shell) at
-90+ Lighthouse; `pnpm test` green in CI.
-**Accept:** budgets script wired (TECH §10 table encoded) · catalog zod‑validates · boundary
-lint fails on a demo violation (proved by a red test then removed).
+**Acceptance verified:** budgets script encodes TECH §10 (title route 104.6 KB gz of 300 KB
+budget) · catalog zod‑validates (42 pieces) · boundary rules proven red on a demo violation in
+both enforcers, then removed · full local gate green.
+**Owner step:** connect the repo to Vercel (framework auto‑detected) for preview/production
+URLs; Lighthouse pass lands with the first preview.
 
 ## M1 · The Valley — "walk the empty landscape" (≈2–3 weeks)
 

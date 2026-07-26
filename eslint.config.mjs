@@ -7,37 +7,44 @@ import prettier from "eslint-config-prettier";
  * Module boundaries (TECHNICAL_ARCHITECTURE §3) are enforced twice on purpose:
  * here for instant editor/CI feedback, and in .dependency-cruiser.cjs as the
  * graph-level backstop. Keep the two in sync when boundaries change.
+ *
+ * Flat-config gotcha: a later object with the same rule REPLACES it for
+ * matching files, so every layer config below carries its FULL pattern list
+ * (including the shared /assets ban) instead of relying on merging.
  */
+const assetsBan = {
+  group: ["**/assets/**"],
+  message:
+    "/assets is the immutable source library; runtime never imports from it (CLAUDE.md rule 3). Shipped content comes from public/models via the pipeline.",
+};
+
+const restricted = (...patterns) => ({
+  "no-restricted-imports": ["error", { patterns: [...patterns, assetsBan] }],
+});
+
 const simPurity = {
   files: ["src/sim/**/*.ts"],
   rules: {
-    "no-restricted-imports": [
-      "error",
-      {
-        patterns: [
-          {
-            group: [
-              "react",
-              "react-*",
-              "next",
-              "next/*",
-              "three",
-              "three/*",
-              "@react-three/*",
-              "zustand",
-              "zustand/*",
-              "@/render/*",
-              "@/ui/*",
-              "@/app/*",
-              "@/save/*",
-              "@/audio/*",
-            ],
-            message:
-              "sim/ is pure simulation: only @/shared and @/content imports are allowed (TECH §3).",
-          },
-        ],
-      },
-    ],
+    ...restricted({
+      group: [
+        "react",
+        "react-*",
+        "next",
+        "next/**",
+        "three",
+        "three/**",
+        "@react-three/**",
+        "zustand",
+        "zustand/**",
+        "@/render/**",
+        "@/ui/**",
+        "@/app/**",
+        "@/save/**",
+        "@/audio/**",
+      ],
+      message:
+        "sim/ is pure simulation: only @/shared and @/content imports are allowed (TECH §3).",
+    }),
     "no-restricted-globals": [
       "error",
       { name: "Date", message: "No wall clock in sim/ — time comes from ticks (CLAUDE.md)." },
@@ -55,71 +62,43 @@ const simPurity = {
 
 const contentPurity = {
   files: ["src/content/**/*.ts"],
-  rules: {
-    "no-restricted-imports": [
-      "error",
-      {
-        patterns: [
-          {
-            group: ["@/*", "!@/shared", "!@/shared/*", "react", "react-*", "three", "three/*"],
-            message: "content/ is data + types: only @/shared imports are allowed (TECH §3).",
-          },
-        ],
-      },
-    ],
-  },
+  rules: restricted({
+    group: ["@/*", "@/**", "!@/shared", "!@/shared/**", "react", "react-*", "three", "three/**"],
+    message: "content/ is data + types: only @/shared imports are allowed (TECH §3).",
+  }),
 };
 
 const sharedPurity = {
   files: ["src/shared/**/*.ts"],
-  rules: {
-    "no-restricted-imports": [
-      "error",
-      {
-        patterns: [
-          {
-            group: ["@/*", "react", "react-*", "next", "next/*", "three", "three/*"],
-            message: "shared/ sits below everything: no internal or framework imports (TECH §3).",
-          },
-        ],
-      },
-    ],
-  },
+  rules: restricted({
+    group: ["@/*", "@/**", "react", "react-*", "next", "next/**", "three", "three/**"],
+    message: "shared/ sits below everything: no internal or framework imports (TECH §3).",
+  }),
 };
 
 const facadeOnly = {
   files: ["src/render/**/*.{ts,tsx}", "src/ui/**/*.{ts,tsx}", "src/app/**/*.{ts,tsx}"],
-  rules: {
-    "no-restricted-imports": [
-      "error",
-      {
-        patterns: [
-          {
-            group: ["@/sim/*", "!@/sim/api"],
-            message: "UI/render talk to the simulation only via the SimFacade in @/sim/api (TECH §3).",
-          },
-        ],
-      },
-    ],
-  },
+  rules: restricted({
+    group: ["@/sim/**", "!@/sim/api"],
+    message: "UI/render talk to the simulation only via the SimFacade in @/sim/api (TECH §3).",
+  }),
 };
 
 const noSourceAssets = {
   files: ["src/**/*.{ts,tsx}", "scripts/**/*.ts"],
-  ignores: ["scripts/build-content.ts", "scripts/lib/**"],
+  ignores: [
+    "scripts/build-content.ts",
+    "scripts/lib/**",
+    // Layers below carry the assets ban inside their own pattern lists:
+    "src/sim/**",
+    "src/content/**",
+    "src/shared/**",
+    "src/render/**",
+    "src/ui/**",
+    "src/app/**",
+  ],
   rules: {
-    "no-restricted-imports": [
-      "error",
-      {
-        patterns: [
-          {
-            group: ["**/assets/**"],
-            message:
-              "/assets is the immutable source library; runtime never imports from it (CLAUDE.md rule 3). Shipped content comes from public/models via the pipeline.",
-          },
-        ],
-      },
-    ],
+    "no-restricted-imports": ["error", { patterns: [assetsBan] }],
   },
 };
 

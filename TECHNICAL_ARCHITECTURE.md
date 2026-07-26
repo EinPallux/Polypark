@@ -180,8 +180,8 @@ phase — no physics.
 ## 5. Content pipeline
 
 Implemented per ASSET_GUIDE §5: `scripts/build-content.ts` selects allow‑listed pieces from
-`/assets`, normalizes to GLB (Y‑up, meters, footprint‑bottom origin), optimizes
-(gltf‑transform: dedupe/prune/weld/quantize+meshopt), emits `public/content/catalog.json`
+`/assets`, normalizes to GLB, optimizes (gltf‑transform: dedupe/prune/weld/quantize; meshopt
+compression deferred to the M6 perf pass), emits `public/content/catalog.json`
 (zod‑validated at build AND at runtime load) + webp thumbnails + size report. Definitions in
 `src/content/*` (rides, shops, kits, sites, stories, goals, events, track pieces) are **TypeScript data
 files** referencing catalog IDs — adding content = adding data, not code (architecture goal).

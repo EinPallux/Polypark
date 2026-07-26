@@ -7,10 +7,37 @@ only where a migration ships — see TECHNICAL_ARCHITECTURE §8).
 
 ## [Unreleased]
 
-### M0 — Foundations (in progress, approved 2026‑07‑26)
+### M0 — Foundations (✅ completed 2026‑07‑26)
 - Phase gate opened: owner approved implementation start ("Yes Start M0"); CLAUDE.md/AGENTS.md/
   README/ROADMAP updated to reflect the in‑development status; repo hygiene added
   (`.gitignore`, `.nvmrc`).
+- **Toolchain:** Next.js 15.5 + React 19.2 + TypeScript 5.9 strict + Tailwind v4 + R3F 9 /
+  three 0.185 + zustand + zod; ESLint 9 (type‑checked) + Prettier + dependency‑cruiser;
+  Vitest 4 + Playwright; pnpm. Module boundaries (TECH §3) enforced by both ESLint
+  `no-restricted-imports` layers and dependency‑cruiser rules (sim purity, facade‑only,
+  /assets import ban) — proven red on a demo violation, then removed.
+- **Sim spine (`src/sim`):** seeded named RNG streams (mulberry32 + fnv1a), fixed 10 Hz stepper
+  with speed multipliers + backlog clamp, command bus with journal, event collector,
+  snapshot/restore, structural state hash. 28 unit tests incl. golden‑seed determinism.
+- **Save format v1 (`src/save`):** zod schema, forward‑only migration chain with version
+  errors, deterministic gzip codec (fflate), round‑trip + migration matrix tests.
+- **Content pipeline v1 (`scripts/build-content.ts`):** 42 pilot pieces from 16 packs
+  optimized (gltf‑transform dedup/prune/weld/quantize; meshopt deferred to M6) into
+  `public/models/**` + zod‑validated `public/content/catalog.json` (AABB→footprints, pack
+  provenance per the kit‑only law) + 5 skyboxes; byte‑deterministic, `content:check` fails CI
+  on drift; 867 KB shipped from 1.4 MB source. Thumbnails: `scripts/gen-thumbnails.ts`
+  renders all 42 pieces to `public/thumbs` via the `/dev/thumbs` stage.
+- **UI foundation:** design tokens (`src/ui/theme/tokens.css`) mapped into Tailwind; self‑hosted
+  OFL fonts (Archivo Black, Barlow family); typed `t()` i18n layer (English, ADR‑11); UI kit
+  components (DisplayTitle, SlabButton, KitCard, RibbonTag, Keycap/HintRail, TabBar,
+  RowControl/Slider/Toggle, IdentityChip) with the `/dev/uikit` gallery.
+- **Screens:** title screen with live R3F park diorama (pilot pieces, reduced‑motion aware,
+  keyboard‑navigable menu), hub shell (mode cards with honest "arrives in Mx" ribbons),
+  options shell (5 tabs of working row controls, draft‑only until M5), extras (CC0 credits),
+  friendly 404.
+- **Quality gates:** `scripts/check-budgets.ts` encodes TECH §10 (title route first‑load JS
+  104.6 KB gz of 300 KB budget; model budgets green); GitHub Actions CI runs content drift,
+  typecheck, lint, boundaries, unit, build, budgets and 7 Playwright smoke tests.
 
 ### Changed — planning revision after owner Q&A (2026‑07‑26)
 - **Real terrain (ADR‑13):** replaced the flat "Tabletop island" world with authored landscape

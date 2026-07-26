@@ -140,8 +140,8 @@ toast log when captions are enabled.
 ## 3. Component library (Polypark UI Kit)
 
 React components in `src/ui/kit/` — Radix primitives underneath for focus/keyboard/a11y.
-Storybook‑style gallery page at `/dev/uikit` (dev builds only) renders every component in every
-state for visual regression.
+Storybook‑style gallery page at `/dev/uikit` (ships unlinked from any menu) renders every
+component in every state for visual regression.
 
 | Component | Anatomy / states | Ref |
 |-----------|------------------|-----|
