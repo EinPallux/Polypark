@@ -128,11 +128,36 @@ nodes · **districts framework + Parking Grounds + Resort Row** (arrival capacit
 flavor traffic) · remaining rides/shops (Flume, Poly Express, Karts, Putt Paradise,
 walkthroughs, Paddle Bay, Marble Cascade, Bistro…).
 
-**Demo:** a full sandbox park from $50k to 4★ through a storm, a failed inspection and a
-Consortium loan; sink into Receivership on purpose and climb back out; hotels fill for night
-hours behind a busy parking lot.
-**Accept:** balance invariants #1–#12 all green · event deck 10k‑month statistical test ·
-management panels answer the "two‑click rule" audit (UI_UX §7.1).
+**Scope call (owner‑approved 2026‑07‑27):** M4 ships as **money, rating and risk** — the
+"real stakes" identity — and the rest moves to M5. The original line was more than one
+coherent milestone; the precedent M1/M2/M3 set is to ship the coherent core and name the
+deferrals with reasons.
+
+**Shipping in M4:** full economy · loans/credit + Receivership · Park Rating (five sub‑scores
+with plain‑language causes) · marketing campaigns · difficulty presets · weather chain +
+3‑day forecast strip · event deck (7 cards) · safety inspections · the management window
+(Finance/Rating/Loans/Marketing).
+
+**Deferred, named, with reasons:**
+- **Districts framework + Parking Grounds + Resort Row** → M5. Needs the land‑value writer and
+  arrival‑capacity model; Resort Row is load‑bearing on night hours, which is itself M5.
+- **Park Level track + unlock gating + A/B nodes + Star Tickets** → M5. Gating breaks every
+  existing test and the bench until an `unlockAll` sandbox flag lands; that is a milestone's
+  worth of churn on its own.
+- **Staff zones for all four roles** → M5. The v4→v5 staff migration merges two id spaces *and*
+  changes a coordinate unit.
+- **Remaining rides/shops** → M5. Shipping nine ride families on top of four new subsystems is
+  exactly what breaks a milestone. The shops half (Bistro et al.) goes with them.
+- **Guests/Staff/Districts management panels** → M5, with the systems they would report on.
+- **4 event cards** (vandal night, hygiene scare, lost kid, refurb subsidy) → M5; each needs a
+  system that does not exist, and a card with no visible effect is worse than no card.
+- **Night hours** → M5 (needs the lamps rule + a lighting rig ROADMAP already puts in M6). The
+  demo statement below is amended accordingly.
+
+**Demo:** a sandbox park from $75k to 4★ through a storm, a failed inspection and a Consortium
+loan; sink into Receivership on purpose and climb back out.
+**Accept:** balance invariants #1–#12 all green · event deck 10k‑month statistical test ✅ ·
+management window answers the "two‑click rule" audit (UI_UX §7.1) ✅.
 
 ## M5 · The whole game — "shipping shape" (≈3 weeks)
 

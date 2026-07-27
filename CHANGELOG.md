@@ -57,8 +57,37 @@ only where a migration ships — see TECHNICAL_ARCHITECTURE §8).
   were blank. All added; `t()` now echoes an unknown key instead of rendering nothing; and
   `src/ui/i18n/i18n.test.ts` proves every goal card, loan, campaign, ride and rating cause
   resolves to real copy. Month counts pluralize ("1 month", not "1 months").
-- **Quality:** 128 unit tests (8 amortization, 17 finance, 12 rating, 7 i18n); new e2e opens the
-  management window, borrows, and reads the rating through the real UI.
+- **One coherent calendar:** the code carried `TICKS_PER_GAME_DAY = 7200` next to a 3,000‑tick
+  month, so a "day" outlasted a "month" and the report fired ~2.4× per displayed day — visible
+  in the HUD, harmless only because the constant was dead code. GAME_DESIGN §16 already said
+  four day/night cycles per month, so a park day is 750 ticks. What was missing from the docs
+  is *why* the hands may sweep 24 h across 750 ticks: Polypark runs a literal **duration**
+  clock (needs, cycles, repairs) and a stylised **park** clock (the HUD, anything
+  day‑quantised). §16 now says so, and `parkClock()` is the single source of truth.
+- **Weather (`src/sim/weather/`):** a five‑kind Markov chain over park days — sunny, overcast,
+  rain, storm, heatwave — drawn three days ahead and *persisted*, so the forecast strip is a
+  promise the sim keeps rather than a guess it re‑rolls (P5). Storms never brew from a clear
+  sky, a new park always opens sunny, and long‑run shares are asserted against §8.1a. Weather
+  multiplies arrivals (the `weatherMult` term §4.1 always specified and nothing supplied); a
+  heatwave multiplies Thirst decay **and nothing else** — the extra drink income follows from
+  thirstier guests, so the doc's ×1.8 income bonus is deliberately not implemented. Storms shut
+  open coasters and reopen only what they closed.
+- **Event deck + inspections (`src/sim/events/`):** 7 cards at the difficulty's advertised rate,
+  cooldowns and prerequisites respected over a 10k‑month run (the ROADMAP's named M4 acceptance
+  criterion). `eventsPerMonth` is an expectation, not a count. Nothing compounds: timed effects
+  expire, Care penalties decay through `addCitations`, and the deck goes **silent during
+  Receivership** — a rescue, not a pile‑on. Inspections every 2–4 months fine the park and close
+  its busiest ride until the player reopens it.
+- **Two doc readings that could not be implemented as written**, both now recorded in
+  GAME_BALANCE rather than left as silent divergence: inspection jitter of "±2 weeks" rounds to
+  exactly zero on a month‑close boundary (so it is ±1 month), and First Aid is 20% of the
+  inspection score but does not exist yet (so that share reads mechanic coverage until M5).
+- **Adding an RNG stream no longer breaks saves.** `deserializeRngStreams` threw on a stream a
+  save predated, which would have bricked every park the moment `weather` landed; it now derives
+  a missing stream from the root seed — exactly what a fresh park does.
+- **Quality:** 158 unit tests (8 amortization, 17 finance, 12 rating, 12 weather, 11 deck,
+  10 i18n, 5 park clock); new e2e opens the management window, borrows, and reads the rating
+  through the real UI. Bench 1.83 ms/tick at 1,251–1,500 guests with 6 coasters (6 ms budget).
 
 ### M3 — Rides & the track builder (✅ completed 2026‑07‑26)
 - **Track model (`src/content/track.ts`, `src/sim/rides/trackGraph.ts`):** the CoasterKit
