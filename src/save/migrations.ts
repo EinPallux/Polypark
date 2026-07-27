@@ -11,6 +11,40 @@ export type Migration = (raw: Record<string, unknown>) => Record<string, unknown
 
 /** Keyed by the version the migration upgrades FROM. */
 export const MIGRATIONS: Readonly<Record<number, Migration>> = {
+  // v3 (M2) → v4 (M3): rides did not exist yet — empty roster, no mechanics.
+  3: (raw) => {
+    const sim = (raw["sim"] ?? {}) as Record<string, unknown>;
+    const guests = (sim["guests"] ?? {}) as Record<string, unknown>;
+    const ledger = (sim["ledger"] ?? {}) as Record<string, unknown>;
+    const income = (ledger["income"] ?? {}) as Record<string, unknown>;
+    const stats = (sim["stats"] ?? {}) as Record<string, unknown>;
+    const count = typeof guests["count"] === "number" ? guests["count"] : 0;
+    return {
+      ...raw,
+      sim: {
+        ...sim,
+        guests: {
+          ...guests,
+          rideId: Array.from({ length: count }, () => 0),
+        },
+        ledger: { ...ledger, income: { ride: 0, ...income } },
+        stats: {
+          coastersBuilt: 0,
+          flatRidesBuilt: 0,
+          ridesOpened: 0,
+          ridersServed: 0,
+          mechanicsHired: 0,
+          ridesTested: 0,
+          breakdowns: 0,
+          repairsDone: 0,
+          ...stats,
+        },
+        rides: { nextId: 1, tracked: [], flat: [] },
+        mechanics: [],
+        nextMechanicId: 1,
+      },
+    };
+  },
   // v2 (M1) → v3 (M2): the park wasn't alive yet — closed gate, no guests.
   2: (raw) => {
     const sim = (raw["sim"] ?? {}) as Record<string, unknown>;

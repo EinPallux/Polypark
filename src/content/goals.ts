@@ -12,7 +12,12 @@ export type StatKey =
   | "drinksServed"
   | "littersCleaned"
   | "janitorsHired"
-  | "monthsProfit";
+  | "monthsProfit"
+  | "coastersBuilt"
+  | "flatRidesBuilt"
+  | "ridesOpened"
+  | "ridersServed"
+  | "mechanicsHired";
 
 export type GoalTier = "guidance" | "growth" | "mastery";
 
@@ -40,9 +45,15 @@ export const GOAL_CARDS: readonly GoalCardDef[] = [
   { id: "hundred-guests", tier: "growth", stat: "guestsWelcomed", target: 100, rewardXp: 300, requiresStat: { stat: "guestsWelcomed", atLeast: 25 } },
   { id: "tidy-park", tier: "growth", stat: "littersCleaned", target: 10, rewardXp: 150, requiresStat: { stat: "janitorsHired", atLeast: 1 } },
   { id: "green-boulevard", tier: "growth", stat: "sceneryPlaced", target: 30, rewardXp: 200, requiresStat: { stat: "sceneryPlaced", atLeast: 6 } },
+  // Growth — rides (M3)
+  { id: "first-flat-ride", tier: "growth", stat: "flatRidesBuilt", target: 1, rewardXp: 200, requiresStat: { stat: "guestsWelcomed", atLeast: 10 } },
+  { id: "first-coaster", tier: "growth", stat: "coastersBuilt", target: 1, rewardXp: 250, requiresStat: { stat: "guestsWelcomed", atLeast: 10 } },
+  { id: "open-a-ride", tier: "growth", stat: "ridesOpened", target: 1, rewardXp: 250, requiresStat: { stat: "flatRidesBuilt", atLeast: 1 } },
+  { id: "hire-mechanic", tier: "growth", stat: "mechanicsHired", target: 1, rewardXp: 120, requiresStat: { stat: "ridesOpened", atLeast: 1 } },
   // Mastery
   { id: "profitable-month", tier: "mastery", stat: "monthsProfit", target: 1, rewardXp: 400, requiresStat: { stat: "guestsWelcomed", atLeast: 50 } },
   { id: "path-network", tier: "mastery", stat: "pathCellsBuilt", target: 80, rewardXp: 300, requiresStat: { stat: "pathCellsBuilt", atLeast: 20 } },
+  { id: "hundred-riders", tier: "mastery", stat: "ridersServed", target: 100, rewardXp: 400, requiresStat: { stat: "ridesOpened", atLeast: 1 } },
 ];
 
 export const ACTIVE_GOAL_SLOTS = 3;

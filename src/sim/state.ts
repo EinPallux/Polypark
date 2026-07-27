@@ -22,6 +22,14 @@ import { createGuests, GUEST_CAP, type GuestSoA } from "./guests/guests";
 import { createLedger, type Ledger } from "./economy/ledger";
 import { type Janitor, type Litter } from "./staff/janitors";
 import { createGoalsState, type GoalsState } from "./goals/goals";
+import {
+  evaluateTrack,
+  pieceCells as pieceCellsOf,
+  pieceEntryPoses,
+  type TrackPieceState,
+  type TrackPose,
+} from "./rides/trackGraph";
+import { type FlatRide, type Mechanic, type TrackedRide } from "./rides/rides";
 
 /**
  * The whole mutable simulation state (v3: M2 adds the living park — guests,
@@ -33,6 +41,9 @@ export type Stats = Record<StatKey, number> & {
   guestsDeparted: number;
   happyDepartures: number;
   litterSpawned: number;
+  ridesTested: number;
+  breakdowns: number;
+  repairsDone: number;
 };
 
 export function createStats(): Stats {
@@ -46,11 +57,37 @@ export function createStats(): Stats {
     littersCleaned: 0,
     janitorsHired: 0,
     monthsProfit: 0,
+    coastersBuilt: 0,
+    flatRidesBuilt: 0,
+    ridesOpened: 0,
+    ridersServed: 0,
+    mechanicsHired: 0,
     guestsDeparted: 0,
     happyDepartures: 0,
     litterSpawned: 0,
+    ridesTested: 0,
+    breakdowns: 0,
+    repairsDone: 0,
   };
 }
+
+export interface RidesState {
+  tracked: Map<number, TrackedRide>;
+  flat: Map<number, FlatRide>;
+  nextId: number;
+}
+
+/** Tracked ride, save-shaped: the evaluation is derived — recomputed on load. */
+export type TrackedRideSnapshot = Omit<TrackedRide, "evaln" | "trainPrevArc" | "pieces" | "riders" | "queue"> & {
+  readonly pieces: readonly TrackPieceState[];
+  readonly riders: readonly number[];
+  readonly queue: readonly number[];
+};
+
+export type FlatRideSnapshot = Omit<FlatRide, "riders" | "queue"> & {
+  readonly riders: readonly number[];
+  readonly queue: readonly number[];
+};
 
 export interface SimState {
   tick: number;
@@ -66,6 +103,9 @@ export interface SimState {
   litter: Litter[];
   janitors: Janitor[];
   nextJanitorId: number;
+  rides: RidesState;
+  mechanics: Mechanic[];
+  nextMechanicId: number;
   ledger: Ledger;
   monthNumber: number;
   lastMonthGuests: number;
@@ -99,6 +139,13 @@ export interface SimStateSnapshot {
   readonly goals: GoalsState;
   readonly litter: readonly Litter[];
   readonly janitors: readonly Janitor[];
+  readonly rides: {
+    readonly nextId: number;
+    readonly tracked: readonly TrackedRideSnapshot[];
+    readonly flat: readonly FlatRideSnapshot[];
+  };
+  readonly mechanics: readonly Mechanic[];
+  readonly nextMechanicId: number;
   readonly guests: {
     readonly count: number;
     readonly freeList: readonly number[];
@@ -118,6 +165,7 @@ export interface SimStateSnapshot {
     readonly serveTicks: readonly number[];
     readonly servingShop: readonly number[];
     readonly enteredAtTick: readonly number[];
+    readonly rideId: readonly number[];
     readonly paths: readonly (readonly [number, readonly number[]])[];
     readonly thoughts: readonly (readonly [number, readonly string[]])[];
   };
@@ -150,6 +198,9 @@ export function createInitialState(
     litter: [],
     janitors: [],
     nextJanitorId: 1,
+    rides: { tracked: new Map(), flat: new Map(), nextId: 1 },
+    mechanics: [],
+    nextMechanicId: 1,
     ledger: createLedger(),
     monthNumber: 0,
     lastMonthGuests: 0,
@@ -162,6 +213,43 @@ export function createInitialState(
 
 const packArray = (array: ArrayLike<number>, count: number): number[] =>
   Array.from({ length: count }, (_, i) => array[i] ?? 0);
+
+/**
+ * How embedded in greenery a track runs (0..1) — feeds E per GAME_BALANCE
+ * §5.3. Sampled at build/load time (TECH §4.6), not per tick.
+ */
+export function sceneryProximityOf(
+  world: WorldState,
+  anchor: TrackPose,
+  pieces: readonly TrackPieceState[],
+): number {
+  const poses = pieceEntryPoses(anchor, pieces);
+  const trackCells = new Set<string>();
+  for (let i = 0; i < pieces.length; i++) {
+    for (const cell of pieceCellsOf(poses[i]!, pieces[i]!)) {
+      trackCells.add(`${cell.cellX},${cell.cellZ}`);
+    }
+  }
+  if (trackCells.size === 0) {
+    return 0;
+  }
+  let near = 0;
+  for (const piece of world.placed.values()) {
+    const def = world.pieces.get(piece.pieceId);
+    if (!def || (def.category !== "scenery" && def.category !== "prop")) {
+      continue;
+    }
+    outer: for (let dx = -2; dx <= 2; dx++) {
+      for (let dz = -2; dz <= 2; dz++) {
+        if (trackCells.has(`${piece.x + dx},${piece.z + dz}`)) {
+          near += 1;
+          break outer;
+        }
+      }
+    }
+  }
+  return Math.min(1, near / Math.max(8, trackCells.size * 0.3));
+}
 
 export function snapshotState(state: SimState): SimStateSnapshot {
   const g = state.guests;
@@ -189,6 +277,21 @@ export function snapshotState(state: SimState): SimStateSnapshot {
     goals: structuredClone(state.goals),
     litter: state.litter.map((l) => ({ ...l })),
     janitors: state.janitors.map((j) => ({ ...j, path: [...j.path] })),
+    rides: {
+      nextId: state.rides.nextId,
+      tracked: [...state.rides.tracked.values()]
+        .sort((a, b) => a.id - b.id)
+        .map(({ evaln, trainPrevArc, ...ride }) => {
+          void evaln;
+          void trainPrevArc;
+          return { ...ride, pieces: ride.pieces.map((piece) => ({ ...piece })), riders: [...ride.riders], queue: [...ride.queue] };
+        }),
+      flat: [...state.rides.flat.values()]
+        .sort((a, b) => a.id - b.id)
+        .map((ride) => ({ ...ride, riders: [...ride.riders], queue: [...ride.queue] })),
+    },
+    mechanics: state.mechanics.map((m) => ({ ...m })),
+    nextMechanicId: state.nextMechanicId,
     guests: {
       count: n,
       freeList: [...g.freeList],
@@ -208,6 +311,7 @@ export function snapshotState(state: SimState): SimStateSnapshot {
       serveTicks: packArray(g.serveTicks, n),
       servingShop: packArray(g.servingShop, n),
       enteredAtTick: packArray(g.enteredAtTick, n),
+      rideId: packArray(g.rideId, n),
       paths: [...g.paths.entries()].map(([slot, path]) => [slot, [...path]] as const),
       thoughts: [...g.thoughts.entries()].map(([slot, log]) => [slot, [...log]] as const),
     },
@@ -265,12 +369,31 @@ export function restoreState(
     guests.serveTicks[i] = s.serveTicks[i] ?? 0;
     guests.servingShop[i] = s.servingShop[i] ?? -1;
     guests.enteredAtTick[i] = s.enteredAtTick[i] ?? 0;
+    guests.rideId[i] = s.rideId[i] ?? 0;
   }
   for (const [slot, path] of s.paths) {
     guests.paths.set(slot, [...path]);
   }
   for (const [slot, log] of s.thoughts) {
     guests.thoughts.set(slot, [...log]);
+  }
+
+  const tracked = new Map<number, TrackedRide>();
+  for (const r of snapshot.rides.tracked) {
+    const pieces = r.pieces.map((piece) => ({ ...piece }));
+    tracked.set(r.id, {
+      ...r,
+      pieces,
+      riders: [...r.riders],
+      queue: [...r.queue],
+      // Derived, deterministic — same world + pieces ⇒ same evaluation.
+      evaln: evaluateTrack(r.anchor, pieces, sceneryProximityOf(world, r.anchor, pieces)),
+      trainPrevArc: r.trainArc,
+    });
+  }
+  const flat = new Map<number, FlatRide>();
+  for (const r of snapshot.rides.flat) {
+    flat.set(r.id, { ...r, riders: [...r.riders], queue: [...r.queue] });
   }
 
   return {
@@ -287,6 +410,9 @@ export function restoreState(
     litter: snapshot.litter.map((l) => ({ ...l })),
     janitors: snapshot.janitors.map((j) => ({ ...j, path: [...j.path] })),
     nextJanitorId: Math.max(0, ...snapshot.janitors.map((j) => j.id)) + 1,
+    rides: { tracked, flat, nextId: snapshot.rides.nextId },
+    mechanics: snapshot.mechanics.map((m) => ({ ...m })),
+    nextMechanicId: snapshot.nextMechanicId,
     ledger: structuredClone(snapshot.ledger),
     monthNumber: snapshot.monthNumber,
     lastMonthGuests: snapshot.lastMonthGuests,

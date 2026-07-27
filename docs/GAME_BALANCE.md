@@ -90,8 +90,13 @@ Novelty: new ride ×1.4 decaying to ×1.0 over 3 months; refurb restores to ×1.
 > path cells or outside gate hours (09:00–21:00) — with day rhythm ×0.7 before 11:00, ×1.0
 > until 17:00, ×0.5 after; `fairEntry = $8 + $1×shop + min($0.04×scenery, $3)`. The spawn
 > accumulator adds `rate/50` per tick (≈ rate per 10 game‑minutes). Sandbox entry preset is
-> $5 during this phase (§3.1). The full ride‑driven formula above replaces this in M3; this
-> note then retires.
+> $5 during this phase (§3.1).
+>
+> **M3 addendum:** open rides join both terms — `appeal += Σ(open ride E) × 1.0` and
+> `fairEntry += $1.10 × avg(top-8 open ride E)` (the doc formula's ride term, shops/scenery
+> terms retained until the rating system lands). Guests seek rides on low Fun (thrill-leaning
+> archetypes even while content), pay the ride ticket from their wallet, and step off with a
+> Fun boost from the archetype/E-band match.
 
 ### 4.2 Park Rating (0–5.0★)
 
@@ -157,6 +162,15 @@ I = clamp(0.8 + 1.1×maxSpeedNorm + 1.6×inversions + 1.2×lateralG + 0.7×dropM
 N = clamp(0.4 + 1.8×inversions + 1.3×lateralG×speed + 0.9×spinPieces − comfortPieces, 0, 10)
 Appeal per archetype = gaussian match of (E,I) to archetype preference bands; N>7 halves Family/Foodie appeal.
 ```
+
+> **M3 shipped subset.** Tracked families live at M3: **Steelwind** (steel) and **Mousetrap**
+> (mouse) with the §5.2 costs (station+base, per-piece average × per-kind factor, train).
+> Flat rides live: Teacup Twirl, Critter Carousel, Galleon Swing, Rocket Orbit, Pumpkin Drop
+> per §5.1. The §5.3 stat formula runs on composition metrics from the energy model
+> (TECH §4.6) with these authored constants: launch 4.2 m/s · chain 3.8 m/s · friction
+> 0.55 v²/m · min speed 1.1 m/s · max 26 m/s · loop entry ≥9 m/s. Banked (skew) pieces,
+> Sky Serpent, Splashlog and the remaining §5.2 rows arrive with their milestones. Guests
+> pay per ride (§4.3 spending); appeal/fairEntry gain ride terms per the §4.1 M3 note.
 
 ### 5.4 Reliability & refurb
 

@@ -34,6 +34,8 @@ export interface WorldState {
 }
 
 export const PATH_OCCUPANT = 0xffffffff;
+/** Ground cells claimed by a ride (station runs, flat-ride footprints). */
+export const RIDE_OCCUPANT = 0xfffffffe;
 
 export function createWorld(site: SiteDescriptor, pieceDefs: readonly SimPieceDef[]): WorldState {
   const cellCount = site.cells.w * site.cells.d;

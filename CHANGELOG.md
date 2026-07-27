@@ -7,6 +7,54 @@ only where a migration ships — see TECHNICAL_ARCHITECTURE §8).
 
 ## [Unreleased]
 
+### M3 — Rides & the track builder (✅ completed 2026‑07‑26)
+- **Track model (`src/content/track.ts`, `src/sim/rides/trackGraph.ts`):** the CoasterKit
+  library measured piece by piece (M3 survey) into authored port metadata — 12 kinds
+  (straight/corners/S‑curve/hills/climbing turns/humps/dip/loop/station) on a 1 m pose lattice
+  with 0.5 m levels; pieces attach by either end, so every left turn and climb doubles as its
+  mirrored right turn or drop. Occupancy rasterizes swept rects with terrain‑collision,
+  head‑clearance (2.5 m) and track‑stacking (2 m) rules.
+- **Energy model + scoring:** piecewise‑constant v² walk (TECH §4.6) — launch 4.2 m/s, chain
+  lifts grab would‑stall climbs at 3.8 m/s, friction 0.55 v²/m, loops demand 9 m/s entry;
+  valleys/overspeed reject with reasons the builder shows. E/I/N per GAME_BALANCE §5.3 from
+  drops, inversions, speed variance, airtime, corner lateral‑G and build‑time scenery
+  proximity; five golden circuits pin the scoring bands (invariant #5) and a 300‑layout fuzz
+  proves invalid layouts never validate.
+- **Ride simulation (`src/sim/rides/rides.ts`):** tracked + flat ride FSMs
+  (closed→testing→open→broken, test‑before‑open), virtual FIFO entrance queues with patience,
+  boarding/fares (ride income category), archetype‑matched fun payouts, breakdown rolls
+  (MTBF × age^1.3 × coverage) and Mechanics — hire/fire commands, nearest‑job dispatch,
+  20–60 game‑min repairs, $950/mo wages, palette‑g uniforms. Trains play back the measured
+  speed profile deterministically; guests seek rides on low Fun (thrill archetypes chase
+  coasters while content) and rides feed arrivals appeal + fairEntry (§4.1 M3 note).
+- **Commands & undo:** ride/startTrack·appendPiece·popPiece·demolish·setState·setPrice,
+  build/placeFlatRide·removeFlatRide, staff/hire+fireMechanic — append/pop and flat‑ride
+  place/remove are exact‑inverse undoable (tested via hash round‑trips); builder dry‑runs
+  (`checkStartTrack`/`checkAppendPiece`) power ghost validity and the live preview.
+- **Flat rides (`src/content/rides.ts`):** Teacup Twirl, Critter Carousel, Galleon Swing,
+  Rocket Orbit, Pumpkin Drop as pure kit compositions (P7) — MiniArena pad tiles, CoasterKit
+  supports, giant FoodKit teacups, CubePets mounts, PirateKit ship, SpaceKit rockets,
+  Spooktober pumpkins — animated by parametric spin/carousel/swing/drop programs.
+- **Render:** instanced track pieces anchored at forward‑frame ports with per‑meter support
+  stacks; station runs composed from 1 m rail segments + platform slabs + entry gate;
+  interpolated train cars with hill pitch and full 360° loop sweep; flat‑ride scene graphs
+  easing up/down with ride phase; double‑click ride‑along chase camera (Esc releases);
+  mechanics rendered in the crowd system; riding guests vanish into the train.
+- **UI:** RIDES dock palette (coaster starters, flat rides, live roster), track builder panel
+  (piece buttons gated by live dry‑runs with E/I/N tooltips, mirror toggle, circuit status,
+  cost ticker, remove‑last/test/done/demolish), ride inspector (state controls, ±ticket price,
+  stats, queue/riders/cycles, edit track, demolish), staff popover gains Mechanics, ride
+  break/repair/test toasts, Escape layering (ride‑along → palettes → build mode → selection →
+  menu).
+- **Save v4:** rides + mechanics + guest rideId lane with v3 migration; evaluation is derived
+  and recomputed on load; round‑trip determinism proven with a live coaster mid‑circuit.
+- **Content:** +34 pieces (full steel/mouse track families, station gate, large support, queue
+  corner, flat‑ride parts, mechanic character) → 98 pieces, 2.1 MB shipped; `ride-part`
+  catalog category keeps composition pieces out of build palettes.
+- **Quality:** 82 unit tests (18 track‑graph incl. golden layouts + fuzz, 9 M3 integration);
+  bench extended — **6 running coasters + 1,261–1,500 guests at 2.26 ms/tick avg** (6 ms
+  budget); new e2e snaps a circuit through the real UI, tests and opens it; 5 new goal cards.
+
 ### M2 — Life (✅ completed 2026‑07‑26)
 - **Guest simulation (`src/sim/guests`):** SoA typed‑array crowd (cap 1,500) with the five
   GAME_BALANCE §4.3 archetypes (weights/wallets), needs decay + mood, staggered decisions, A*

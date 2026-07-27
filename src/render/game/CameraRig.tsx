@@ -5,8 +5,10 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { MapControls } from "@react-three/drei";
 import { MOUSE, Vector3 } from "three";
 import { CELL_SIZE_METERS } from "@/shared/grid";
-import { type Terrain } from "@/sim/api";
+import { poseAtArc, RIDE_STATE, type Terrain } from "@/sim/api";
 import { useGame } from "@/ui/game/store";
+
+const rideAlongScratch = { pos: new Vector3(), look: new Vector3() };
 
 /**
  * The RTS camera (UI_UX §8): LMB selects (never moves the camera), MMB pans,
@@ -79,8 +81,33 @@ export function CameraRig({ terrain }: { terrain: Terrain }) {
     if (!controls) {
       return;
     }
-    if (useGame.getState().menuOpen) {
+    const game = useGame.getState();
+    if (game.menuOpen) {
       return;
+    }
+    // Ride-along (ROADMAP M3): chase the lead car until Escape releases it.
+    if (game.rideAlong !== null && game.facade) {
+      const ride = game.facade
+        .ridesView()
+        .tracked.find((r) => r.key === game.rideAlong);
+      if (!ride || !ride.evaln.valid || ride.state === RIDE_STATE.closed) {
+        game.setRideAlong(null);
+      } else {
+        const alpha = game.stepper.alpha();
+        const arc = ride.trainPrevArc + (ride.trainArc - ride.trainPrevArc) * Math.min(alpha, 1);
+        const pose = poseAtArc(ride.anchor, ride.pieces, ride.evaln.runs, arc);
+        const ahead = poseAtArc(ride.anchor, ride.pieces, ride.evaln.runs, arc + 3);
+        rideAlongScratch.pos.set(
+          pose.x - Math.sin(pose.headingRad) * 4,
+          ride.baseHeight + pose.y + 2.4,
+          pose.z - Math.cos(pose.headingRad) * 4,
+        );
+        rideAlongScratch.look.set(ahead.x, ride.baseHeight + ahead.y + 1, ahead.z);
+        camera.position.lerp(rideAlongScratch.pos, Math.min(1, delta * 6));
+        controls.target.lerp(rideAlongScratch.look, Math.min(1, delta * 8));
+        controls.update();
+        return;
+      }
     }
     // WASD pan in camera-forward space (flattened to the ground plane).
     const pressed = keys.current;

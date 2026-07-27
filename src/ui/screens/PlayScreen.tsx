@@ -7,6 +7,7 @@ import { t } from "@/ui/i18n/t";
 import { BuildPalette } from "@/ui/game/BuildPalette";
 import { Hud } from "@/ui/game/Hud";
 import { GuestInspector, MonthReportModal, StaffPopover } from "@/ui/game/panels";
+import { RideInspector, RidesPalette, TrackBuilderPanel } from "@/ui/game/ridePanels";
 import { PauseMenu } from "@/ui/game/PauseMenu";
 import { useGame } from "@/ui/game/store";
 
@@ -34,6 +35,7 @@ function PlayInner() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteCategory, setPaletteCategory] = useState<"scenery" | "shops">("scenery");
   const [staffOpen, setStaffOpen] = useState(false);
+  const [ridesOpen, setRidesOpen] = useState(false);
 
   useEffect(() => {
     void boot({ fresh: fresh || bench > 0, ...(bench > 0 ? { bench } : {}) });
@@ -44,10 +46,16 @@ function PlayInner() {
     const onKeyDown = (event: KeyboardEvent): void => {
       const state = useGame.getState();
       if (event.key === "Escape") {
-        if (paletteOpen) {
+        if (state.rideAlong !== null) {
+          state.setRideAlong(null);
+        } else if (ridesOpen) {
+          setRidesOpen(false);
+        } else if (paletteOpen) {
           setPaletteOpen(false);
         } else if (state.buildMode.kind !== "inspect") {
           state.setBuildMode({ kind: "inspect" });
+        } else if (state.selectedRide !== null) {
+          state.selectRide(null);
         } else {
           state.setMenuOpen(!state.menuOpen);
         }
@@ -79,7 +87,7 @@ function PlayInner() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [paletteOpen]);
+  }, [paletteOpen, ridesOpen]);
 
   // Quiet autosave + save on tab hide (GAME_DESIGN §21 idle-positive promise).
   // Bench runs never autosave — they must not clobber the player's park.
@@ -130,6 +138,12 @@ function PlayInner() {
         onToggleStaff={() => {
           setStaffOpen((open) => !open);
           setPaletteOpen(false);
+          setRidesOpen(false);
+        }}
+        onOpenRides={() => {
+          setRidesOpen((open) => !open);
+          setPaletteOpen(false);
+          setStaffOpen(false);
         }}
       />
       <BuildPalette
@@ -138,6 +152,9 @@ function PlayInner() {
         onClose={() => setPaletteOpen(false)}
       />
       <StaffPopover open={staffOpen} onClose={() => setStaffOpen(false)} />
+      <RidesPalette open={ridesOpen} onClose={() => setRidesOpen(false)} />
+      <TrackBuilderPanel />
+      <RideInspector />
       <GuestInspector />
       <MonthReportModal />
       <PauseMenu />

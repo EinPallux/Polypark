@@ -10,9 +10,11 @@ import { z } from "zod";
  * v2 (M1): + money, + world (siteId, nextInstanceId, placed pieces, path cells).
  * v3 (M2): + the living park — park open/fee, guests, litter, janitors,
  *          ledger, stats, goals, xp.
+ * v4 (M3): + rides (tracked coasters with piece lists + flat rides),
+ *          mechanics, guest rideId lane.
  */
 
-export const SAVE_FORMAT_VERSION = 3;
+export const SAVE_FORMAT_VERSION = 4;
 
 export const RngStreamStateSchema = z.object({
   name: z.string(),
@@ -31,6 +33,85 @@ export const PlacedPieceSchema = z.object({
 
 const numberArray = z.array(z.number());
 const intArray = z.array(z.number().int());
+
+const TrackPoseSchema = z.object({
+  mx: z.number().int(),
+  mz: z.number().int(),
+  level: z.number().int(),
+  heading: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]),
+});
+
+const TrackPieceSchema = z.object({
+  kind: z.enum([
+    "station",
+    "straight",
+    "corner-small",
+    "corner-large",
+    "curve",
+    "hill",
+    "hill-half",
+    "corner-small-ramp",
+    "corner-large-ramp",
+    "bump-up",
+    "bump-down",
+    "loop",
+  ]),
+  flipped: z.boolean(),
+});
+
+const TrackedRideSchema = z.object({
+  id: z.number().int().positive(),
+  family: z.enum(["steel", "mouse"]),
+  anchor: TrackPoseSchema,
+  baseHeight: z.number(),
+  pieces: z.array(TrackPieceSchema),
+  state: z.number().int().min(0).max(3),
+  priceCents: z.number().int().nonnegative(),
+  tested: z.boolean(),
+  trainArc: z.number(),
+  trainPhase: z.enum(["dwell", "run"]),
+  dwellTicks: z.number().int(),
+  riders: intArray,
+  queue: intArray,
+  cycleCount: z.number().int().nonnegative(),
+  totalSpentCents: z.number().int(),
+  entranceX: z.number().int(),
+  entranceZ: z.number().int(),
+  breakdownTicks: z.number().int(),
+  mechanicId: z.number().int(),
+  everOpened: z.boolean(),
+  createdAtTick: z.number().int().nonnegative(),
+});
+
+const FlatRideSchema = z.object({
+  id: z.number().int().positive(),
+  defId: z.enum(["teacups", "carousel", "galleon", "rocket", "drop"]),
+  x: z.number().int(),
+  z: z.number().int(),
+  rot: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]),
+  state: z.number().int().min(0).max(3),
+  priceCents: z.number().int().nonnegative(),
+  phaseTicks: z.number().int(),
+  phase: z.enum(["loading", "running"]),
+  riders: intArray,
+  queue: intArray,
+  cycleCount: z.number().int().nonnegative(),
+  tested: z.boolean(),
+  breakdownTicks: z.number().int(),
+  mechanicId: z.number().int(),
+  entranceX: z.number().int(),
+  entranceZ: z.number().int(),
+  placedAtTick: z.number().int().nonnegative(),
+  everOpened: z.boolean(),
+});
+
+const MechanicSchema = z.object({
+  id: z.number().int().positive(),
+  x: z.number(),
+  z: z.number(),
+  targetRide: z.number().int(),
+  repairTicks: z.number().int(),
+});
 
 export const SimSnapshotSchema = z.object({
   tick: z.number().int().nonnegative(),
@@ -92,9 +173,17 @@ export const SimSnapshotSchema = z.object({
     serveTicks: intArray,
     servingShop: intArray,
     enteredAtTick: intArray,
+    rideId: intArray,
     paths: z.array(z.tuple([z.number().int(), intArray])),
     thoughts: z.array(z.tuple([z.number().int(), z.array(z.string())])),
   }),
+  rides: z.object({
+    nextId: z.number().int().positive(),
+    tracked: z.array(TrackedRideSchema),
+    flat: z.array(FlatRideSchema),
+  }),
+  mechanics: z.array(MechanicSchema),
+  nextMechanicId: z.number().int().positive(),
 });
 
 export const SaveFileSchema = z.object({

@@ -6,7 +6,7 @@ the parking lot, the hotel row, the office quarter. Delight blocky guests, survi
 loans and inspections. Your park never ends; it only grows. Single player, no account, runs
 on Vercel.
 
-> **Status: 🚧 In development — [ROADMAP](ROADMAP.md) M0–M2 complete; next: M3 (Rides & the track builder).**
+> **Status: 🚧 In development — [ROADMAP](ROADMAP.md) M0–M3 complete; next: M4 (The tycoon layer).**
 > Implementation approved by the owner on 2026‑07‑26.
 
 ## The pitch

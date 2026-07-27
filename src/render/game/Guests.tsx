@@ -38,6 +38,7 @@ const VARIANT_FILES = [
   "models/blockycharacters/character-d.glb",
   "models/blockycharacters/character-e.glb",
   "models/blockycharacters/character-f.glb", // janitor uniform
+  "models/blockycharacters/character-g.glb", // mechanic uniform
 ];
 
 const scratch = {
@@ -104,7 +105,11 @@ function VariantPool({
 
     if (variant < 5) {
       for (let slot = 0; slot < view.count; slot++) {
-        if (view.state[slot] === GUEST_STATE.off || view.variant[slot] !== variant) {
+        if (
+          view.state[slot] === GUEST_STATE.off ||
+          view.state[slot] === GUEST_STATE.riding || // aboard a ride — the train is their body
+          view.variant[slot] !== variant
+        ) {
           continue;
         }
         const x = view.px[slot]! + (view.x[slot]! - view.px[slot]!) * alpha;
@@ -114,11 +119,23 @@ function VariantPool({
         const heading = dx * dx + dz * dz > 1e-8 ? Math.atan2(dx, dz) : slot;
         writeInstance(x, z, heading, slot, slot);
       }
-    } else {
+    } else if (variant === 5) {
       // Janitors in the f-palette pool (negative slot = not inspectable).
       const janitors = state.snapshot?.janitors ?? [];
       for (const janitor of janitors) {
         writeInstance(janitor.x, janitor.z, (janitor.id * 1.7) % (Math.PI * 2), janitor.id, -1);
+      }
+    } else {
+      // Mechanics wear palette g and trot in world meters (cells × 2).
+      const mechanics = state.snapshot?.mechanics ?? [];
+      for (const mech of mechanics) {
+        writeInstance(
+          (mech.x + 0.5) * 2,
+          (mech.z + 0.5) * 2,
+          (mech.id * 2.3) % (Math.PI * 2),
+          mech.id,
+          -1,
+        );
       }
     }
 
