@@ -362,7 +362,14 @@ export function createSim(options: CreateSimOptions): SimFacade {
   events.emit({ type: "sim/started", seed: state.seed });
 
   const bumpOnBuild = (command: Command, ok: boolean): void => {
-    if (ok && (command.type.startsWith("build/") || command.type.startsWith("ride/"))) {
+    // `shop/` counts: a price change is a world mutation the render and panel
+    // layers read back through placedPieces(), and they key off this version.
+    if (
+      ok &&
+      (command.type.startsWith("build/") ||
+        command.type.startsWith("ride/") ||
+        command.type.startsWith("shop/"))
+    ) {
       version += 1;
     }
   };

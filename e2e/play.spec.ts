@@ -158,6 +158,41 @@ test("M4: the management window opens the books, lends, and reads the rating", a
   await expect(page.getByTestId("pause-save")).toBeHidden();
 });
 
+test("debt pass: a shop can be priced, and says when guests think it's steep", async ({
+  page,
+}) => {
+  await bootFreshPark(page);
+  await page.getByTestId("dock-paths").click();
+  await page.mouse.move(800, 780);
+  await page.mouse.down();
+  for (let y = 780; y >= 420; y -= 20) {
+    await page.mouse.move(800, y);
+  }
+  await page.mouse.up();
+
+  await page.getByTestId("dock-shops").click();
+  await page.getByTestId("palette-coasterkit-stall-food").click();
+  await page.mouse.click(742, 560);
+  await page.keyboard.press("Escape");
+
+  // Clicking the stall in inspect mode opens its price panel.
+  await page.mouse.click(742, 560);
+  await expect(page.getByTestId("shop-inspector")).toBeVisible();
+  await expect(page.getByTestId("shop-price")).toHaveText("$6");
+  await expect(page.getByTestId("shop-fair-hint")).not.toContainText("steep");
+
+  // Raising the price must actually move the number — the sim can accept the
+  // command while the panel shows a stale one if worldVersion does not bump.
+  for (let i = 0; i < 8; i++) {
+    await page.getByTestId("shop-price-up").click();
+  }
+  await expect(page.getByTestId("shop-price")).toHaveText("$10");
+  await expect(page.getByTestId("shop-fair-hint")).toContainText("steep");
+
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("shop-inspector")).toBeHidden();
+});
+
 test("M2: open the park and guests arrive; goals progress", async ({ page }) => {
   await bootFreshPark(page);
   // Path spine + a snack stall beside it.

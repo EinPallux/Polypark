@@ -49,6 +49,16 @@ describe("a shop can be priced", () => {
     expect(priceOf(sim, shopId)).toBe(SHOP_DEFS["coasterkit/stall-food"]!.defaultPriceCents);
   });
 
+  it("bumps worldVersion so the panel re-reads the price", () => {
+    // The shop inspector reads placedPieces() and re-renders off worldVersion.
+    // Without the bump the command succeeds and the UI shows a stale number —
+    // which is exactly how it looked in the first capture.
+    const { sim, shopId } = park();
+    const before = sim.worldVersion();
+    sim.dispatch({ type: "shop/setPrice", placedId: shopId, cents: 7_00 });
+    expect(sim.worldVersion()).toBeGreaterThan(before);
+  });
+
   it("takes a new price and undoes back to the old one", () => {
     const { sim, shopId } = park();
     const before = priceOf(sim, shopId);

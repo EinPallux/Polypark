@@ -109,6 +109,11 @@ only where a migration ships — see TECHNICAL_ARCHITECTURE §8).
   with no route to it can never strand a mechanic — tested by bulldozing every path in the park
   and asserting repairs still complete. `findPath` moved from `guests/` to `world/pathfind.ts`;
   it is a property of the grid, and its old home is exactly why `rides.ts` could not use it.
+- **Two bugs found by looking at the result, not the tests.** `shop/setPrice` did not bump
+  `worldVersion`, so the command succeeded while the panel showed a stale number — invisible to
+  unit tests, obvious in a screenshot. And routing mechanics by aiming at cell centres made them
+  converge half a cell short of an arrival check measured against the cell origin, so they
+  walked forever and repairs silently stopped. Both now have tests.
 - **Aliasing bug found on the way:** `restoreState` reused the snapshot's own piece objects.
   Harmless while every field was readonly; with a mutable price it meant a resumed park could
   write back into the save it loaded from. Restore now clones.
