@@ -183,6 +183,13 @@ export const SimSnapshotSchema = z.object({
   }),
   difficulty: z.enum(["relaxed", "standard", "tycoon"]),
   finance: FinanceSchema,
+  // Rolling-window accumulators: plain numbers, persisted so a reload does not
+  // reset the park's reputation history.
+  rating: z.looseObject({
+    pressStars: z.number(),
+    capStars: z.number(),
+    stars: z.number(),
+  }),
   districts: z.object({ billboardCount: z.number().int() }).nullable(),
   stats: z.record(z.string(), z.number()),
   goals: z.object({

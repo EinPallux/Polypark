@@ -48,6 +48,7 @@ import {
   type ParkValuation,
 } from "./economy/finance";
 import { campaignIsLive, tickMarketing } from "./economy/marketing";
+import { evaluateRating, tickRating, type RatingView } from "./rating/rating";
 import { minPaymentCents } from "./economy/amortize";
 import { CREDIT_GRADES, LOAN_PRODUCT_LIST, type CreditGrade, type LoanProductId } from "@/content/loans";
 import { type MarketingCampaignId } from "@/content/marketing";
@@ -225,6 +226,7 @@ export interface HudView {
   readonly debtCents: number;
   readonly creditGrade: CreditGrade;
   readonly activeCampaign: MarketingCampaignId | null;
+  readonly ratingStars: number;
 }
 
 export interface SimFacade {
@@ -262,6 +264,7 @@ export interface SimFacade {
     flipped: boolean,
   ): { reason: CommandFailure | null; preview: TrackEvaluation | null };
   finance(): FinanceView;
+  rating(): RatingView;
 }
 
 export interface CreateSimOptions {
@@ -376,6 +379,7 @@ export function createSim(options: CreateSimOptions): SimFacade {
             events.emit({ type: "park/levelUp", level: after });
           }
         }
+        tickRating(state);
         const financeEvents: FinanceEvent[] = [];
         tickMarketing(state, financeEvents);
         const closed = tickLedger(state, financeEvents);
@@ -462,8 +466,10 @@ export function createSim(options: CreateSimOptions): SimFacade {
         debtCents: debtTotalCents(state),
         creditGrade: CREDIT_GRADES[state.finance.credit.gradeIndex] ?? "C",
         activeCampaign: campaignIsLive(state) ? state.finance.campaign!.campaign : null,
+        ratingStars: state.rating.stars,
       };
     },
+    rating: () => evaluateRating(state),
     finance: () => {
       const finance = state.finance;
       const receivership = finance.receivership;

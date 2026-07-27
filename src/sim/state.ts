@@ -31,6 +31,7 @@ import {
 } from "./rides/trackGraph";
 import { type FlatRide, type Mechanic, type TrackedRide } from "./rides/rides";
 import { createFinanceState, type FinanceState } from "./economy/finance";
+import { createRatingState, type RatingState } from "./rating/rating";
 import {
   DEFAULT_DIFFICULTY,
   DIFFICULTY_MODS,
@@ -127,6 +128,7 @@ export interface SimState {
   /** Resolved modifiers — derived from `difficulty`, never saved. */
   difficultyMods: DifficultyMods;
   finance: FinanceState;
+  rating: RatingState;
   /** District state (M4 districts subsystem); null until a plot is bought. */
   districts: { billboardCount: number } | null;
   ledger: Ledger;
@@ -172,6 +174,7 @@ export interface SimStateSnapshot {
   readonly difficulty: DifficultyId;
   /** FinanceState minus the derived valuation cache (never hashed). */
   readonly finance: Omit<FinanceState, "valuationCacheKey" | "valuationCache">;
+  readonly rating: RatingState;
   readonly districts: { readonly billboardCount: number } | null;
   readonly guests: {
     readonly count: number;
@@ -246,6 +249,7 @@ export function createInitialState(
     difficulty,
     difficultyMods: DIFFICULTY_MODS[difficulty],
     finance: createFinanceState(options?.hardFail ?? false),
+    rating: createRatingState(),
     districts: null,
     ledger: createLedger(),
     monthNumber: 0,
@@ -350,6 +354,7 @@ export function snapshotState(state: SimState): SimStateSnapshot {
     nextMechanicId: state.nextMechanicId,
     difficulty: state.difficulty,
     finance: snapshotFinance(state.finance),
+    rating: structuredClone(state.rating),
     districts: state.districts ? { ...state.districts } : null,
     guests: {
       count: n,
@@ -480,6 +485,7 @@ export function restoreState(
       valuationCacheKey: -1,
       valuationCache: null,
     },
+    rating: structuredClone(snapshot.rating),
     districts: snapshot.districts ? { ...snapshot.districts } : null,
     ledger: structuredClone(snapshot.ledger),
     monthNumber: snapshot.monthNumber,

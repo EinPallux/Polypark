@@ -13,6 +13,7 @@ import {
   type OpenRideOption,
 } from "../rides/rides";
 import { archetypeWeights, marketingMult } from "../economy/marketing";
+import { ratingMult } from "../rating/rating";
 
 /**
  * The guest simulation (GAME_DESIGN §12): SoA typed arrays at a hard cap,
@@ -274,7 +275,7 @@ export function arrivalsPerMinute(state: SimState): number {
     1.3,
   );
   // Marketing supplies the marketingMult term GAME_BALANCE §4.1 always had.
-  return appeal * rhythm * elasticity * marketingMult(state);
+  return appeal * rhythm * elasticity * marketingMult(state) * ratingMult(state);
 }
 
 function spawnGuest(state: SimState): number | null {
