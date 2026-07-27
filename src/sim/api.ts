@@ -49,6 +49,8 @@ import {
 } from "./economy/finance";
 import { campaignIsLive, tickMarketing } from "./economy/marketing";
 import { evaluateRating, tickRating, type RatingView } from "./rating/rating";
+export type { RatingView, RatingCause, RatingCauseId, SubScore } from "./rating/rating";
+export { RATING_CAUSE_IDS } from "./rating/rating";
 import { minPaymentCents } from "./economy/amortize";
 import { CREDIT_GRADES, LOAN_PRODUCT_LIST, type CreditGrade, type LoanProductId } from "@/content/loans";
 import { type MarketingCampaignId } from "@/content/marketing";

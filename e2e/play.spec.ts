@@ -129,6 +129,35 @@ test("M3: snap a coaster circuit, test it, open it", async ({ page }) => {
   await expect(page.getByTestId("ride-state")).toHaveText(/open/i);
 });
 
+test("M4: the management window opens the books, lends, and reads the rating", async ({ page }) => {
+  await bootFreshPark(page);
+
+  // Two clicks from the HUD to anything the tycoon layer produces (UI_UX §7.1).
+  await page.getByTestId("dock-manage").click();
+  await expect(page.getByTestId("manage-window")).toBeVisible();
+  await expect(page.getByTestId("receivership-banner")).toBeHidden();
+
+  // A fresh park's land alone clears the debt ratio for the smallest loan.
+  await page.getByRole("tab", { name: "Loans" }).click();
+  await expect(page.getByTestId("credit-grade")).toHaveText("C");
+  await page.getByTestId("take-loan-piggy").click();
+  // $75,000 + $10,000 principal − $100 origination fee.
+  await expect(page.getByTestId("hud-money")).toHaveText("$84900");
+  await expect(page.getByTestId("pay-loan-1")).toBeVisible();
+  await expect(page.getByTestId("hud-debt")).toBeVisible();
+
+  // Rating reads neutral on an empty park and expands to its causes.
+  await page.getByRole("tab", { name: "Rating" }).click();
+  await expect(page.getByTestId("rating-stars")).toHaveText("2.5");
+  await page.getByTestId("rating-sub-fun").click();
+  await expect(page.getByTestId("manage-window")).toContainText("no rides");
+
+  // Escape closes the window rather than falling through to the pause menu.
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("manage-window")).toBeHidden();
+  await expect(page.getByTestId("pause-save")).toBeHidden();
+});
+
 test("M2: open the park and guests arrive; goals progress", async ({ page }) => {
   await bootFreshPark(page);
   // Path spine + a snack stall beside it.

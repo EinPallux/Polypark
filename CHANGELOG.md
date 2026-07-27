@@ -7,6 +7,51 @@ only where a migration ships — see TECHNICAL_ARCHITECTURE §8).
 
 ## [Unreleased]
 
+### M4 — The tycoon layer (🚧 in progress)
+- **Finance spine (`src/sim/economy/finance.ts`, `amortize.ts`):** three loan products with
+  APRs locked at origination off an A–E credit grade (GAME_BALANCE §8.2), a park valuation
+  (rides + pieces + paths + land, depreciating 2%/mo to a 45% floor) that gates borrowing at a
+  65% debt ratio, and a 7‑phase month close — accrue, sweep, amortize, arrears, grade, sweep
+  profit, settle. `minPaymentCents` rounds **up** and monthly interest rounds **down**, and the
+  doc comment carries the induction proof that a loan therefore always amortizes to exactly $0
+  within term (invariant #6, 20k‑case fuzz).
+- **Receivership, not game over (ADR‑15, GAME_DESIGN §14.3):** N insolvent months open an
+  administration that freezes marketing, caps construction at $1,000/item, sweeps half of each
+  profitable month against the oldest debt and halves interest — for at most 6 months, exiting
+  when debts are current and cash ≥ $0. No save can end. A new `refocusForReceivership()`
+  returns non‑recovery goal cards to the pool on entry, because three full slots would
+  otherwise mean the recovery chain never deals.
+- **Park Rating (`src/sim/rating/rating.ts`):** Fun 30 · Value 20 · Care 20 · Wonder 15 ·
+  Flow 15 over O(1) exponentially‑weighted month windows, each sub‑score reporting structured
+  top causes (`fun.noRides`, `care.litter`, optionally a ride key) that the UI turns into
+  sentences. **Confidence blending** — `50 + confidence × (raw − 50)` with confidence maxing at
+  25 guest‑months — means an empty park reads 2.5★ instead of 0★, so a slow opening can never
+  spiral (pillar P3). Rating feeds arrivals (×0.6–1.6); a live Consortium loan caps the
+  displayed stars at 4.5.
+- **Marketing + difficulty:** three campaigns that buy arrivals and skew *which* archetypes
+  arrive (GAME_BALANCE §8.3), and Relaxed/Standard/Tycoon presets whose 9 modifiers are derived
+  on load, never serialized, so retuning reaches existing parks (§8.4).
+- **Management window (`src/ui/game/ManagementWindow.tsx`):** MANAGE dock button and `M` open
+  one tabbed window — Finance (cash, park value, debt, asset breakdown), Rating (stars, five
+  weighted bars, each expanding to its top‑3 causes in plain language), Loans (credit grade,
+  live loans with payoff, three offers with the blocking reason on the button), Marketing. A
+  receivership banner explains what the administrator is doing. HUD vitals now show real stars,
+  outstanding debt and a receivership pill. Escape closes the window before the pause menu.
+- **Commands & save v5:** `finance/takeLoan`, `finance/payLoan`, `marketing/start` as
+  operational (non‑undoable) commands with replay pins so redo reproduces identical state;
+  receivership spend denial at five sites, bypassed when internal pins are present so undoing
+  a pre‑receivership build still works. Save v5 migrates v4 forward (standard difficulty, empty
+  finance, $20,000 land, zeroed rating windows). `ledgerCore.ts` extracted as a leaf module to
+  break a real finance↔ledger runtime cycle.
+- **Fixed: blank copy from unchecked i18n keys.** Keys built from content ids reach `t()`
+  through a cast, so 17 were missing with no compiler complaint — M3's five ride goal cards
+  had been rendering as empty goal titles since it shipped, and M4's loan and campaign names
+  were blank. All added; `t()` now echoes an unknown key instead of rendering nothing; and
+  `src/ui/i18n/i18n.test.ts` proves every goal card, loan, campaign, ride and rating cause
+  resolves to real copy. Month counts pluralize ("1 month", not "1 months").
+- **Quality:** 123 unit tests (8 amortization, 17 finance, 9 rating, 7 i18n); new e2e opens the
+  management window, borrows, and reads the rating through the real UI.
+
 ### M3 — Rides & the track builder (✅ completed 2026‑07‑26)
 - **Track model (`src/content/track.ts`, `src/sim/rides/trackGraph.ts`):** the CoasterKit
   library measured piece by piece (M3 survey) into authored port metadata — 12 kinds

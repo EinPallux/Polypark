@@ -43,11 +43,34 @@ function Vitals() {
       </span>
       <span className="font-ui text-xs font-semibold tracking-[0.06em] text-frost-300/70 uppercase">
         👥 <span data-testid="hud-guests" className="font-numeral tabular-nums">{hud.guestCount}</span>{" "}
-        · {t("play.vitals.rating")} — ·{" "}
+        ·{" "}
+        <span data-testid="hud-rating" className="font-numeral tabular-nums">
+          {hud.ratingStars.toFixed(1)}
+        </span>
+        <span className="text-gold-400" aria-label={t("play.vitals.rating")}>
+          ★
+        </span>{" "}
+        ·{" "}
         <span data-testid="hud-level">
           {t("play.vitals.level")} {hud.level}
         </span>
       </span>
+      {hud.debtCents > 0 ? (
+        <span
+          data-testid="hud-debt"
+          className="font-numeral text-xs font-semibold text-danger-500 tabular-nums"
+        >
+          −{moneyToDollarString(money(hud.debtCents))}
+        </span>
+      ) : null}
+      {hud.receivershipActive ? (
+        <span
+          data-testid="hud-receivership"
+          className="skew-ui bg-danger-500 px-2 py-0.5 font-ui text-[10px] font-bold text-white uppercase"
+        >
+          <span className="unskew-ui inline-block">{t("play.vitals.receivership")}</span>
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -100,10 +123,12 @@ function Dock({
   onOpenPalette,
   onToggleStaff,
   onOpenRides,
+  onOpenManage,
 }: {
   onOpenPalette: (category: "path" | "scenery" | "shops") => void;
   onToggleStaff: () => void;
   onOpenRides: () => void;
+  onOpenManage: () => void;
 }) {
   const buildMode = useGame((state) => state.buildMode);
   const setBuildMode = useGame((state) => state.setBuildMode);
@@ -149,6 +174,13 @@ function Dock({
       icon: "🧹",
       active: false,
       onClick: onToggleStaff,
+    },
+    {
+      id: "manage",
+      label: t("play.dock.manage"),
+      icon: "📊",
+      active: false,
+      onClick: onOpenManage,
     },
     {
       id: "bulldoze",
@@ -225,6 +257,7 @@ function ContextHints() {
               { keys: ["ESC"], label: t("play.hint.cancel") },
             ]
           : [
+              { keys: ["M"], label: t("play.hint.manage") },
               { keys: ["CTRL", "Z"], label: t("play.hint.undo") },
               { keys: ["ESC"], label: t("play.hint.menu") },
             ];
@@ -239,10 +272,12 @@ export function Hud({
   onOpenPalette,
   onToggleStaff,
   onOpenRides,
+  onOpenManage,
 }: {
   onOpenPalette: (category: "path" | "scenery" | "shops") => void;
   onToggleStaff: () => void;
   onOpenRides: () => void;
+  onOpenManage: () => void;
 }) {
   const parkName = useGame((state) => state.hud?.parkName);
   const [hintCollapsed] = useState(false);
@@ -265,7 +300,12 @@ export function Hud({
       <div className="flex items-end justify-between gap-4">
         <Vitals />
         <div className="flex items-center gap-2">
-          <Dock onOpenPalette={onOpenPalette} onToggleStaff={onToggleStaff} onOpenRides={onOpenRides} />
+          <Dock
+            onOpenPalette={onOpenPalette}
+            onToggleStaff={onToggleStaff}
+            onOpenRides={onOpenRides}
+            onOpenManage={onOpenManage}
+          />
           <SpeedControls />
         </div>
         {hintCollapsed ? <Keycap>?</Keycap> : <ContextHints />}

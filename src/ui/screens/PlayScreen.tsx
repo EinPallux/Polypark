@@ -6,6 +6,7 @@ import { Suspense, useEffect, useState } from "react";
 import { t } from "@/ui/i18n/t";
 import { BuildPalette } from "@/ui/game/BuildPalette";
 import { Hud } from "@/ui/game/Hud";
+import { ManagementWindow } from "@/ui/game/ManagementWindow";
 import { GuestInspector, MonthReportModal, StaffPopover } from "@/ui/game/panels";
 import { RideInspector, RidesPalette, TrackBuilderPanel } from "@/ui/game/ridePanels";
 import { PauseMenu } from "@/ui/game/PauseMenu";
@@ -36,6 +37,7 @@ function PlayInner() {
   const [paletteCategory, setPaletteCategory] = useState<"scenery" | "shops">("scenery");
   const [staffOpen, setStaffOpen] = useState(false);
   const [ridesOpen, setRidesOpen] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
 
   useEffect(() => {
     void boot({ fresh: fresh || bench > 0, ...(bench > 0 ? { bench } : {}) });
@@ -46,7 +48,9 @@ function PlayInner() {
     const onKeyDown = (event: KeyboardEvent): void => {
       const state = useGame.getState();
       if (event.key === "Escape") {
-        if (state.rideAlong !== null) {
+        if (manageOpen) {
+          setManageOpen(false);
+        } else if (state.rideAlong !== null) {
           state.setRideAlong(null);
         } else if (ridesOpen) {
           setRidesOpen(false);
@@ -59,6 +63,8 @@ function PlayInner() {
         } else {
           state.setMenuOpen(!state.menuOpen);
         }
+      } else if (event.key === "m" || event.key === "M") {
+        setManageOpen((open) => !open);
       } else if (event.key === "r" || event.key === "R") {
         state.rotate();
         if (state.hover) {
@@ -87,7 +93,7 @@ function PlayInner() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [paletteOpen, ridesOpen]);
+  }, [paletteOpen, ridesOpen, manageOpen]);
 
   // Quiet autosave + save on tab hide (GAME_DESIGN §21 idle-positive promise).
   // Bench runs never autosave — they must not clobber the player's park.
@@ -145,6 +151,7 @@ function PlayInner() {
           setPaletteOpen(false);
           setStaffOpen(false);
         }}
+        onOpenManage={() => setManageOpen((open) => !open)}
       />
       <BuildPalette
         open={paletteOpen}
@@ -156,6 +163,7 @@ function PlayInner() {
       <TrackBuilderPanel />
       <RideInspector />
       <GuestInspector />
+      <ManagementWindow open={manageOpen} onClose={() => setManageOpen(false)} />
       <MonthReportModal />
       <PauseMenu />
     </main>

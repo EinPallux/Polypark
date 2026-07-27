@@ -105,6 +105,20 @@ Flow 15. Sub‑score formulas use rolling 1‑month windows (e.g., Care = 100 �
 vomit×30 − citationPenalty − restroomShortfall×18, clamped). Full derivations live beside the
 code (`sim/rating/`) and must match this doc's weights.
 
+**Confidence blending (anti‑death‑spiral, pillar P3).** Every sub‑score is reported as
+`50 + confidence × (raw − 50)`, where `confidence = clamp(guestExposure / 25, 0, 1)` over the
+same rolling month. A park nobody has visited yet reads a flat 2.5★ rather than 0★, so a quiet
+opening week can never compound into an arrivals collapse the player cannot climb out of.
+Confidence reaches 1.0 at 25 guest‑months of evidence and is shown in the UI as
+"still settling" until then.
+
+Each sub‑score also reports its **top causes** as structured ids + magnitudes (`fun.noRides`,
+`care.litter`, …) — never sentences. The sim ships ids; the UI supplies the words, so a cause
+is one i18n key away from being explained in any language.
+
+A live Consortium loan caps the *displayed* rating at 4.5★ (§8.2); the underlying sub‑scores
+are unaffected.
+
 ### 4.3 Guest spending
 
 | Archetype | Share | Wallet | Refill @ATM | Price tolerance |
@@ -263,6 +277,36 @@ months (§2). While active: marketing frozen · construction limited to items �
 one profitable month → debts current). Exit when debts current and cash ≥ $0 → "comeback"
 press story (+0.2★ over 2 months). Optional sandbox toggle "Classic bankruptcy" replaces
 Receivership with a hard fail — off by default, never available in Stories.
+
+### 8.3 Marketing campaigns (one at a time; frozen in Receivership)
+
+| Campaign | Cost | Runs for | Reach | Skews toward |
+|----------|------|----------|-------|--------------|
+| Flyers | $1,200 | 1 mo | +15% arrivals | Family ×1.35 · Sightseer ×1.25 |
+| Online push | $3,000 | 2 mo | +30% arrivals | Superfan ×1.5 · Thrill ×1.4 · Foodie ×1.1 |
+| Parade day | $6,500 | 3 mo | +45% arrivals | Family ×1.5 · Foodie ×1.3 · Sightseer ×1.2 |
+
+Reach multiplies the arrivals term (§4.1 `marketingMult`); the skew reweights which archetypes
+those extra guests are drawn from, so a channel changes *who* shows up, not just how many.
+Cost is charged once at launch to the `marketing` expense category. Difficulty scales nothing
+here — the lever is the same on every setting.
+
+### 8.4 Difficulty modifiers (Relaxed / Standard / Tycoon)
+
+| Modifier | Relaxed | Standard | Tycoon |
+|----------|---------|----------|--------|
+| Starting cash | ×1.5 | ×1.0 | ×0.75 |
+| Loan APR offset | −200 bps | 0 | +300 bps |
+| Need decay | ×0.85 | ×1.0 | ×1.15 |
+| Price tolerance | ×1.2 | ×1.0 | ×0.85 |
+| Breakdown MTBF | ×2.0 | ×1.0 | ×0.67 |
+| Events per month | 0.75 | 1.25 | 1.75 |
+| Inspection chance/mo | 0.05 | 0.10 | 0.18 |
+| Star Ticket rate | ×0.75 | ×1.0 | ×1.25 |
+| Months insolvent → Receivership | 3 | 2 | 1 |
+
+Difficulty is chosen at park creation and stored on the save; the derived modifier table is
+recomputed on load (never serialized) so retuning this table reaches existing parks.
 
 ## 9. Progression
 

@@ -9,11 +9,13 @@ import { SITES, MEADOWBROOK } from "@/content/sites/meadowbrook";
 import {
   createFixedStepper,
   createSim,
+  type FinanceView,
   type FixedStepper,
   type FlatRideView,
   type GameSpeed,
   type HudView,
   type MonthlyReport,
+  type RatingView,
   type Rotation,
   type SimFacade,
   type SimStateSnapshot,
@@ -21,6 +23,8 @@ import {
 } from "@/sim/api";
 import { readSlot, writeSlot, requestPersistence, type SlotMeta } from "@/save/store";
 import { type FlatRideId } from "@/content/rides";
+import { type LoanProductId } from "@/content/loans";
+import { type MarketingCampaignId } from "@/content/marketing";
 import { type TrackFamilyId, type TrackKind } from "@/content/track";
 import { SAVE_FORMAT_VERSION, type SaveFile } from "@/save/schema";
 import { t } from "@/ui/i18n/t";
@@ -60,6 +64,8 @@ interface GameState {
   snapshot: SimStateSnapshot | null;
   hud: HudView | null;
   rides: { tracked: TrackedRideView[]; flat: FlatRideView[] } | null;
+  finance: FinanceView | null;
+  rating: RatingView | null;
   selectedRide: number | null;
   rideAlong: number | null;
   stepper: FixedStepper;
@@ -100,6 +106,9 @@ interface GameState {
   fireJanitor: () => void;
   hireMechanic: () => void;
   fireMechanic: () => void;
+  takeLoan: (product: LoanProductId) => void;
+  payLoan: (loanId: number, amount: number | "payoff") => void;
+  startCampaign: (campaign: MarketingCampaignId) => void;
   appendTrackPiece: (kind: TrackKind, flipped: boolean) => void;
   popTrackPiece: () => void;
   setRideState: (key: number, to: "closed" | "testing" | "open") => void;
@@ -130,6 +139,8 @@ export const useGame = create<GameState>()(
     snapshot: null,
     hud: null,
     rides: null,
+    finance: null,
+    rating: null,
     selectedRide: null,
     rideAlong: null,
     stepper: createFixedStepper(),
@@ -214,6 +225,8 @@ export const useGame = create<GameState>()(
       set((current) => ({
         hud: facade.hud(),
         rides: facade.ridesView(),
+        finance: facade.finance(),
+        rating: facade.rating(),
         worldVersion,
         ...(current.worldVersion !== worldVersion ? { snapshot: facade.snapshot() } : {}),
       }));
@@ -445,6 +458,29 @@ export const useGame = create<GameState>()(
     },
     fireJanitor() {
       get().facade?.dispatch({ type: "staff/fireJanitor" });
+      get().syncFromSim();
+    },
+    takeLoan(product) {
+      const result = get().facade?.dispatch({ type: "finance/takeLoan", product });
+      if (result && !result.ok) {
+        get().pushToast("bad", t("manage.loanRefused"));
+      } else {
+        get().pushToast("good", t("manage.loanTakenToast"));
+      }
+      get().syncFromSim();
+    },
+    payLoan(loanId, amount) {
+      const result = get().facade?.dispatch({ type: "finance/payLoan", loanId, amount });
+      if (result && !result.ok && result.reason === "not-enough-money") {
+        get().pushToast("bad", t("play.deny.money"));
+      }
+      get().syncFromSim();
+    },
+    startCampaign(campaign) {
+      const result = get().facade?.dispatch({ type: "marketing/start", campaign });
+      if (result && !result.ok) {
+        get().pushToast("bad", t("play.deny.money"));
+      }
       get().syncFromSim();
     },
     hireMechanic() {

@@ -273,9 +273,32 @@ export function addCitations(state: SimState, points: number): void {
 /* Sub-scores                                                          */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Every cause this module can raise. The sim ships ids, the UI ships sentences
+ * (module boundary) — this list is what lets a test prove each id has copy.
+ */
+export const RATING_CAUSE_IDS = [
+  "fun.noRides",
+  "fun.oneNote",
+  "fun.thinPortfolio",
+  "fun.downtime",
+  "value.entryPrice",
+  "value.ridePrice",
+  "value.shopPrice",
+  "value.unhappyLeavers",
+  "care.litter",
+  "care.restrooms",
+  "care.citations",
+  "wonder.bare",
+  "wonder.samey",
+  "flow.queues",
+  "flow.crowded",
+] as const;
+export type RatingCauseId = (typeof RATING_CAUSE_IDS)[number];
+
 export interface RatingCause {
   /** Structured id the UI turns into a sentence — never a string here. */
-  readonly cause: string;
+  readonly cause: RatingCauseId;
   /** How much this is hurting (or helping), 0..100 of the sub-score. */
   readonly magnitude: number;
   /** Optional subject: a ride key, so the UI can name it. */
@@ -362,7 +385,7 @@ function funScore(state: SimState): SubScore {
 function valueScore(state: SimState): SubScore {
   const rating = state.rating;
   const causes: RatingCause[] = [];
-  const items: { ratio: number; weight: number; cause: string; rideKey?: number }[] = [];
+  const items: { ratio: number; weight: number; cause: RatingCauseId; rideKey?: number }[] = [];
 
   // Entry price against what guests expect to pay.
   const fairEntry = fairEntryCents(state);
