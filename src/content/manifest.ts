@@ -75,6 +75,12 @@ export const PILOT_MANIFEST: readonly ManifestEntry[] = [
   // Districts (M5): Parking Grounds and Resort Row. The park is not only rides
   // — GAME_DESIGN §6 wants the whole resort, and these are the ground pieces
   // its plots are built from (kit-only law, ADR-16).
+  // Facilities (M5): the three §6 buildings whose effects can be honest today.
+  // Grill Garden / Sweet Scoop / Poly Bistro need real kit composition like the
+  // flat rides had — no single pack piece is a restaurant — so they wait.
+  { id: "coasterkit/stall-info", pack: "Kenney_CoasterKit", source: coaster("stall-information.glb"), category: "building", kit: "base", tags: ["shop", "info"] },
+  { id: "minimarket/atm", pack: "Kenney_MiniMarketKit", source: "Kenney_MiniMarketKit/GLB format/bottle-return.glb", category: "building", kit: "base", tags: ["shop", "atm"] },
+  { id: "modularbuildings/first-aid", pack: "Kenney_ModularBuildingsKit", source: "Kenney_ModularBuildingsKit/GLB format/building-sample-house-c.glb", category: "building", kit: "base", tags: ["shop", "first-aid"] },
   { id: "cityroads/parking-bay", pack: "Kenney_CityKitRoads", source: roads("road-driveway-double.glb"), category: "building", kit: "base", tags: ["parking", "district"] },
   { id: "cityroads/lot-road", pack: "Kenney_CityKitRoads", source: roads("road-straight.glb"), category: "building", kit: "base", tags: ["parking", "district", "road"] },
   { id: "cityroads/lot-light", pack: "Kenney_CityKitRoads", source: roads("light-square.glb"), category: "prop", kit: "base", tags: ["lamp", "parking", "district"] },

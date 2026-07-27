@@ -31,6 +31,7 @@ import {
   type EventId,
 } from "@/content/events";
 import { money } from "@/shared/money";
+import { FIRST_AID_GUESTS_PER_POST, SHOP_DEFS } from "@/content/shops";
 import { parkClock, TICKS_PER_PARK_DAY } from "../core/loop";
 import { addExpense, addIncome } from "../economy/ledgerCore";
 import { addCitations, addPressStars } from "../rating/rating";
@@ -216,16 +217,26 @@ function worstRideKey(state: SimState): number {
 
 /**
  * Score = reliability 40% + first-aid coverage 20% + crowding 20% +
- * citation history 20% (§8.1). First Aid does not exist yet, so its 20% is
- * scored from mechanic coverage instead — the nearest shipped proxy for "the
- * park can look after people". ROADMAP M5 swaps it when First Aid lands.
+ * citation history 20% (§8.1).
+ *
+ * The first-aid term used to be scored from mechanic coverage, because First
+ * Aid did not exist — a stated proxy, swapped out now that the building ships.
+ * Coverage is one post per 400 guests a month, so a growing park has to keep
+ * up rather than build one and forget it.
  */
 export function inspectionScore(state: SimState): number {
   const rides = [...state.rides.tracked.values(), ...state.rides.flat.values()];
   const broken = rides.filter((r) => r.state === RIDE_STATE.broken).length;
   const reliability = rides.length === 0 ? 1 : 1 - broken / rides.length;
 
-  const coverage = Math.min(1, state.mechanics.length / Math.max(1, rides.length / 3));
+  let posts = 0;
+  for (const piece of state.world.placed.values()) {
+    if (SHOP_DEFS[piece.pieceId]?.effect === "firstAid") {
+      posts += 1;
+    }
+  }
+  const postsWanted = Math.max(1, state.lastMonthGuests / FIRST_AID_GUESTS_PER_POST);
+  const coverage = Math.min(1, posts / postsWanted);
 
   const guests = state.lastMonthGuests;
   const crowding = guests <= 0 ? 1 : Math.max(0, 1 - guests / 4_000);

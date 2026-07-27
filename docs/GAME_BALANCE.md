@@ -235,6 +235,24 @@ variants).
 | ATM | $1,500 | $2.5 fee | — | wallet refill | 10 | $60 |
 | Info Kiosk | $2,000 | free | — | −60% lost chance in 40 m | — | $80 (Guide staffed) |
 
+> **Shipped roster.** Snack Shack · Sip Station · Restroom (M2) · **Cash Point (L5) · Info
+> Kiosk (L7) · First Aid (L9)** (M5). Each new one carries a real mechanical effect, because a
+> building that only decorates the palette is content in name only:
+> · **Cash Point** — charges a $2.50 fee and hands back $40, so a guest who ran dry keeps
+>   spending instead of trudging to the gate. The refill must exceed the fee or the machine is
+>   a trap rather than a service (asserted).
+> · **First Aid** — free, and free it stays (GAME_DESIGN §24). It supplies the inspection
+>   score's first‑aid term (§8.1), replacing the mechanic‑coverage proxy M4 shipped with a
+>   stated swap‑when‑it‑lands note. Coverage is one post per 400 monthly guests, so a growing
+>   park has to keep up rather than build one and forget it.
+> · **Info Kiosk** — free; widens how far guests will look for a shop (3 → 8 cells of reach),
+>   which is §6's wayfinding effect expressed as the search radius the sim actually has.
+>
+> **Grill Garden, Sweet Scoop, Poly Bistro and Gift Kiosk are NOT shipped**, and deliberately:
+> no pack piece is a restaurant, so they need real kit composition of the kind the flat rides
+> got. Shipping them as reskinned snack stalls would put four names on the menu with one
+> behaviour behind them.
+
 Portion slider: ±30% price/satisfaction/cost linkage (M5). **"Fair price" hinting ships**:
 click a shop in inspect mode to price it, and the panel states what guests will wear.
 

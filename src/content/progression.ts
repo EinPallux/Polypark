@@ -26,6 +26,9 @@ export type UnlockId =
   | "coasterkit/stall-food"
   | "coasterkit/stall-drinks"
   | "coasterkit/stall-toilets"
+  | "coasterkit/stall-info"
+  | "minimarket/atm"
+  | "modularbuildings/first-aid"
   // Flat rides (FlatRideId)
   | "teacups"
   | "carousel"
@@ -50,6 +53,9 @@ const UNLOCKS_BY_LEVEL: Readonly<Record<number, readonly UnlockId[]>> = {
   2: ["coasterkit/stall-toilets"],
   3: ["teacups"],
   4: ["carousel"],
+  5: ["minimarket/atm"],
+  7: ["coasterkit/stall-info"],
+  9: ["modularbuildings/first-aid"],
   6: ["mouse"],
   8: ["galleon"],
   10: ["rocket"],

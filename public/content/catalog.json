@@ -912,6 +912,35 @@
       "aabb": {
         "max": [
           0.5,
+          1.5,
+          0.5
+        ],
+        "min": [
+          -0.5,
+          0,
+          -0.65
+        ]
+      },
+      "category": "building",
+      "file": "models/coasterkit/stall-info.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "coasterkit/stall-info",
+      "kit": "base",
+      "pack": "Kenney_CoasterKit",
+      "sizeBytes": 17480,
+      "source": "Kenney_CoasterKit/GLB format/stall-information.glb",
+      "tags": [
+        "shop",
+        "info"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.5,
           1.4,
           0.5
         ],
@@ -1841,6 +1870,64 @@
       "tags": [
         "ride",
         "platform"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.225,
+          1.093,
+          0.212
+        ],
+        "min": [
+          -0.225,
+          0,
+          -0.269
+        ]
+      },
+      "category": "building",
+      "file": "models/minimarket/atm.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "minimarket/atm",
+      "kit": "base",
+      "pack": "Kenney_MiniMarketKit",
+      "sizeBytes": 18356,
+      "source": "Kenney_MiniMarketKit/GLB format/bottle-return.glb",
+      "tags": [
+        "shop",
+        "atm"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          1,
+          1.981,
+          1.1
+        ],
+        "min": [
+          -1,
+          0,
+          -1.1
+        ]
+      },
+      "category": "building",
+      "file": "models/modularbuildings/first-aid.glb",
+      "footprint": {
+        "d": 2,
+        "w": 1
+      },
+      "id": "modularbuildings/first-aid",
+      "kit": "base",
+      "pack": "Kenney_ModularBuildingsKit",
+      "sizeBytes": 21416,
+      "source": "Kenney_ModularBuildingsKit/GLB format/building-sample-house-c.glb",
+      "tags": [
+        "shop",
+        "first-aid"
       ]
     },
     {

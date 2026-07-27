@@ -31,6 +31,24 @@ only where a migration ships — see TECHNICAL_ARCHITECTURE §8).
 - The level curve moved from `goals/` to `content/progression.ts` — it is balance data, and
   unlocks read it too.
 
+### M5‑C — Facilities: Cash Point, Info Kiosk, First Aid
+- **Three of GAME_BALANCE §6's buildings ship, each with a real effect.** A Cash Point charges
+  a fee and refills wallets, so a guest who ran dry keeps spending rather than leaving. An Info
+  Kiosk widens how far guests will look for a shop (3 → 8 cells) — §6's wayfinding effect
+  expressed as the search radius the sim actually has. First Aid is free and stays free
+  (GAME_DESIGN §24).
+- **First Aid closes the proxy M4 shipped with a note on it.** The inspection score's
+  first‑aid term was reading *mechanic* coverage because the building did not exist; it now
+  reads posts, at one per 400 monthly guests, so coverage cannot be bought once and forgotten
+  as the park grows.
+- **Four §6 buildings are deliberately still missing.** No pack piece is a restaurant, so Grill
+  Garden, Sweet Scoop, Poly Bistro and Gift Kiosk need real kit composition of the kind the
+  flat rides got. Shipping them as reskinned snack stalls would be four names on the menu with
+  one behaviour behind them.
+- `FacilityEffect` is separate from `NeedKey` on purpose: an ATM does not make you less hungry,
+  it makes you able to buy lunch.
+- **+3 kit pieces** → 107 pieces, 2.3 MB shipped.
+
 ### M5‑B — Districts: the park becomes a resort
 - **Polypark stops being only a ride park.** Districts (GAME_DESIGN §6) are plots you buy once;
   **Parking Grounds** and **Resort Row** ship their buildables, and all six are authored so the

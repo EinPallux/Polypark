@@ -1,6 +1,13 @@
 import { CELL_SIZE_METERS } from "@/shared/grid";
 import { money } from "@/shared/money";
-import { SHOP_DEFS, SHOP_FAIR_PRICE_RATIO, type NeedKey } from "@/content/shops";
+import {
+  ATM_REFILL_CENTS,
+  INFO_KIOSK_REACH_BONUS,
+  SHOP_DEFS,
+  SHOP_FAIR_PRICE_RATIO,
+  SHOP_SEARCH_REACH,
+  type NeedKey,
+} from "@/content/shops";
 import { type SimState } from "../state";
 import { addIncome, addExpense } from "../economy/ledger";
 import { cellIndex } from "../world/world";
@@ -459,6 +466,8 @@ function decide(
   slot: number,
   shopSites: ShopSite[],
   rideOptions: readonly OpenRideOption[],
+  /** Hoisted by the caller: one park-wide lookup, not one per guest. */
+  hasWayfinding: boolean,
 ): void {
   const g = state.guests;
   if (!state.parkOpen) {
@@ -477,10 +486,16 @@ function decide(
   }
   if (lowest.value < SEEK_THRESHOLD && lowest.need !== "fun" && lowest.need !== "energy") {
     // Find the nearest reachable shop satisfying the need.
-    const candidates = shopSites.filter(
-      (site) => SHOP_DEFS[site.pieceId]!.satisfies === lowest.need,
-    );
     const here = guestCell(state, slot);
+    // Guests only consider shops within reach. An Info Kiosk in the park is
+    // the difference between "I can't find anything" and finding the stall two
+    // plazas over — GAME_BALANCE §6's wayfinding effect, as a search radius.
+    const reach = SHOP_SEARCH_REACH + (hasWayfinding ? INFO_KIOSK_REACH_BONUS : 0);
+    const candidates = shopSites.filter(
+      (site) =>
+        SHOP_DEFS[site.pieceId]!.satisfies === lowest.need &&
+        Math.abs(site.approachX - here.x) + Math.abs(site.approachZ - here.z) <= reach * 6,
+    );
     candidates.sort(
       (a, b) =>
         Math.abs(a.approachX - here.x) +
@@ -596,6 +611,12 @@ function finishServing(state: SimState, slot: number): void {
     g.wallet[slot] = g.wallet[slot]! - piece.priceCents;
     addIncome(state, def.ledgerCategory, piece.priceCents);
   }
+  if (def.effect === "wallet") {
+    // The fee is the park's product; the cash is what keeps the guest spending
+    // instead of trudging to the gate broke.
+    g.wallet[slot] = g.wallet[slot]! + ATM_REFILL_CENTS;
+    think(g, slot, "thought.cashedUp");
+  }
   addExpense(state, "goods", def.unitCostCents);
   addNeed(g, slot, def.satisfies, def.amount);
   setEmote(g, slot, EMOTE.happy);
@@ -645,6 +666,7 @@ export function tickGuests(state: SimState): void {
 
   // Hoisted out of the per-guest loop: one lookup, not one per guest.
   const thirstWeather = weatherThirstMult(state);
+  const hasWayfinding = shopSites.some((site) => SHOP_DEFS[site.pieceId]?.effect === "wayfinding");
   for (let slot = 0; slot < g.count; slot++) {
     const guestState = g.state[slot]!;
     if (guestState === GUEST_STATE.off) {
@@ -749,7 +771,7 @@ export function tickGuests(state: SimState): void {
 
     // idle: staggered decisions
     if ((state.tick + slot) % DECIDE_PERIOD === 0) {
-      decide(state, slot, shopSites, rideOptions);
+      decide(state, slot, shopSites, rideOptions, hasWayfinding);
     }
   }
 }
