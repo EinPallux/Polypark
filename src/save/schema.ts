@@ -1,3 +1,4 @@
+import { DISTRICT_IDS } from "@/content/districts";
 import { EVENT_IDS } from "@/content/events";
 import { WEATHER_IDS } from "@/content/weather";
 import { z } from "zod";
@@ -218,7 +219,11 @@ export const SimSnapshotSchema = z.object({
     nextInspectionMonth: z.number().int(),
     sponsorUntilDay: z.number().int(),
   }),
-  districts: z.object({ billboardCount: z.number().int() }).nullable(),
+  districts: z.object({
+    owned: z.array(z.enum(DISTRICT_IDS)),
+    billboardCount: z.number().int(),
+    turnedAwayThisMonth: z.number(),
+  }),
   stats: z.record(z.string(), z.number()),
   goals: z.object({
     active: z.array(z.object({ cardId: z.string(), baseValue: z.number() })),

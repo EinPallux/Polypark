@@ -138,8 +138,8 @@ with plain‑language causes) · marketing campaigns · difficulty presets · we
 (Finance/Rating/Loans/Marketing).
 
 **Deferred, named, with reasons:**
-- **Districts framework + Parking Grounds + Resort Row** → M5. Needs the land‑value writer and
-  arrival‑capacity model; Resort Row is load‑bearing on night hours, which is itself M5.
+- **Districts framework + Parking Grounds + Resort Row** ✅ **shipped (M5‑B)**. The remaining
+  four districts are a content file each — the framework is done.
 - **Park Level track + unlock gating + Star Tickets** ✅ **shipped (M5‑A)**. A/B nodes remain.
 - **Staff zones for all four roles** → M5. The v4→v5 staff migration merges two id spaces *and*
   changes a coordinate unit.

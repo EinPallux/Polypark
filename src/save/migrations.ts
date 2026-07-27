@@ -81,7 +81,8 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
           repossessedRideKey: 0,
           hardFail: false,
         },
-        districts: null,
+        // No v4 park ever owned a plot.
+        districts: { owned: [], billboardCount: 0, turnedAwayThisMonth: 0 },
         // No deck has ever been dealt to a v4 park. First inspection is a full
         // interval from where the park stands, never immediately on load.
         // why: literals — a migration is a frozen snapshot (TECH §8).

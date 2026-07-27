@@ -31,6 +31,29 @@ only where a migration ships — see TECHNICAL_ARCHITECTURE §8).
 - The level curve moved from `goals/` to `content/progression.ts` — it is balance data, and
   unlocks read it too.
 
+### M5‑B — Districts: the park becomes a resort
+- **Polypark stops being only a ride park.** Districts (GAME_DESIGN §6) are plots you buy once;
+  **Parking Grounds** and **Resort Row** ship their buildables, and all six are authored so the
+  remaining four are a content file each and no framework change. The unshipped four are listed
+  as "coming soon" rather than hidden — the shape of the resort is part of the pitch.
+- **Arrival capacity is a taper, not a ceiling.** §3.3 reads as a hard 60‑concurrent cap; taken
+  literally that deletes a game which benches at 1,200–1,500 guests. Shipped as
+  `max((capacity/live)^0.6, 0.15)` — continuous, monotonic and floored, so a full lot slows the
+  gate but can never shut it. Tests pin monotonicity and the floor, because a taper that let
+  more guests *speed up* the gate would make the park oscillate.
+- **Buying a plot is the only way land value grows**, and land value feeds the valuation that
+  sets borrowing headroom — without it The Consortium is permanently unreachable however well
+  the park does. That connection is now closed and tested.
+- **Resort Row** rooms pay nightly against the park's rating and cost upkeep whether or not
+  they sold, so over‑building is a real mistake rather than a free bet.
+- **Fixed: the valuation cache never saw a land purchase.** `computeValuation` is memoized on
+  `worldVersion`, which only `build/`, `ride/` and `shop/` commands bumped — so buying a plot
+  raised land value while the valuation kept serving a stale number, and borrowing headroom
+  would not widen until some unrelated build happened to invalidate the cache. Caught by the
+  test written for the feature, not by inspection.
+- **+6 kit pieces** (parking bay, lot road, lot light, cabin, hotel block, hedge) from
+  CityKitRoads and CityKitSuburban → 104 pieces, 2.3 MB shipped.
+
 ### M4 — The tycoon layer (🚧 in progress)
 - **Finance spine (`src/sim/economy/finance.ts`, `amortize.ts`):** three loan products with
   APRs locked at origination off an A–E credit grade (GAME_BALANCE §8.2), a park valuation

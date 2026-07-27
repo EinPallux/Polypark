@@ -51,6 +51,10 @@ import { campaignIsLive, tickMarketing } from "./economy/marketing";
 import { evaluateRating, tickRating, type RatingView } from "./rating/rating";
 import { tickWeather } from "./weather/weather";
 import { deckMonthClose } from "./events/deck";
+import { hotelMonthClose, arrivalCapacity, hotelRooms } from "./districts/districts";
+import { DISTRICT_LIST, type DistrictId } from "@/content/districts";
+import { addExpense, addIncome } from "./economy/ledgerCore";
+import { money } from "@/shared/money";
 import { type WeatherId } from "@/content/weather";
 import { parkClock } from "./core/loop";
 import { LEVEL_TRACK, RATING_XP_PER_STAR, xpForLevel } from "@/content/progression";
@@ -227,6 +231,25 @@ export interface ProgressionView {
   readonly track: readonly LevelNodeView[];
 }
 
+export interface DistrictPlotView {
+  readonly id: DistrictId;
+  readonly plotCents: number;
+  readonly unlockLevel: number;
+  readonly owned: boolean;
+  readonly available: boolean;
+  /** Empty for districts whose buildables have not shipped yet. */
+  readonly buildables: readonly string[];
+}
+
+export interface DistrictsView {
+  readonly owned: readonly DistrictId[];
+  readonly arrivalCapacity: number;
+  readonly liveGuests: number;
+  readonly hotelRooms: number;
+  readonly turnedAwayThisMonth: number;
+  readonly plots: readonly DistrictPlotView[];
+}
+
 export interface WeatherView {
   readonly today: WeatherId;
   /** The next FORECAST_DAYS days — already drawn, so the strip cannot lie. */
@@ -306,6 +329,7 @@ export interface SimFacade {
   rating(): RatingView;
   weather(): WeatherView;
   progression(): ProgressionView;
+  districts(): DistrictsView;
 }
 
 export interface CreateSimOptions {
@@ -420,11 +444,17 @@ export function createSim(options: CreateSimOptions): SimFacade {
   const bumpOnBuild = (command: Command, ok: boolean): void => {
     // `shop/` counts: a price change is a world mutation the render and panel
     // layers read back through placedPieces(), and they key off this version.
+    // `district/` counts too, and for a sharper reason: the park valuation is
+    // memoized on this version, so a plot purchase that did not bump it would
+    // raise land value without the valuation ever noticing — and borrowing
+    // headroom, which is the entire point of buying land, would not widen
+    // until some unrelated build happened to invalidate the cache.
     if (
       ok &&
       (command.type.startsWith("build/") ||
         command.type.startsWith("ride/") ||
-        command.type.startsWith("shop/"))
+        command.type.startsWith("shop/") ||
+        command.type.startsWith("district/"))
     ) {
       version += 1;
     }
@@ -474,6 +504,16 @@ export function createSim(options: CreateSimOptions): SimFacade {
           // Monthly rating bonus (§9.1: rating × 60) — the other XP source M2
           // deferred until the rating system existed.
           awardXp(state, Math.round(state.rating.stars * RATING_XP_PER_STAR), events);
+          // Resort Row trades on the month, then the turnaway tally resets so
+          // next month's report describes next month.
+          const hotel = hotelMonthClose(state);
+          if (hotel.grossCents > 0) {
+            addIncome(state, "facility", money(hotel.grossCents));
+          }
+          if (hotel.upkeepCents > 0) {
+            addExpense(state, "upkeep", money(hotel.upkeepCents));
+          }
+          state.districts.turnedAwayThisMonth = 0;
           // The deck draws on the month boundary, before the finance close, so
           // a tax-audit fee or an inspection fine lands in the month that
           // reported it rather than sliding into the next one.
@@ -575,6 +615,23 @@ export function createSim(options: CreateSimOptions): SimFacade {
       };
     },
     rating: () => evaluateRating(state),
+    districts: () => ({
+      owned: [...state.districts.owned],
+      arrivalCapacity: arrivalCapacity(state),
+      liveGuests: liveGuestCount(state.guests),
+      hotelRooms: hotelRooms(state),
+      turnedAwayThisMonth: Math.round(state.districts.turnedAwayThisMonth),
+      plots: DISTRICT_LIST.map((def) => ({
+        id: def.id,
+        plotCents: def.plotCents,
+        unlockLevel: def.unlockLevel,
+        owned: state.districts.owned.includes(def.id),
+        available:
+          state.unlockAll ||
+          (levelForXp(state.xp) >= def.unlockLevel && !state.districts.owned.includes(def.id)),
+        buildables: [...def.buildables],
+      })),
+    }),
     progression: () => ({
       level: levelForXp(state.xp),
       xp: state.xp,

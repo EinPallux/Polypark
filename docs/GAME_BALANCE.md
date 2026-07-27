@@ -69,6 +69,24 @@ Related: [GAME_DESIGN.md](../GAME_DESIGN.md) · [TECHNICAL_ARCHITECTURE.md](../T
 | **Commerce Quarter** ($15,000 · L14) | Office building $9,000 · shopfront $5,500 · billboard $800 | Rent/building/mo = $150 × rating × min(guests/500, 2) (shopfront ×0.6); +1 sponsor slot per 2 buildings; billboards +10% marketing efficiency each (max 3 counted) |
 | **Works Yard** ($10,000 · L12) | Workshop $7,500 · depot $6,000 · reclaimer $4,500 (one each) | Workshop: ride upkeep −15%, repair time −25% · depot: piece costs −8% · reclaimer: +10% bulldoze refund |
 
+> **Districts shipped in M5‑B: Parking Grounds and Resort Row.** All six plots are authored
+> (ids, prices, unlock levels) so the remaining four are a content file each and no framework
+> change. Buying a plot is the **only** way land value grows — and since land value feeds the
+> park valuation which sets borrowing headroom, without it The Consortium stays permanently
+> unreachable however well the park does.
+>
+> **Arrival capacity is a taper, not a ceiling.** §3.3 and GAME_DESIGN §6 read as a hard
+> 60‑concurrent cap; taken literally that would delete a game which benches happily at
+> 1,200–1,500 guests, and would read as a wall rather than a pressure. Shipped as
+> `admitFactor = live ≤ capacity ? 1 : max((capacity/live)^0.6, 0.15)` — continuous, monotonic
+> and floored, so a full lot slows the gate but can never shut it (ADR‑15). Capacity is
+> 60 at the gate + 5 per parking bay.
+>
+> **Resort Row** ships occupancy in the reduced form §3.3 allows — `f(rating)` only, since the
+> night‑hours term waits on night running. Rooms pay $30/night over the month's four park
+> nights and cost $6/room/month upkeep whether or not they sold, so over‑building is a real
+> mistake rather than a free bet.
+
 ## 4. Park‑level formulas
 
 ### 4.1 Appeal & arrivals

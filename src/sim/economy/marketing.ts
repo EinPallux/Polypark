@@ -20,7 +20,7 @@ export function marketingMult(state: SimState): number {
     return 1;
   }
   const def = MARKETING_CAMPAIGNS[state.finance.campaign!.campaign];
-  const billboards = Math.min(state.districts?.billboardCount ?? 0, 3);
+  const billboards = Math.min(state.districts.billboardCount, 3);
   return 1 + def.reachBonus * (1 + 0.1 * billboards);
 }
 

@@ -34,6 +34,7 @@ import { createFinanceState, type FinanceState } from "./economy/finance";
 import { createRatingState, type RatingState } from "./rating/rating";
 import { createWeatherState, type WeatherState } from "./weather/weather";
 import { createDeckState, type DeckState } from "./events/effects";
+import { createDistrictsState, type DistrictsState } from "./districts/districts";
 import {
   DEFAULT_DIFFICULTY,
   DIFFICULTY_MODS,
@@ -133,8 +134,7 @@ export interface SimState {
   rating: RatingState;
   weather: WeatherState;
   deck: DeckState;
-  /** District state (M4 districts subsystem); null until a plot is bought. */
-  districts: { billboardCount: number } | null;
+  districts: DistrictsState;
   ledger: Ledger;
   monthNumber: number;
   lastMonthGuests: number;
@@ -190,7 +190,7 @@ export interface SimStateSnapshot {
   readonly rating: RatingState;
   readonly weather: WeatherState;
   readonly deck: DeckState;
-  readonly districts: { readonly billboardCount: number } | null;
+  readonly districts: DistrictsState;
   readonly guests: {
     readonly count: number;
     readonly freeList: readonly number[];
@@ -270,7 +270,7 @@ export function createInitialState(
     rating: createRatingState(),
     weather: createWeatherState(rng.weather),
     deck: createDeckState(),
-    districts: null,
+    districts: createDistrictsState(),
     ledger: createLedger(),
     monthNumber: 0,
     lastMonthGuests: 0,
@@ -381,7 +381,7 @@ export function snapshotState(state: SimState): SimStateSnapshot {
     rating: structuredClone(state.rating),
     weather: structuredClone(state.weather),
     deck: structuredClone(state.deck),
-    districts: state.districts ? { ...state.districts } : null,
+    districts: structuredClone(state.districts),
     guests: {
       count: n,
       freeList: [...g.freeList],
@@ -517,7 +517,7 @@ export function restoreState(
     rating: structuredClone(snapshot.rating),
     weather: structuredClone(snapshot.weather),
     deck: structuredClone(snapshot.deck),
-    districts: snapshot.districts ? { ...snapshot.districts } : null,
+    districts: structuredClone(snapshot.districts),
     ledger: structuredClone(snapshot.ledger),
     monthNumber: snapshot.monthNumber,
     lastMonthGuests: snapshot.lastMonthGuests,

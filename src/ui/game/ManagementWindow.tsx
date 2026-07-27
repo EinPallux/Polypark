@@ -17,7 +17,7 @@ import { useGame } from "./store";
  * (UI_UX §7.1 rule 1). Copy comes from i18n; the sim only supplies data.
  */
 
-const TAB_IDS = ["finance", "rating", "progress", "loans", "marketing"] as const;
+const TAB_IDS = ["finance", "rating", "progress", "districts", "loans", "marketing"] as const;
 type TabId = (typeof TAB_IDS)[number];
 
 const cash = (cents: number): string => moneyToDollarString(money(cents));
@@ -267,6 +267,72 @@ function ProgressTab() {
   );
 }
 
+/**
+ * Districts — the rest of the resort. Every plot is listed, owned or not, with
+ * what it costs and when it opens; the four whose buildables have not shipped
+ * say so rather than pretending to be purchasable.
+ */
+function DistrictsTab() {
+  const districts = useGame((state) => state.districts);
+  const buyDistrict = useGame((state) => state.buyDistrict);
+  if (!districts) {
+    return null;
+  }
+  const over = districts.liveGuests > districts.arrivalCapacity;
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex gap-2">
+        <StatTile
+          label={t("manage.arrivalCapacity")}
+          value={`${districts.liveGuests} / ${districts.arrivalCapacity}`}
+          tone={over ? "bad" : "neutral"}
+        />
+        <StatTile label={t("manage.hotelRooms")} value={String(districts.hotelRooms)} />
+      </div>
+      {over ? (
+        // Say what is happening and what fixes it — a slow gate with no
+        // explanation is the most frustrating thing a tycoon game can do.
+        <p data-testid="capacity-warning" className="bg-white/70 px-3 py-2 font-body text-xs text-ink-700">
+          {t("manage.overCapacity")}
+        </p>
+      ) : null}
+      <div className="flex flex-col gap-1" data-testid="district-plots">
+        {districts.plots.map((plot) => (
+          <div key={plot.id} className="flex items-center gap-3 bg-white/60 px-3 py-2">
+            <div className="flex-1">
+              <p className="font-ui text-sm font-bold text-ink-700 uppercase">
+                {t(`district.${plot.id}.name` as never)}
+              </p>
+              <p className="font-body text-[11px] text-ink-500">
+                {t(`district.${plot.id}.blurb` as never)}
+              </p>
+            </div>
+            {plot.owned ? (
+              <span className="font-ui text-xs font-bold text-grass-500 uppercase">
+                {t("manage.districtOwned")}
+              </span>
+            ) : plot.buildables.length === 0 ? (
+              <span className="font-ui text-[10px] text-ink-500 uppercase">
+                {t("manage.districtComing")}
+              </span>
+            ) : (
+              <SlabButton
+                data-testid={`buy-district-${plot.id}`}
+                disabled={!plot.available}
+                onClick={() => buyDistrict(plot.id)}
+              >
+                {plot.available
+                  ? cash(plot.plotCents)
+                  : t("palette.locked", { level: plot.unlockLevel })}
+              </SlabButton>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function LoansTab() {
   const finance = useGame((state) => state.finance);
   const takeLoan = useGame((state) => state.takeLoan);
@@ -442,6 +508,7 @@ export function ManagementWindow({ open, onClose }: { open: boolean; onClose: ()
           {tab === "finance" && <FinanceTab />}
           {tab === "rating" && <RatingTab />}
           {tab === "progress" && <ProgressTab />}
+          {tab === "districts" && <DistrictsTab />}
           {tab === "loans" && <LoansTab />}
           {tab === "marketing" && <MarketingTab />}
         </div>

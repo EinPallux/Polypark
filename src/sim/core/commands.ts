@@ -1,6 +1,8 @@
 import { addMoney, money, scaleMoney, subMoney } from "@/shared/money";
 import { SHOP_DEFS, SHOP_PRICE_CEILING_CENTS } from "@/content/shops";
 import { isUnlocked } from "../progression/unlocks";
+import { DISTRICTS, type DistrictId } from "@/content/districts";
+import { levelForXp } from "@/content/progression";
 import { FLAT_RIDES, REFURB_COST_RATE, type FlatRideId } from "@/content/rides";
 import {
   TRACK_FAMILIES,
@@ -172,6 +174,12 @@ export type Command =
       readonly type: "build/removeFlatRide";
       readonly id: number;
       readonly refund: "bulldoze" | "exact";
+    }
+  | {
+      readonly type: "district/purchase";
+      readonly district: DistrictId;
+      /** Internal (replay): pin the price so redo reproduces it exactly. */
+      readonly forceCostCents?: number;
     }
   | { readonly type: "debug/noop" };
 
@@ -1024,6 +1032,43 @@ const handlers: HandlerMap = {
     return {
       ok: true,
       replay: { type: "ride/refurbish", rideId: command.rideId, forceCostCents: cost },
+    };
+  },
+
+  /**
+   * Buy a district plot. Operational, not undoable: it is a permanent
+   * improvement to the estate, and unbuying land the park has already built on
+   * would be a hole rather than a feature.
+   */
+  "district/purchase": (state, command) => {
+    const def = DISTRICTS[command.district];
+    if (!def) {
+      return { ok: false, reason: "invalid" };
+    }
+    if (state.districts.owned.includes(command.district)) {
+      return { ok: false, reason: "nothing-to-do" };
+    }
+    if (!state.unlockAll && levelForXp(state.xp) < def.unlockLevel) {
+      return { ok: false, reason: "locked" };
+    }
+    const cost = money(command.forceCostCents ?? def.plotCents);
+    const denial = receivershipSpendDenial(state, cost, command.forceCostCents === undefined);
+    if (denial) {
+      return { ok: false, reason: denial };
+    }
+    if (state.money < cost) {
+      return { ok: false, reason: "not-enough-money" };
+    }
+    state.money = subMoney(state.money, cost);
+    state.ledger.expense.construction += cost;
+    state.districts.owned.push(command.district);
+    // The ONLY way land value grows. Without it the park valuation is capped
+    // by its buildings alone, borrowing headroom never widens, and the biggest
+    // loan stays unreachable however well the park does.
+    state.finance.landValueCents += cost;
+    return {
+      ok: true,
+      replay: { type: "district/purchase", district: command.district, forceCostCents: cost },
     };
   },
 

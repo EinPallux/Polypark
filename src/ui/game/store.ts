@@ -18,6 +18,7 @@ import {
   type RatingView,
   type WeatherView,
   type ProgressionView,
+  type DistrictsView,
   type Rotation,
   type SimFacade,
   type SimStateSnapshot,
@@ -71,6 +72,7 @@ interface GameState {
   rating: RatingView | null;
   weather: WeatherView | null;
   progression: ProgressionView | null;
+  districts: DistrictsView | null;
   selectedRide: number | null;
   selectedShop: number | null;
   rideAlong: number | null;
@@ -124,6 +126,7 @@ interface GameState {
   selectShop: (id: number | null) => void;
   setShopPrice: (placedId: number, cents: number) => void;
   refurbishRide: (key: number) => void;
+  buyDistrict: (id: string) => void;
   setRideAlong: (key: number | null) => void;
   dismissGoal: (cardId: string) => void;
   selectGuest: (slot: number | null) => void;
@@ -152,6 +155,7 @@ export const useGame = create<GameState>()(
     rating: null,
     weather: null,
     progression: null,
+    districts: null,
     selectedRide: null,
     selectedShop: null,
     rideAlong: null,
@@ -245,6 +249,7 @@ export const useGame = create<GameState>()(
         rating: facade.rating(),
         weather: facade.weather(),
         progression: facade.progression(),
+        districts: facade.districts(),
         worldVersion,
         ...(current.worldVersion !== worldVersion ? { snapshot: facade.snapshot() } : {}),
       }));
@@ -614,6 +619,23 @@ export const useGame = create<GameState>()(
     },
     selectShop(id) {
       set({ selectedShop: id });
+    },
+
+    buyDistrict(id) {
+      const { facade } = get();
+      if (!facade) {
+        return;
+      }
+      const result = facade.dispatch({
+        type: "district/purchase",
+        district: id as never,
+      });
+      if (!result.ok) {
+        get().pushToast("bad", DENIAL_TEXT[result.reason] ?? t("play.deny.generic"));
+      } else {
+        get().pushToast("good", t("district.boughtToast"));
+      }
+      get().syncFromSim();
     },
 
     refurbishRide(key) {

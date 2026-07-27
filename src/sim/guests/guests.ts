@@ -19,6 +19,7 @@ import { archetypeWeights, marketingMult } from "../economy/marketing";
 import { ratingMult } from "../rating/rating";
 import { weatherArrivalsMult, weatherThirstMult } from "../weather/weather";
 import { eventArrivalsMult, eventLitterMult } from "../events/effects";
+import { arrivalCapacityMult } from "../districts/districts";
 
 /**
  * The guest simulation (GAME_DESIGN §12): SoA typed arrays at a hard cap,
@@ -189,7 +190,8 @@ export function arrivalsPerMinute(state: SimState): number {
     marketingMult(state) *
     ratingMult(state) *
     weatherArrivalsMult(state) *
-    eventArrivalsMult(state)
+    eventArrivalsMult(state) *
+    arrivalCapacityMult(state, liveGuestCount(state.guests))
   );
 }
 

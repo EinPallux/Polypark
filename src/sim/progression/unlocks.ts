@@ -17,6 +17,7 @@ import {
   unlocksThrough,
   type UnlockId,
 } from "@/content/progression";
+import { districtOfPiece } from "../districts/districts";
 import { type SimState } from "../state";
 
 /** Every id this park may build right now. */
@@ -38,6 +39,12 @@ const ALL_UNLOCKS: ReadonlySet<UnlockId> = new Set(unlocksThrough(Number.MAX_SAF
 export function isUnlocked(state: SimState, id: string): boolean {
   if (state.unlockAll) {
     return true;
+  }
+  // District pieces are gated by owning the plot, not by level: the plot is
+  // the purchase, and buying it is what earns the palette.
+  const district = districtOfPiece(id);
+  if (district !== null) {
+    return state.districts.owned.includes(district);
   }
   if (levelOfUnlock(id as UnlockId) === null) {
     return true;
