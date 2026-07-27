@@ -53,6 +53,17 @@ only where a migration ships — see TECHNICAL_ARCHITECTURE §8).
   test written for the feature, not by inspection.
 - **+6 kit pieces** (parking bay, lot road, lot light, cabin, hotel block, hedge) from
   CityKitRoads and CityKitSuburban → 104 pieces, 2.3 MB shipped.
+- **Save migration matrix** (ROADMAP M5 acceptance): `save.test.ts` only ever exercised the
+  runner against a *fabricated* table, so nothing proved a real v1 save still opens. The real
+  chain now runs v1→v5 and validates against the live schema — the only test that would notice
+  a field added without a migration to seed it. It passes, which means five format versions of
+  additions have all been complete.
+- **⚠️ Open: the perf budget no longer reaches its 1,200-guest criterion.** The capacity taper
+  is doing exactly what it should, and the consequence is that a park with a modest lot settles
+  near 480 concurrent guests instead of ~1,250. The bench now says so out loud rather than
+  quoting a timing at a crowd size the run never reached. Two things need an owner call: whether
+  ~430 is the right ceiling for a park with **no** parking at all, and how the perf criterion
+  should be exercised now that the economy governs population.
 
 ### M4 — The tycoon layer (🚧 in progress)
 - **Finance spine (`src/sim/economy/finance.ts`, `amortize.ts`):** three loan products with
