@@ -1,3 +1,6 @@
+import { DISTRICT_IDS } from "@/content/districts";
+import { EVENT_IDS } from "@/content/events";
+import { WEATHER_IDS } from "@/content/weather";
 import { z } from "zod";
 
 /**
@@ -12,9 +15,11 @@ import { z } from "zod";
  *          ledger, stats, goals, xp.
  * v4 (M3): + rides (tracked coasters with piece lists + flat rides),
  *          mechanics, guest rideId lane.
+ * v5 (M4): + difficulty, finance (loans/credit/land value/campaign/
+ *          receivership), the ledger's financing section, district state.
  */
 
-export const SAVE_FORMAT_VERSION = 4;
+export const SAVE_FORMAT_VERSION = 5;
 
 export const RngStreamStateSchema = z.object({
   name: z.string(),
@@ -29,6 +34,8 @@ export const PlacedPieceSchema = z.object({
   rot: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]),
   placedAtTick: z.number().int().nonnegative(),
   paidCents: z.number().int().nonnegative(),
+  /** Per-shop price; 0 for scenery and free facilities. */
+  priceCents: z.number().int().nonnegative(),
 });
 
 const numberArray = z.array(z.number());
@@ -81,6 +88,7 @@ const TrackedRideSchema = z.object({
   mechanicId: z.number().int(),
   everOpened: z.boolean(),
   createdAtTick: z.number().int().nonnegative(),
+  refurbishedAtTick: z.number().int().nonnegative(),
 });
 
 const FlatRideSchema = z.object({
@@ -102,7 +110,51 @@ const FlatRideSchema = z.object({
   entranceX: z.number().int(),
   entranceZ: z.number().int(),
   placedAtTick: z.number().int().nonnegative(),
+  refurbishedAtTick: z.number().int().nonnegative(),
   everOpened: z.boolean(),
+});
+
+const LoanSchema = z.object({
+  id: z.number().int().positive(),
+  product: z.enum(["piggy", "trust", "consortium"]),
+  principalCents: z.number().int(),
+  aprBpsLocked: z.number().int(),
+  termMonths: z.number().int(),
+  minPaymentCents: z.number().int(),
+  balanceCents: z.number().int(),
+  monthsPaid: z.number().int(),
+  arrearsCents: z.number().int(),
+  missedPayments: z.number().int(),
+  totalInterestPaidCents: z.number().int(),
+  openedMonth: z.number().int(),
+});
+
+const FinanceSchema = z.object({
+  nextLoanId: z.number().int().positive(),
+  loans: z.array(LoanSchema),
+  credit: z.object({
+    gradeIndex: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
+    cleanMonths: z.number().int(),
+    missedPaymentsTotal: z.number().int(),
+  }),
+  landValueCents: z.number().int(),
+  campaign: z
+    .object({
+      campaign: z.enum(["flyers", "online", "parade"]),
+      startedAtTick: z.number().int(),
+      endsAtTick: z.number().int(),
+    })
+    .nullable(),
+  receivership: z.object({
+    active: z.boolean(),
+    enteredMonth: z.number().int(),
+    monthsActive: z.number().int(),
+    sweptCents: z.number().int(),
+    comebackMonthsRemaining: z.number().int(),
+  }),
+  insolventMonths: z.number().int(),
+  repossessedRideKey: z.number().int(),
+  hardFail: z.boolean(),
 });
 
 const MechanicSchema = z.object({
@@ -131,9 +183,46 @@ export const SimSnapshotSchema = z.object({
   monthNumber: z.number().int().nonnegative(),
   lastMonthGuests: z.number().int().nonnegative(),
   xp: z.number().nonnegative(),
+  starTickets: z.number().int().nonnegative(),
+  unlockAll: z.boolean(),
   ledger: z.object({
     income: z.record(z.string(), z.number()),
     expense: z.record(z.string(), z.number()),
+    financing: z.record(z.string(), z.number()),
+  }),
+  difficulty: z.enum(["relaxed", "standard", "tycoon"]),
+  finance: FinanceSchema,
+  // Rolling-window accumulators: plain numbers, persisted so a reload does not
+  // reset the park's reputation history.
+  rating: z.looseObject({
+    pressStars: z.number(),
+    capStars: z.number(),
+    stars: z.number(),
+  }),
+  weather: z.object({
+    today: z.enum(WEATHER_IDS),
+    // The forecast is persisted, not re-rolled: the strip promised the player
+    // these three days and reloading must not change the answer (P5).
+    forecast: z.array(z.enum(WEATHER_IDS)),
+    dayIndex: z.number().int(),
+    closedByWeather: z.array(z.number().int()),
+  }),
+  deck: z.object({
+    lastDrawnMonth: z.record(z.string(), z.number()),
+    active: z.array(
+      z.object({
+        card: z.enum(EVENT_IDS),
+        untilDay: z.number().int(),
+        rideKey: z.number().int(),
+      }),
+    ),
+    nextInspectionMonth: z.number().int(),
+    sponsorUntilDay: z.number().int(),
+  }),
+  districts: z.object({
+    owned: z.array(z.enum(DISTRICT_IDS)),
+    billboardCount: z.number().int(),
+    turnedAwayThisMonth: z.number(),
   }),
   stats: z.record(z.string(), z.number()),
   goals: z.object({

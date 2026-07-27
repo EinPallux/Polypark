@@ -18,6 +18,8 @@ export interface ManifestEntry {
 
 const nature = (piece: string): string => `Kenney_NatureKit/GLTF format/${piece}`;
 const coaster = (piece: string): string => `Kenney_CoasterKit/GLB format/${piece}`;
+const roads = (piece: string): string => `Kenney_CityKitRoads/GLB format/${piece}`;
+const suburban = (piece: string): string => `Kenney_CityKitSuburban/GLB format/${piece}`;
 
 export const PILOT_MANIFEST: readonly ManifestEntry[] = [
   // Paths (NatureKit ground_path* auto-tile family — GAME_DESIGN §8.1)
@@ -70,6 +72,21 @@ export const PILOT_MANIFEST: readonly ManifestEntry[] = [
   { id: "citybits/car-sedan", pack: "KayKit_CityBits", source: "KayKit_CityBits/gltf/car_sedan.gltf", category: "vehicle", kit: "base", tags: ["car", "parking"] },
   { id: "citybits/car-taxi", pack: "KayKit_CityBits", source: "KayKit_CityBits/gltf/car_taxi.gltf", category: "vehicle", kit: "base", tags: ["car", "taxi", "parking"] },
   { id: "citybits/streetlight", pack: "KayKit_CityBits", source: "KayKit_CityBits/gltf/streetlight.gltf", category: "prop", kit: "base", tags: ["lamp"] },
+  // Districts (M5): Parking Grounds and Resort Row. The park is not only rides
+  // — GAME_DESIGN §6 wants the whole resort, and these are the ground pieces
+  // its plots are built from (kit-only law, ADR-16).
+  // Facilities (M5): the three §6 buildings whose effects can be honest today.
+  // Grill Garden / Sweet Scoop / Poly Bistro need real kit composition like the
+  // flat rides had — no single pack piece is a restaurant — so they wait.
+  { id: "coasterkit/stall-info", pack: "Kenney_CoasterKit", source: coaster("stall-information.glb"), category: "building", kit: "base", tags: ["shop", "info"] },
+  { id: "minimarket/atm", pack: "Kenney_MiniMarketKit", source: "Kenney_MiniMarketKit/GLB format/bottle-return.glb", category: "building", kit: "base", tags: ["shop", "atm"] },
+  { id: "modularbuildings/first-aid", pack: "Kenney_ModularBuildingsKit", source: "Kenney_ModularBuildingsKit/GLB format/building-sample-house-c.glb", category: "building", kit: "base", tags: ["shop", "first-aid"] },
+  { id: "cityroads/parking-bay", pack: "Kenney_CityKitRoads", source: roads("road-driveway-double.glb"), category: "building", kit: "base", tags: ["parking", "district"] },
+  { id: "cityroads/lot-road", pack: "Kenney_CityKitRoads", source: roads("road-straight.glb"), category: "building", kit: "base", tags: ["parking", "district", "road"] },
+  { id: "cityroads/lot-light", pack: "Kenney_CityKitRoads", source: roads("light-square.glb"), category: "prop", kit: "base", tags: ["lamp", "parking", "district"] },
+  { id: "suburban/cabin", pack: "Kenney_CityKitSuburban", source: suburban("building-type-a.glb"), category: "building", kit: "base", tags: ["hotel", "district", "resort"] },
+  { id: "suburban/hotel-block", pack: "Kenney_CityKitSuburban", source: suburban("building-type-e.glb"), category: "building", kit: "base", tags: ["hotel", "district", "resort"] },
+  { id: "suburban/hedge", pack: "Kenney_CityKitSuburban", source: suburban("fence-1x4.glb"), category: "scenery", kit: "base", tags: ["fence", "district", "resort"] },
   // Buildings
   { id: "modularbuildings/house-a", pack: "Kenney_ModularBuildingsKit", source: "Kenney_ModularBuildingsKit/GLB format/building-sample-house-a.glb", category: "building", kit: "base", tags: ["house"] },
   { id: "modularbuildings/house-b", pack: "Kenney_ModularBuildingsKit", source: "Kenney_ModularBuildingsKit/GLB format/building-sample-house-b.glb", category: "building", kit: "base", tags: ["house"] },

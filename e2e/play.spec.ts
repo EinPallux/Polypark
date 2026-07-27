@@ -15,7 +15,9 @@ test.use({ viewport: { width: 1600, height: 900 } });
 test.setTimeout(180_000);
 
 async function bootFreshPark(page: Page): Promise<void> {
-  await page.goto("/play?new=1");
+  // Sandbox park: these specs are about building and running a park, not
+  // about the level track, so they open with the full palette.
+  await page.goto("/play?new=1&unlockAll=1");
   await expect(page.getByTestId("hud-money")).toHaveText("$75000", { timeout: 30_000 });
   await expect(page.getByTestId("scene-ready")).toBeAttached({ timeout: 45_000 });
 }
@@ -127,6 +129,100 @@ test("M3: snap a coaster circuit, test it, open it", async ({ page }) => {
   await expect(page.getByTestId("ride-open")).toBeVisible({ timeout: 30_000 });
   await page.getByTestId("ride-open").click();
   await expect(page.getByTestId("ride-state")).toHaveText(/open/i);
+});
+
+test("M4: the management window opens the books, lends, and reads the rating", async ({ page }) => {
+  await bootFreshPark(page);
+
+  // Two clicks from the HUD to anything the tycoon layer produces (UI_UX §7.1).
+  await page.getByTestId("dock-manage").click();
+  await expect(page.getByTestId("manage-window")).toBeVisible();
+  await expect(page.getByTestId("receivership-banner")).toBeHidden();
+
+  // A fresh park's land alone clears the debt ratio for the smallest loan.
+  await page.getByRole("tab", { name: "Loans" }).click();
+  await expect(page.getByTestId("credit-grade")).toHaveText("C");
+  await page.getByTestId("take-loan-piggy").click();
+  // $75,000 + $10,000 principal − $100 origination fee.
+  await expect(page.getByTestId("hud-money")).toHaveText("$84900");
+  await expect(page.getByTestId("pay-loan-1")).toBeVisible();
+  await expect(page.getByTestId("hud-debt")).toBeVisible();
+
+  // Rating reads neutral on an empty park and expands to its causes.
+  await page.getByRole("tab", { name: "Rating" }).click();
+  await expect(page.getByTestId("rating-stars")).toHaveText("2.5");
+  await page.getByTestId("rating-sub-fun").click();
+  await expect(page.getByTestId("manage-window")).toContainText("no rides");
+
+  // Escape closes the window rather than falling through to the pause menu.
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("manage-window")).toBeHidden();
+  await expect(page.getByTestId("pause-save")).toBeHidden();
+});
+
+test("debt pass: a shop can be priced, and says when guests think it's steep", async ({
+  page,
+}) => {
+  await bootFreshPark(page);
+  await page.getByTestId("dock-paths").click();
+  await page.mouse.move(800, 780);
+  await page.mouse.down();
+  for (let y = 780; y >= 420; y -= 20) {
+    await page.mouse.move(800, y);
+  }
+  await page.mouse.up();
+
+  await page.getByTestId("dock-shops").click();
+  await page.getByTestId("palette-coasterkit-stall-food").click();
+  await page.mouse.click(742, 560);
+  await page.keyboard.press("Escape");
+
+  // Clicking the stall in inspect mode opens its price panel.
+  await page.mouse.click(742, 560);
+  await expect(page.getByTestId("shop-inspector")).toBeVisible();
+  await expect(page.getByTestId("shop-price")).toHaveText("$6");
+  await expect(page.getByTestId("shop-fair-hint")).not.toContainText("steep");
+
+  // Raising the price must actually move the number — the sim can accept the
+  // command while the panel shows a stale one if worldVersion does not bump.
+  for (let i = 0; i < 8; i++) {
+    await page.getByTestId("shop-price-up").click();
+  }
+  await expect(page.getByTestId("shop-price")).toHaveText("$10");
+  await expect(page.getByTestId("shop-fair-hint")).toContainText("steep");
+
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("shop-inspector")).toBeHidden();
+});
+
+test("M5: a level-1 park shows the whole track, locked but legible", async ({ page }) => {
+  // Deliberately NOT the sandbox park — this is what a real new player sees.
+  await page.goto("/play?new=1");
+  await expect(page.getByTestId("hud-money")).toHaveText("$75000", { timeout: 30_000 });
+  await expect(page.getByTestId("scene-ready")).toBeAttached({ timeout: 45_000 });
+
+  // Shops: the two starters are open, the restroom is a "not yet".
+  await page.getByTestId("dock-shops").click();
+  await expect(page.getByTestId("palette-coasterkit-stall-food")).toBeEnabled();
+  await expect(page.getByTestId("palette-coasterkit-stall-toilets")).toBeDisabled();
+  await page.keyboard.press("Escape");
+
+  // Rides: every one visible, greyed, wearing the level it arrives at. Hiding
+  // them would make the palette feel arbitrary.
+  await page.getByTestId("dock-rides").click();
+  await expect(page.getByTestId("ride-flat-teacups")).toBeDisabled();
+  await expect(page.getByTestId("ride-flat-teacups")).toContainText("L3");
+  await expect(page.getByTestId("ride-start-mouse")).toBeDisabled();
+  // Title case: the uppercase is CSS, so the DOM text is not transformed.
+  await expect(page.getByTestId("ride-start-mouse")).toContainText("Park Level 6");
+  await page.keyboard.press("Escape");
+
+  // The track screen says the same thing in one place.
+  await page.getByTestId("dock-manage").click();
+  await page.getByRole("tab", { name: "Progress" }).click();
+  await expect(page.getByTestId("progress-level")).toHaveText("1");
+  await expect(page.getByTestId("level-track")).toContainText("Mousetrap coasters");
+  await expect(page.getByTestId("progress-tickets")).toContainText("0");
 });
 
 test("M2: open the park and guests arrive; goals progress", async ({ page }) => {

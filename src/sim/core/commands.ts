@@ -1,6 +1,9 @@
 import { addMoney, money, scaleMoney, subMoney } from "@/shared/money";
-import { SHOP_DEFS } from "@/content/shops";
-import { FLAT_RIDES, type FlatRideId } from "@/content/rides";
+import { SHOP_DEFS, SHOP_PRICE_CEILING_CENTS } from "@/content/shops";
+import { isUnlocked } from "../progression/unlocks";
+import { DISTRICTS, type DistrictId } from "@/content/districts";
+import { levelForXp } from "@/content/progression";
+import { FLAT_RIDES, REFURB_COST_RATE, type FlatRideId } from "@/content/rides";
 import {
   TRACK_FAMILIES,
   trackPieceCost,
@@ -17,6 +20,18 @@ import {
   type TrackPieceState,
   type TrackPose,
 } from "../rides/trackGraph";
+import { LOAN_PRODUCTS, type LoanProductId } from "@/content/loans";
+import { MARKETING_CAMPAIGNS, type MarketingCampaignId } from "@/content/marketing";
+import {
+  offerBlockedReason,
+  openLoan,
+  payLoan as applyLoanPayment,
+  payoffCents,
+  receivershipSpendDenial,
+  totalArrears,
+} from "../economy/finance";
+import { startCampaign } from "../economy/marketing";
+import { campaignIsLive } from "../economy/marketing";
 import {
   flatRideEntranceCell,
   MAX_TRACK_PIECES,
@@ -56,6 +71,7 @@ export type Command =
       readonly forceCostCents?: number;
       /** Internal: record this as the piece's paid amount. */
       readonly forcePaidCents?: number;
+      readonly forcePriceCents?: number;
       readonly forcePlacedAtTick?: number;
     }
   | {
@@ -81,6 +97,25 @@ export type Command =
   | { readonly type: "staff/hireMechanic" }
   | { readonly type: "staff/fireMechanic" }
   | { readonly type: "goal/dismiss"; readonly cardId: string }
+  | {
+      readonly type: "finance/takeLoan";
+      readonly product: LoanProductId;
+      readonly forceId?: number;
+      readonly forceAprBps?: number;
+      readonly forceMinPaymentCents?: number;
+      readonly forceOpenedMonth?: number;
+    }
+  | {
+      readonly type: "finance/payLoan";
+      readonly loanId: number;
+      /** Integer cents, or "payoff" for balance + arrears. */
+      readonly amount: number | "payoff";
+    }
+  | {
+      readonly type: "marketing/start";
+      readonly campaign: MarketingCampaignId;
+      readonly forceStartTick?: number;
+    }
   | {
       readonly type: "ride/startTrack";
       readonly family: TrackFamilyId;
@@ -114,6 +149,18 @@ export type Command =
     }
   | { readonly type: "ride/setPrice"; readonly rideId: number; readonly cents: number }
   | {
+      readonly type: "ride/refurbish";
+      readonly rideId: number;
+      /** Internal (replay): pin the charge so redo reproduces it exactly. */
+      readonly forceCostCents?: number;
+    }
+  | {
+      readonly type: "shop/setPrice";
+      /** Placed-piece instance id — prices are per shop, not per shop type. */
+      readonly placedId: number;
+      readonly cents: number;
+    }
+  | {
       readonly type: "build/placeFlatRide";
       readonly defId: FlatRideId;
       readonly x: number;
@@ -128,9 +175,24 @@ export type Command =
       readonly id: number;
       readonly refund: "bulldoze" | "exact";
     }
+  | {
+      readonly type: "district/purchase";
+      readonly district: DistrictId;
+      /** Internal (replay): pin the price so redo reproduces it exactly. */
+      readonly forceCostCents?: number;
+    }
   | { readonly type: "debug/noop" };
 
-export type CommandFailure = PlaceDenial | "invalid" | "nothing-to-do";
+export type CommandFailure =
+  | PlaceDenial
+  | "invalid"
+  | "nothing-to-do"
+  /** Receivership caps discretionary construction (GAME_DESIGN §14.3). */
+  | "receivership-limited"
+  /** The ride's trains are held by collections until arrears clear. */
+  | "repossessed"
+  /** Not yet on the Park Level track — a "not yet", never a "you failed to". */
+  | "locked";
 
 export type CommandResult =
   | {
@@ -312,6 +374,12 @@ const handlers: HandlerMap = {
   },
 
   "build/place": (state, command) => {
+    // Internal replays (undo/redo restoring a piece) bypass the gate: the park
+    // legitimately built it, and re-checking would make undo fail after a
+    // level-down that cannot happen anyway.
+    if (command.forceId === undefined && !isUnlocked(state, command.pieceId)) {
+      return { ok: false, reason: "locked" };
+    }
     const check = checkPlace(state.world, command.pieceId, command.x, command.z, command.rot);
     if (!check.ok) {
       return { ok: false, reason: check.reason ?? "invalid" };
@@ -321,6 +389,10 @@ const handlers: HandlerMap = {
       return { ok: false, reason: "unknown-piece" };
     }
     const cost = money(command.forceCostCents ?? def.cost);
+    const capped = receivershipSpendDenial(state, cost, command.forceCostCents === undefined);
+    if (capped) {
+      return { ok: false, reason: capped };
+    }
     if (state.money < cost) {
       return { ok: false, reason: "not-enough-money" };
     }
@@ -338,6 +410,10 @@ const handlers: HandlerMap = {
       rot: command.rot,
       placedAtTick: command.forcePlacedAtTick ?? state.tick,
       paidCents: command.forcePaidCents ?? def.cost,
+      // Undo of a demolish restores the price the player had set, not the
+      // default they would have had to dial back in.
+      priceCents:
+        command.forcePriceCents ?? SHOP_DEFS[command.pieceId]?.defaultPriceCents ?? 0,
     };
     state.world.placed.set(id, piece);
     for (const cell of footprintCells(def, command.x, command.z, command.rot)) {
@@ -392,6 +468,7 @@ const handlers: HandlerMap = {
         forceCostCents: refund, // undoing re-charges exactly what was refunded…
         forcePaidCents: piece.paidCents, // …while restoring the original paid record
         forcePlacedAtTick: piece.placedAtTick,
+        forcePriceCents: piece.priceCents,
       },
     };
   },
@@ -414,6 +491,14 @@ const handlers: HandlerMap = {
     }
     const perCell = money(command.forceCostCentsPerCell ?? PATH_LIST_COST_CENTS);
     const total = money(perCell * applied.length);
+    const cappedPath = receivershipSpendDenial(
+      state,
+      total,
+      command.forceCostCentsPerCell === undefined,
+    );
+    if (cappedPath) {
+      return { ok: false, reason: cappedPath };
+    }
     if (state.money < total) {
       return { ok: false, reason: "not-enough-money" };
     }
@@ -519,6 +604,87 @@ const handlers: HandlerMap = {
       : { ok: false, reason: "nothing-to-do" };
   },
 
+  "finance/takeLoan": (state, command) => {
+    const product = LOAN_PRODUCTS[command.product] as (typeof LOAN_PRODUCTS)[LoanProductId] | undefined;
+    if (!product) {
+      return { ok: false, reason: "invalid" };
+    }
+    // Internal replays skip the gate: the loan already happened once.
+    if (command.forceId === undefined && offerBlockedReason(state, command.product) !== null) {
+      return { ok: false, reason: "invalid" };
+    }
+    const { loan } = openLoan(state, command.product, {
+      ...(command.forceId !== undefined ? { forceId: command.forceId } : {}),
+      ...(command.forceAprBps !== undefined ? { forceAprBps: command.forceAprBps } : {}),
+      ...(command.forceMinPaymentCents !== undefined
+        ? { forceMinPaymentCents: command.forceMinPaymentCents }
+        : {}),
+      ...(command.forceOpenedMonth !== undefined
+        ? { forceOpenedMonth: command.forceOpenedMonth }
+        : {}),
+    });
+    if (command.forceId === undefined) {
+      state.stats.loansTaken += 1;
+    }
+    return {
+      ok: true,
+      replay: {
+        type: "finance/takeLoan",
+        product: command.product,
+        forceId: loan.id,
+        forceAprBps: loan.aprBpsLocked,
+        forceMinPaymentCents: loan.minPaymentCents,
+        forceOpenedMonth: loan.openedMonth,
+      },
+    };
+  },
+
+  "finance/payLoan": (state, command) => {
+    const loan = state.finance.loans.find((l) => l.id === command.loanId);
+    if (!loan) {
+      return { ok: false, reason: "nothing-to-do" };
+    }
+    const requested =
+      command.amount === "payoff" ? payoffCents(loan) : Math.floor(command.amount);
+    if (!Number.isSafeInteger(requested) || requested <= 0) {
+      return { ok: false, reason: "invalid" };
+    }
+    if (state.money < Math.min(requested, payoffCents(loan))) {
+      return { ok: false, reason: "not-enough-money" };
+    }
+    applyLoanPayment(state, loan, requested);
+    if (loan.balanceCents <= 0 && loan.arrearsCents <= 0) {
+      state.finance.loans = state.finance.loans.filter((l) => l.id !== loan.id);
+      state.stats.loansPaidOff += 1;
+    }
+    // Paying off arrears releases repossessed trains immediately — never make
+    // the player wait a month for the fix they just bought.
+    if (state.finance.repossessedRideKey !== 0 && totalArrears(state) === 0) {
+      state.finance.repossessedRideKey = 0;
+    }
+    return { ok: true };
+  },
+
+  "marketing/start": (state, command) => {
+    const def = MARKETING_CAMPAIGNS[command.campaign] as
+      | (typeof MARKETING_CAMPAIGNS)[MarketingCampaignId]
+      | undefined;
+    if (!def || state.finance.receivership.active || campaignIsLive(state)) {
+      return { ok: false, reason: "invalid" };
+    }
+    if (state.money < def.costCents) {
+      return { ok: false, reason: "not-enough-money" };
+    }
+    state.money = subMoney(state.money, money(def.costCents));
+    state.ledger.expense.marketing += def.costCents;
+    const startTick = command.forceStartTick ?? state.tick;
+    startCampaign(state, command.campaign, startTick);
+    return {
+      ok: true,
+      replay: { type: "marketing/start", campaign: command.campaign, forceStartTick: startTick },
+    };
+  },
+
   "staff/hireMechanic": (state) => {
     const fee = money(MECHANIC_HIRE_FEE_CENTS);
     if (state.money < fee) {
@@ -554,6 +720,9 @@ const handlers: HandlerMap = {
   },
 
   "ride/startTrack": (state, command) => {
+    if (command.forceId === undefined && !isUnlocked(state, command.family)) {
+      return { ok: false, reason: "locked" };
+    }
     const family = TRACK_FAMILIES[command.family];
     const anchor: TrackPose = {
       mx: command.mx,
@@ -578,6 +747,14 @@ const handlers: HandlerMap = {
       }
     }
     const cost = money(command.forceCostCents ?? family.baseCostCents + family.trainCostCents);
+    const cappedTrack = receivershipSpendDenial(
+      state,
+      cost,
+      command.forceCostCents === undefined,
+    );
+    if (cappedTrack) {
+      return { ok: false, reason: cappedTrack };
+    }
     if (state.money < cost) {
       return { ok: false, reason: "not-enough-money" };
     }
@@ -612,6 +789,7 @@ const handlers: HandlerMap = {
       mechanicId: 0,
       everOpened: false,
       createdAtTick: command.forceCreatedAtTick ?? state.tick,
+      refurbishedAtTick: command.forceCreatedAtTick ?? state.tick,
     };
     state.rides.tracked.set(id, ride);
     for (const cell of groundCells) {
@@ -645,6 +823,14 @@ const handlers: HandlerMap = {
     }
     // Below-clearance non-station pieces still must not sit on claimed ground.
     const cost = money(command.forceCostCents ?? trackPieceCost(ride.family, command.kind));
+    const cappedPiece = receivershipSpendDenial(
+      state,
+      cost,
+      command.forceCostCents === undefined,
+    );
+    if (cappedPiece) {
+      return { ok: false, reason: cappedPiece };
+    }
     if (state.money < cost) {
       return { ok: false, reason: "not-enough-money" };
     }
@@ -732,6 +918,12 @@ const handlers: HandlerMap = {
       return { ok: false, reason: "invalid" };
     }
     const isTracked = "trainPhase" in ride;
+    if (
+      (command.to === "testing" || command.to === "open") &&
+      state.finance.repossessedRideKey === command.rideId
+    ) {
+      return { ok: false, reason: "repossessed" };
+    }
     if (command.to === "testing" || command.to === "open") {
       if (isTracked && !(ride).evaln.valid) {
         return { ok: false, reason: "invalid" };
@@ -795,6 +987,116 @@ const handlers: HandlerMap = {
     return { ok: true };
   },
 
+  /**
+   * Refurbish a ride: 25% of what it cost to build, in exchange for novelty
+   * and reliability. GAME_BALANCE §4.1 — "refurb restores novelty to ×1.15".
+   *
+   * It deliberately does NOT restore book value. Depreciation bottoms out at
+   * 45% of build cost, so letting a refurb reset the age would turn a 25%
+   * spend into a 55% valuation gain — and park value sets borrowing headroom,
+   * which makes that an infinite-credit loop. The player buys appeal and
+   * reliability here, never balance sheet.
+   *
+   * Operational, not undoable: the wear it clears is real work done.
+   */
+  "ride/refurbish": (state, command) => {
+    const tracked = state.rides.tracked.get(command.rideId);
+    const flat = state.rides.flat.get(-command.rideId);
+    const ride = tracked ?? flat;
+    if (!ride) {
+      return { ok: false, reason: "invalid" };
+    }
+    const buildCents = tracked ? tracked.totalSpentCents : FLAT_RIDES[flat!.defId].costCents;
+    const cost = money(command.forceCostCents ?? Math.round(buildCents * REFURB_COST_RATE));
+    // Player-originated when there is no internal pin — a replayed refurb must
+    // not be blocked, or redo would diverge from the run it is reproducing.
+    const denial = receivershipSpendDenial(state, cost, command.forceCostCents === undefined);
+    if (denial) {
+      return { ok: false, reason: denial };
+    }
+    if (state.money < cost) {
+      return { ok: false, reason: "not-enough-money" };
+    }
+    state.money = subMoney(state.money, cost);
+    state.ledger.expense.upkeep += cost;
+    ride.refurbishedAtTick = state.tick;
+    // Wear resets with the refit. The rating's per-ride cycle mirror has to
+    // move with it or the next tick differences against a larger number and
+    // reports a negative throughput.
+    const key = tracked ? tracked.id : -flat!.id;
+    const perf = state.rating.perRide[String(key)];
+    if (perf) {
+      perf.lastCycleCount = 0;
+    }
+    ride.cycleCount = 0;
+    return {
+      ok: true,
+      replay: { type: "ride/refurbish", rideId: command.rideId, forceCostCents: cost },
+    };
+  },
+
+  /**
+   * Buy a district plot. Operational, not undoable: it is a permanent
+   * improvement to the estate, and unbuying land the park has already built on
+   * would be a hole rather than a feature.
+   */
+  "district/purchase": (state, command) => {
+    const def = DISTRICTS[command.district];
+    if (!def) {
+      return { ok: false, reason: "invalid" };
+    }
+    if (state.districts.owned.includes(command.district)) {
+      return { ok: false, reason: "nothing-to-do" };
+    }
+    if (!state.unlockAll && levelForXp(state.xp) < def.unlockLevel) {
+      return { ok: false, reason: "locked" };
+    }
+    const cost = money(command.forceCostCents ?? def.plotCents);
+    const denial = receivershipSpendDenial(state, cost, command.forceCostCents === undefined);
+    if (denial) {
+      return { ok: false, reason: denial };
+    }
+    if (state.money < cost) {
+      return { ok: false, reason: "not-enough-money" };
+    }
+    state.money = subMoney(state.money, cost);
+    state.ledger.expense.construction += cost;
+    state.districts.owned.push(command.district);
+    // The ONLY way land value grows. Without it the park valuation is capped
+    // by its buildings alone, borrowing headroom never widens, and the biggest
+    // loan stays unreachable however well the park does.
+    state.finance.landValueCents += cost;
+    return {
+      ok: true,
+      replay: { type: "district/purchase", district: command.district, forceCostCents: cost },
+    };
+  },
+
+  "shop/setPrice": (state, command) => {
+    const piece = state.world.placed.get(command.placedId);
+    const def = piece ? SHOP_DEFS[piece.pieceId] : undefined;
+    if (!piece || !def) {
+      return { ok: false, reason: "invalid" };
+    }
+    // A free facility stays free — charging for the toilets is exactly the
+    // kind of thing GAME_DESIGN §24 keeps out of this game.
+    if (def.defaultPriceCents === 0) {
+      return { ok: false, reason: "invalid" };
+    }
+    const cents = Math.round(command.cents);
+    if (cents < 0 || cents > SHOP_PRICE_CEILING_CENTS) {
+      return { ok: false, reason: "invalid" };
+    }
+    const previous = piece.priceCents;
+    if (cents === previous) {
+      return { ok: false, reason: "invalid" };
+    }
+    piece.priceCents = cents;
+    return {
+      ok: true,
+      inverse: { type: "shop/setPrice", placedId: command.placedId, cents: previous },
+    };
+  },
   "ride/setPrice": (state, command) => {
     const ride =
       state.rides.tracked.get(command.rideId) ?? state.rides.flat.get(-command.rideId);
@@ -806,6 +1108,9 @@ const handlers: HandlerMap = {
   },
 
   "build/placeFlatRide": (state, command) => {
+    if (command.forceId === undefined && !isUnlocked(state, command.defId)) {
+      return { ok: false, reason: "locked" };
+    }
     const def = FLAT_RIDES[command.defId];
     const w = command.rot % 2 === 0 ? def.footprint.w : def.footprint.d;
     const d = command.rot % 2 === 0 ? def.footprint.d : def.footprint.w;
@@ -829,6 +1134,14 @@ const handlers: HandlerMap = {
       }
     }
     const cost = money(command.forceCostCents ?? def.costCents);
+    const cappedFlat = receivershipSpendDenial(
+      state,
+      cost,
+      command.forceCostCents === undefined,
+    );
+    if (cappedFlat) {
+      return { ok: false, reason: cappedFlat };
+    }
     if (state.money < cost) {
       return { ok: false, reason: "not-enough-money" };
     }
@@ -855,6 +1168,7 @@ const handlers: HandlerMap = {
       entranceX: 0,
       entranceZ: 0,
       placedAtTick: command.forcePlacedAtTick ?? state.tick,
+      refurbishedAtTick: command.forcePlacedAtTick ?? state.tick,
       everOpened: false,
     };
     const entrance = flatRideEntranceCell(ride);

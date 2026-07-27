@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { moneyToDollarString, money } from "@/shared/money";
-import { GAME_SECONDS_PER_TICK, type GameSpeed } from "@/sim/api";
+import { type WeatherId } from "@/content/weather";
+import { parkClock, type GameSpeed } from "@/sim/api";
 import { t } from "@/ui/i18n/t";
 import { Keycap } from "@/ui/kit/Keycap";
 import { HintRail, type Hint } from "@/ui/kit/HintRail";
@@ -17,14 +18,12 @@ import { useGame } from "./store";
  */
 
 function clockText(tick: number): { time: string; day: number } {
-  const totalMinutes = Math.floor((tick * GAME_SECONDS_PER_TICK) / 60);
-  const minutesIntoDay = (9 * 60 + totalMinutes) % (24 * 60);
-  const hours = Math.floor(minutesIntoDay / 60);
-  const minutes = minutesIntoDay % 60;
-  const day = Math.floor((9 * 60 + totalMinutes) / (24 * 60)) + 1;
+  const { minuteOfDay, dayNumber } = parkClock(tick);
+  const hours = Math.floor(minuteOfDay / 60);
+  const minutes = minuteOfDay % 60;
   return {
     time: `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`,
-    day,
+    day: dayNumber,
   };
 }
 
@@ -42,18 +41,59 @@ function Vitals() {
         {moneyToDollarString(money(hud.money))}
       </span>
       <span className="font-ui text-xs font-semibold tracking-[0.06em] text-frost-300/70 uppercase">
-        👥 <span data-testid="hud-guests" className="font-numeral tabular-nums">{hud.guestCount}</span>{" "}
-        · {t("play.vitals.rating")} — ·{" "}
+        👥{" "}
+        <span data-testid="hud-guests" className="font-numeral tabular-nums">
+          {hud.guestCount}
+        </span>{" "}
+        ·{" "}
+        <span data-testid="hud-rating" className="font-numeral tabular-nums">
+          {hud.ratingStars.toFixed(1)}
+        </span>
+        <span className="text-gold-400" aria-label={t("play.vitals.rating")}>
+          ★
+        </span>{" "}
+        ·{" "}
         <span data-testid="hud-level">
           {t("play.vitals.level")} {hud.level}
         </span>
       </span>
+      {hud.debtCents > 0 ? (
+        <span
+          data-testid="hud-debt"
+          className="font-numeral text-xs font-semibold text-danger-500 tabular-nums"
+        >
+          −{moneyToDollarString(money(hud.debtCents))}
+        </span>
+      ) : null}
+      {hud.receivershipActive ? (
+        <span
+          data-testid="hud-receivership"
+          className="skew-ui bg-danger-500 px-2 py-0.5 font-ui text-[10px] font-bold text-white uppercase"
+        >
+          <span className="unskew-ui inline-block">{t("play.vitals.receivership")}</span>
+        </span>
+      ) : null}
     </div>
   );
 }
 
+/** Glyphs only — the label underneath carries the meaning for screen readers. */
+const WEATHER_GLYPH: Record<WeatherId, string> = {
+  sunny: "☀",
+  overcast: "☁",
+  rain: "🌧",
+  storm: "⛈",
+  heatwave: "🔥",
+};
+
+/**
+ * Clock + three-day forecast. The forecast is drawn ahead by the sim and
+ * persisted, so what this shows is what will happen — that is the whole
+ * point of showing it (GAME_DESIGN §16, pillar P5).
+ */
 function Clock() {
   const tick = useGame((state) => state.hud?.tick ?? 0);
+  const weather = useGame((state) => state.weather);
   const { time, day } = useMemo(() => clockText(tick), [tick]);
   return (
     <div className="pointer-events-auto flex items-center gap-3 bg-ink-900/85 px-4 py-1.5 text-white shadow-[var(--elev-slab)]">
@@ -61,7 +101,31 @@ function Clock() {
       <span className="font-ui text-xs font-semibold tracking-[0.08em] text-frost-300/80 uppercase">
         {t("play.day", { day })}
       </span>
-      <span aria-hidden>☀</span>
+      {weather ? (
+        <span
+          className="flex items-center gap-2 border-l border-white/15 pl-3"
+          data-testid="forecast-strip"
+        >
+          <span
+            className="text-lg leading-none"
+            title={`${t("weather.today")}: ${t(`weather.${weather.today}` as never)}`}
+            data-testid="weather-today"
+          >
+            {WEATHER_GLYPH[weather.today]}
+          </span>
+          <span className="sr-only">{t(`weather.${weather.today}` as never)}</span>
+          {weather.forecast.map((kind, i) => (
+            <span
+              key={i}
+              className="text-xs leading-none opacity-55"
+              title={`+${i + 1}d: ${t(`weather.${kind}` as never)}`}
+              data-testid={`weather-day-${i + 1}`}
+            >
+              {WEATHER_GLYPH[kind]}
+            </span>
+          ))}
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -100,10 +164,12 @@ function Dock({
   onOpenPalette,
   onToggleStaff,
   onOpenRides,
+  onOpenManage,
 }: {
   onOpenPalette: (category: "path" | "scenery" | "shops") => void;
   onToggleStaff: () => void;
   onOpenRides: () => void;
+  onOpenManage: () => void;
 }) {
   const buildMode = useGame((state) => state.buildMode);
   const setBuildMode = useGame((state) => state.setBuildMode);
@@ -120,7 +186,10 @@ function Dock({
       label: t("play.mode.paths"),
       icon: "🛤",
       active: buildMode.kind === "path",
-      onClick: () => (buildMode.kind === "path" ? setBuildMode({ kind: "inspect" }) : setBuildMode({ kind: "path" })),
+      onClick: () =>
+        buildMode.kind === "path"
+          ? setBuildMode({ kind: "inspect" })
+          : setBuildMode({ kind: "path" }),
     },
     {
       id: "scenery",
@@ -151,12 +220,21 @@ function Dock({
       onClick: onToggleStaff,
     },
     {
+      id: "manage",
+      label: t("play.dock.manage"),
+      icon: "📊",
+      active: false,
+      onClick: onOpenManage,
+    },
+    {
       id: "bulldoze",
       label: t("play.mode.bulldoze"),
       icon: "🧨",
       active: buildMode.kind === "bulldoze",
       onClick: () =>
-        buildMode.kind === "bulldoze" ? setBuildMode({ kind: "inspect" }) : setBuildMode({ kind: "bulldoze" }),
+        buildMode.kind === "bulldoze"
+          ? setBuildMode({ kind: "inspect" })
+          : setBuildMode({ kind: "bulldoze" }),
     },
   ];
 
@@ -225,6 +303,7 @@ function ContextHints() {
               { keys: ["ESC"], label: t("play.hint.cancel") },
             ]
           : [
+              { keys: ["M"], label: t("play.hint.manage") },
               { keys: ["CTRL", "Z"], label: t("play.hint.undo") },
               { keys: ["ESC"], label: t("play.hint.menu") },
             ];
@@ -239,12 +318,15 @@ export function Hud({
   onOpenPalette,
   onToggleStaff,
   onOpenRides,
+  onOpenManage,
 }: {
   onOpenPalette: (category: "path" | "scenery" | "shops") => void;
   onToggleStaff: () => void;
   onOpenRides: () => void;
+  onOpenManage: () => void;
 }) {
   const parkName = useGame((state) => state.hud?.parkName);
+  const starTickets = useGame((state) => state.progression?.starTickets ?? 0);
   const [hintCollapsed] = useState(false);
 
   return (
@@ -257,7 +339,7 @@ export function Hud({
         </div>
         <div className="flex flex-col items-end gap-2">
           <div className="pointer-events-auto">
-            <IdentityChip {...(parkName ? { name: parkName } : {})} tickets={0} />
+            <IdentityChip {...(parkName ? { name: parkName } : {})} tickets={starTickets} />
           </div>
           <GoalPanel />
         </div>
@@ -265,7 +347,12 @@ export function Hud({
       <div className="flex items-end justify-between gap-4">
         <Vitals />
         <div className="flex items-center gap-2">
-          <Dock onOpenPalette={onOpenPalette} onToggleStaff={onToggleStaff} onOpenRides={onOpenRides} />
+          <Dock
+            onOpenPalette={onOpenPalette}
+            onToggleStaff={onToggleStaff}
+            onOpenRides={onOpenRides}
+            onOpenManage={onOpenManage}
+          />
           <SpeedControls />
         </div>
         {hintCollapsed ? <Keycap>?</Keycap> : <ContextHints />}

@@ -1,9 +1,11 @@
 import { FLAT_RIDES, type FlatRideId } from "@/content/rides";
 import { TRACK_FAMILIES, type TrackFamilyId } from "@/content/track";
+import { eventMtbfMult } from "../events/effects";
 import { type SimState } from "../state";
 import { EMOTE, GUEST_STATE } from "../guests/emotes";
 import { addIncome } from "../economy/ledger";
 import { cellIndex } from "../world/world";
+import { findPath } from "../world/pathfind";
 import {
   evaluateTrack,
   pieceCells,
@@ -58,6 +60,11 @@ export interface TrackedRide {
   mechanicId: number;
   everOpened: boolean;
   createdAtTick: number;
+  /**
+   * When this ride was last made new again. Novelty reads this; depreciation
+   * deliberately does NOT — see the `ride/refurbish` command for why.
+   */
+  refurbishedAtTick: number;
 }
 
 export interface FlatRide {
@@ -80,6 +87,11 @@ export interface FlatRide {
   entranceX: number;
   entranceZ: number;
   placedAtTick: number;
+  /**
+   * When this ride was last made new again. Novelty reads this; depreciation
+   * deliberately does NOT — see the `ride/refurbish` command for why.
+   */
+  refurbishedAtTick: number;
   everOpened: boolean;
 }
 
@@ -218,7 +230,16 @@ function boardFromQueue(
   }
 }
 
-function rollBreakdown(state: SimState, mtbf: number, cycleCount: number): boolean {
+function rollBreakdown(
+  state: SimState,
+  baseMtbf: number,
+  cycleCount: number,
+  rideKey: number,
+): boolean {
+  // Difficulty scales reliability in exactly one place (GAME_BALANCE §2); a
+  // breakdown-streak card scales this one ride's MTBF on top for its week.
+  const mtbf =
+    baseMtbf * state.difficultyMods.breakdownMtbfMult * eventMtbfMult(state, rideKey);
   const age = 1 + cycleCount / 600;
   const mechanics = state.mechanics.length;
   const ridesTotal = state.rides.tracked.size + state.rides.flat.size;
@@ -259,6 +280,10 @@ export function tickRides(state: SimState, events: RideEvent[]): void {
 
 function tickTrackedRide(state: SimState, ride: TrackedRide, events: RideEvent[]): void {
   if (ride.state === RIDE_STATE.closed || ride.state === RIDE_STATE.broken) {
+    return;
+  }
+  // Collections hold the trains: the ride cannot run until arrears clear.
+  if (state.finance.repossessedRideKey === ride.id) {
     return;
   }
   if (!ride.evaln.valid) {
@@ -316,7 +341,7 @@ function tickTrackedRide(state: SimState, ride: TrackedRide, events: RideEvent[]
       }
       return;
     }
-    if (rollBreakdown(state, family.breakdownMtbfCycles, ride.cycleCount)) {
+    if (rollBreakdown(state, family.breakdownMtbfCycles, ride.cycleCount, ride.id)) {
       ride.state = RIDE_STATE.broken;
       ride.breakdownTicks = 0;
       state.stats.breakdowns += 1;
@@ -328,6 +353,9 @@ function tickTrackedRide(state: SimState, ride: TrackedRide, events: RideEvent[]
 
 function tickFlatRide(state: SimState, ride: FlatRide, events: RideEvent[]): void {
   if (ride.state === RIDE_STATE.closed || ride.state === RIDE_STATE.broken) {
+    return;
+  }
+  if (state.finance.repossessedRideKey === -ride.id) {
     return;
   }
   const def = FLAT_RIDES[ride.defId];
@@ -354,7 +382,7 @@ function tickFlatRide(state: SimState, ride: FlatRide, events: RideEvent[]): voi
       events.push({ kind: "testPassed", rideKey: -ride.id });
       return;
     }
-    if (rollBreakdown(state, def.mtbfCycles, ride.cycleCount)) {
+    if (rollBreakdown(state, def.mtbfCycles, ride.cycleCount, -ride.id)) {
       ride.state = RIDE_STATE.broken;
       ride.breakdownTicks = 0;
       state.stats.breakdowns += 1;
@@ -387,6 +415,55 @@ function rideByKey(state: SimState, key: number): TrackedRide | FlatRide | undef
   return key > 0 ? state.rides.tracked.get(key) : state.rides.flat.get(-key);
 }
 
+
+/**
+ * Walk a mechanic one step toward a ride entrance, following the path network
+ * where one exists (M3 shipped a straight-line beeline over the grass, which
+ * read as staff clipping through scenery).
+ *
+ * The beeline survives as the fallback, and that is deliberate rather than
+ * lazy: a ride can legitimately sit with no path to it — mid-build, or after
+ * the player bulldozes the route — and a mechanic who refuses to walk would
+ * strand a broken ride forever with no way for the player to see why. Slightly
+ * wrong-looking beats permanently stuck.
+ */
+function stepMechanic(
+  state: SimState,
+  mech: Mechanic,
+  targetX: number,
+  targetZ: number,
+  speed: number,
+): void {
+  const w = state.world.terrain.site.cells.w;
+  const fromX = Math.floor(mech.x);
+  const fromZ = Math.floor(mech.z);
+  let stepX = targetX;
+  let stepZ = targetZ;
+
+  if (fromX !== targetX || fromZ !== targetZ) {
+    const route = findPath(state, fromX, fromZ, targetX, targetZ);
+    const next = route?.[0];
+    if (next !== undefined) {
+      stepX = next % w;
+      stepZ = Math.floor(next / w);
+    }
+  }
+
+  // Waypoints aim at the cell centre so the walk tracks the path instead of
+  // cutting corners — but the FINAL leg aims at the entrance coordinate
+  // itself, because the arrival check measures against the cell origin. Aiming
+  // at the centre there converges half a cell short and the mechanic walks
+  // forever without ever arriving.
+  const finalLeg = stepX === targetX && stepZ === targetZ;
+  const aimX = finalLeg ? targetX : stepX + 0.5;
+  const aimZ = finalLeg ? targetZ : stepZ + 0.5;
+  const dx = aimX - mech.x;
+  const dz = aimZ - mech.z;
+  const len = Math.max(Math.hypot(dx, dz), 1e-6);
+  mech.x += (dx / len) * speed;
+  mech.z += (dz / len) * speed;
+}
+
 export function tickMechanics(state: SimState, events: RideEvent[]): void {
   const MECHANIC_SPEED = 0.16; // cells per tick, a brisk trot
   for (const mech of state.mechanics) {
@@ -417,15 +494,9 @@ export function tickMechanics(state: SimState, events: RideEvent[]): void {
       mech.targetRide = 0;
       continue;
     }
-    const dx = ride.entranceX - mech.x;
-    const dz = ride.entranceZ - mech.z;
-    const dist = Math.abs(dx) + Math.abs(dz);
+    const dist = Math.abs(ride.entranceX - mech.x) + Math.abs(ride.entranceZ - mech.z);
     if (dist > 0.3) {
-      // Walk straight toward the ride (mechanics may cross grass — trade
-      // realism for never getting stuck; staff paths polish is M4).
-      const len = Math.max(Math.hypot(dx, dz), 1e-6);
-      mech.x += (dx / len) * MECHANIC_SPEED;
-      mech.z += (dz / len) * MECHANIC_SPEED;
+      stepMechanic(state, mech, ride.entranceX, ride.entranceZ, MECHANIC_SPEED);
       continue;
     }
     mech.repairTicks -= 1;

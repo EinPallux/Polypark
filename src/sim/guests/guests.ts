@@ -1,9 +1,19 @@
 import { CELL_SIZE_METERS } from "@/shared/grid";
 import { money } from "@/shared/money";
-import { SHOP_DEFS, type NeedKey } from "@/content/shops";
+import {
+  ATM_REFILL_CENTS,
+  INFO_KIOSK_REACH_BONUS,
+  SHOP_DEFS,
+  SHOP_FAIR_PRICE_RATIO,
+  SHOP_SEARCH_REACH,
+  type NeedKey,
+} from "@/content/shops";
 import { type SimState } from "../state";
 import { addIncome, addExpense } from "../economy/ledger";
 import { cellIndex } from "../world/world";
+import { findPath } from "../world/pathfind";
+// Re-exported so existing importers keep working after the move to world/.
+export { findPath, invalidatePathCache } from "../world/pathfind";
 import { GAME_SECONDS_PER_TICK } from "../core/loop";
 import { EMOTE, GUEST_STATE } from "./emotes";
 import {
@@ -12,6 +22,11 @@ import {
   tryEnqueue,
   type OpenRideOption,
 } from "../rides/rides";
+import { archetypeWeights, marketingMult } from "../economy/marketing";
+import { ratingMult } from "../rating/rating";
+import { weatherArrivalsMult, weatherThirstMult } from "../weather/weather";
+import { eventArrivalsMult, eventLitterMult } from "../events/effects";
+import { arrivalCapacityMult } from "../districts/districts";
 
 /**
  * The guest simulation (GAME_DESIGN §12): SoA typed arrays at a hard cap,
@@ -42,6 +57,17 @@ export { EMOTE, GUEST_STATE } from "./emotes";
 export const ARCHETYPES = ["family", "thrill", "foodie", "sightseer", "superfan"] as const;
 const ARCHETYPE_WALLET_CENTS = [110_00, 70_00, 95_00, 55_00, 160_00] as const;
 const ARCHETYPE_WEIGHTS = [0.34, 0.26, 0.16, 0.18, 0.06] as const;
+/**
+ * Price tolerance per archetype (GAME_BALANCE §4.3). Specified since M2 and
+ * unread until shops became priceable — a sightseer counts every dollar, a
+ * superfan barely looks at the board.
+ */
+const ARCHETYPE_PRICE_TOLERANCE = [1.0, 0.9, 1.2, 0.8, 1.3] as const;
+/**
+ * XP a departing guest pays, indexed by moodOf()'s 0..3
+ * (miserable/grumpy/content/delighted), spanning §9.1's "1–6 XP by mood".
+ */
+const EXIT_JOY_XP = [1, 2, 4, 6] as const;
 
 export interface GuestSoA {
   count: number;
@@ -114,115 +140,6 @@ function think(g: GuestSoA, slot: number, key: string): void {
 /* Pathfinding on the path network                                     */
 /* ------------------------------------------------------------------ */
 
-const pathCache = new Map<number, number[] | null>();
-
-function isWalkable(state: SimState, x: number, z: number): boolean {
-  if (!state.world.terrain.inBounds(x, z)) {
-    return false;
-  }
-  const index = cellIndex(state.world, x, z);
-  if (state.world.pathCells[index] === 1) {
-    return true;
-  }
-  // The gate forecourt (small lawn apron) is walkable so paths built NEAR the
-  // gate connect — the visible gate build lands in M3 (design note in CHANGELOG).
-  const gate = state.world.terrain.site.gate;
-  return (
-    Math.abs(x - gate.x) <= 4 &&
-    Math.abs(z - gate.z) <= 4 &&
-    !state.world.terrain.isWater(x, z) &&
-    state.world.terrain.slopeClassAt(x, z) !== "steep"
-  );
-}
-
-/** A* over path cells; returns cell indices from start (exclusive) to goal, or null. */
-export function findPath(
-  state: SimState,
-  fromX: number,
-  fromZ: number,
-  toX: number,
-  toZ: number,
-): number[] | null {
-  const w = state.world.terrain.site.cells.w;
-  const key = (fromZ * w + fromX) * 65_536 + (toZ * w + toX);
-  const cached = pathCache.get(key);
-  if (cached !== undefined) {
-    return cached ? [...cached] : null;
-  }
-
-  const start = fromZ * w + fromX;
-  const goal = toZ * w + toX;
-  const open: number[] = [start];
-  const cameFrom = new Map<number, number>();
-  const gScore = new Map<number, number>([[start, 0]]);
-  const fScore = new Map<number, number>([
-    [start, Math.abs(toX - fromX) + Math.abs(toZ - fromZ)],
-  ]);
-
-  let found = false;
-  let iterations = 0;
-  while (open.length > 0 && iterations < 4_000) {
-    iterations += 1;
-    let bestIndex = 0;
-    for (let i = 1; i < open.length; i++) {
-      if ((fScore.get(open[i]!) ?? Infinity) < (fScore.get(open[bestIndex]!) ?? Infinity)) {
-        bestIndex = i;
-      }
-    }
-    const current = open.splice(bestIndex, 1)[0]!;
-    if (current === goal) {
-      found = true;
-      break;
-    }
-    const cx = current % w;
-    const cz = Math.floor(current / w);
-    for (const [dx, dz] of [
-      [1, 0],
-      [-1, 0],
-      [0, 1],
-      [0, -1],
-    ] as const) {
-      const nx = cx + dx;
-      const nz = cz + dz;
-      if (!isWalkable(state, nx, nz)) {
-        continue;
-      }
-      const neighbor = nz * w + nx;
-      const tentative = (gScore.get(current) ?? Infinity) + 1;
-      if (tentative < (gScore.get(neighbor) ?? Infinity)) {
-        cameFrom.set(neighbor, current);
-        gScore.set(neighbor, tentative);
-        fScore.set(neighbor, tentative + Math.abs(toX - nx) + Math.abs(toZ - nz));
-        if (!open.includes(neighbor)) {
-          open.push(neighbor);
-        }
-      }
-    }
-  }
-
-  let result: number[] | null = null;
-  if (found) {
-    const chain: number[] = [];
-    let node = goal;
-    while (node !== start) {
-      chain.push(node);
-      node = cameFrom.get(node)!;
-    }
-    chain.reverse();
-    result = chain;
-  }
-  if (pathCache.size > 600) {
-    pathCache.clear();
-  }
-  pathCache.set(key, result ? [...result] : null);
-  return result;
-}
-
-/** Call when the path network changes (build commands bump worldVersion). */
-export function invalidatePathCache(): void {
-  pathCache.clear();
-}
-
 /* ------------------------------------------------------------------ */
 /* Spawning                                                            */
 /* ------------------------------------------------------------------ */
@@ -272,7 +189,17 @@ export function arrivalsPerMinute(state: SimState): number {
     Math.max(1.6 - (state.entryFeeCents / fairEntry) ** 1.4, 0.1),
     1.3,
   );
-  return appeal * rhythm * elasticity;
+  // Marketing supplies the marketingMult term GAME_BALANCE §4.1 always had.
+  return (
+    appeal *
+    rhythm *
+    elasticity *
+    marketingMult(state) *
+    ratingMult(state) *
+    weatherArrivalsMult(state) *
+    eventArrivalsMult(state) *
+    arrivalCapacityMult(state, liveGuestCount(state.guests))
+  );
 }
 
 function spawnGuest(state: SimState): number | null {
@@ -285,11 +212,14 @@ function spawnGuest(state: SimState): number | null {
     g.count += 1;
   }
   const rng = state.rng.guests;
+  // Same single draw on the same stream as M2 — a campaign reweights WHO shows
+  // up, never how many (reach is marketingMult's job), so no stream reshuffle.
   const roll = rng.next();
+  const weights = archetypeWeights(state, ARCHETYPE_WEIGHTS);
   let archetype = 0;
   let cumulative = 0;
-  for (let i = 0; i < ARCHETYPE_WEIGHTS.length; i++) {
-    cumulative += ARCHETYPE_WEIGHTS[i]!;
+  for (let i = 0; i < weights.length; i++) {
+    cumulative += weights[i]!;
     if (roll < cumulative) {
       archetype = i;
       break;
@@ -351,9 +281,40 @@ function addNeed(g: GuestSoA, slot: number, need: NeedKey, amount: number): void
   g[need][slot] = Math.min(Math.max(needValue(g, slot, need) + amount, 0), 100);
 }
 
+/**
+ * Would this guest pay what the shop is asking? Fair price scales with the
+ * archetype's tolerance (a foodie wears a premium on food; a sightseer does
+ * not), and need pressure raises it further — desperation is a real discount
+ * on judgement. Never a hard cutoff: past fair, the chance falls off smoothly,
+ * so one cent over the line does not empty the queue.
+ */
+function willPay(
+  g: GuestSoA,
+  slot: number,
+  site: ShopSite,
+  needValue: number,
+  toleranceMult: number,
+): boolean {
+  const def = SHOP_DEFS[site.pieceId]!;
+  if (def.defaultPriceCents <= 0) {
+    return true;
+  }
+  const tolerance =
+    ARCHETYPE_PRICE_TOLERANCE[g.archetype[slot]!]! * toleranceMult;
+  const desperation = 1 + (100 - needValue) / 260; // up to ~1.38 at need 0
+  const fair = def.defaultPriceCents * SHOP_FAIR_PRICE_RATIO * tolerance * desperation;
+  if (site.priceCents <= fair) {
+    return true;
+  }
+  const over = site.priceCents / fair;
+  return g.wallet[slot]! > 0 && over < 1.6;
+}
+
 interface ShopSite {
   readonly placedId: number;
   readonly pieceId: string;
+  /** What this particular shop charges right now. */
+  readonly priceCents: number;
   readonly cellX: number;
   readonly cellZ: number;
   readonly approachX: number;
@@ -382,6 +343,7 @@ export function findShopSites(state: SimState): ShopSite[] {
         sites.push({
           placedId: piece.id,
           pieceId: piece.pieceId,
+          priceCents: piece.priceCents,
           cellX: piece.x,
           cellZ: piece.z,
           approachX: ax,
@@ -504,6 +466,8 @@ function decide(
   slot: number,
   shopSites: ShopSite[],
   rideOptions: readonly OpenRideOption[],
+  /** Hoisted by the caller: one park-wide lookup, not one per guest. */
+  hasWayfinding: boolean,
 ): void {
   const g = state.guests;
   if (!state.parkOpen) {
@@ -522,10 +486,16 @@ function decide(
   }
   if (lowest.value < SEEK_THRESHOLD && lowest.need !== "fun" && lowest.need !== "energy") {
     // Find the nearest reachable shop satisfying the need.
-    const candidates = shopSites.filter(
-      (site) => SHOP_DEFS[site.pieceId]!.satisfies === lowest.need,
-    );
     const here = guestCell(state, slot);
+    // Guests only consider shops within reach. An Info Kiosk in the park is
+    // the difference between "I can't find anything" and finding the stall two
+    // plazas over — GAME_BALANCE §6's wayfinding effect, as a search radius.
+    const reach = SHOP_SEARCH_REACH + (hasWayfinding ? INFO_KIOSK_REACH_BONUS : 0);
+    const candidates = shopSites.filter(
+      (site) =>
+        SHOP_DEFS[site.pieceId]!.satisfies === lowest.need &&
+        Math.abs(site.approachX - here.x) + Math.abs(site.approachZ - here.z) <= reach * 6,
+    );
     candidates.sort(
       (a, b) =>
         Math.abs(a.approachX - here.x) +
@@ -533,8 +503,13 @@ function decide(
         (Math.abs(b.approachX - here.x) + Math.abs(b.approachZ - here.z)),
     );
     for (const site of candidates) {
-      const def = SHOP_DEFS[site.pieceId]!;
-      if (g.wallet[slot]! < def.defaultPriceCents) {
+      if (g.wallet[slot]! < site.priceCents) {
+        continue;
+      }
+      // Price is a real decision, not just an affordability check: a guest who
+      // thinks a snack is a rip-off walks past a stall they could afford. The
+      // hungrier they are, the more they will put up with.
+      if (!willPay(g, slot, site, lowest.value, state.difficultyMods.priceToleranceMult)) {
         continue;
       }
       if (routeTo(state, slot, site.approachX, site.approachZ)) {
@@ -545,9 +520,7 @@ function decide(
     // Nothing satisfies the need — grump about it and wander on.
     if (candidates.length === 0) {
       think(g, slot, `thought.no.${lowest.need}`);
-    } else if (
-      candidates.every((site) => g.wallet[slot]! < SHOP_DEFS[site.pieceId]!.defaultPriceCents)
-    ) {
+    } else if (candidates.every((site) => g.wallet[slot]! < site.priceCents)) {
       setEmote(g, slot, EMOTE.broke);
       think(g, slot, "thought.broke");
     }
@@ -582,6 +555,11 @@ function arriveAtDestination(state: SimState, slot: number): void {
     if (mood >= 2) {
       state.stats.happyDepartures += 1;
     }
+    // Exit-joy XP (GAME_BALANCE §9.1: 1–6 by mood). Deferred in M2 with the
+    // note "switches on with the rating system" — which now exists, so the
+    // level curve finally advances from running a park guests enjoy rather
+    // than only from ticking goal cards.
+    state.xp += EXIT_JOY_XP[mood] ?? 1;
     despawn(state, slot);
     return;
   }
@@ -625,13 +603,19 @@ function finishServing(state: SimState, slot: number): void {
   if (!def) {
     return;
   }
-  if (def.defaultPriceCents > 0) {
-    if (g.wallet[slot]! < def.defaultPriceCents) {
+  if (piece.priceCents > 0) {
+    if (g.wallet[slot]! < piece.priceCents) {
       think(g, slot, "thought.broke");
       return;
     }
-    g.wallet[slot] = g.wallet[slot]! - def.defaultPriceCents;
-    addIncome(state, def.ledgerCategory, def.defaultPriceCents);
+    g.wallet[slot] = g.wallet[slot]! - piece.priceCents;
+    addIncome(state, def.ledgerCategory, piece.priceCents);
+  }
+  if (def.effect === "wallet") {
+    // The fee is the park's product; the cash is what keeps the guest spending
+    // instead of trudging to the gate broke.
+    g.wallet[slot] = g.wallet[slot]! + ATM_REFILL_CENTS;
+    think(g, slot, "thought.cashedUp");
   }
   addExpense(state, "goods", def.unitCostCents);
   addNeed(g, slot, def.satisfies, def.amount);
@@ -646,7 +630,10 @@ function finishServing(state: SimState, slot: number): void {
     think(g, slot, "thought.relieved");
   }
   // Litter happens a few steps later, on a path cell near the shop.
-  if (def.litterChance > 0 && state.rng.guests.chance(def.litterChance)) {
+  // A litter wave or an influencer swarm makes guests messier — one roll,
+  // scaled, rather than a second source of litter nobody can see the cause of.
+  const litterChance = Math.min(1, def.litterChance * eventLitterMult(state));
+  if (litterChance > 0 && state.rng.guests.chance(litterChance)) {
     const cell = guestCell(state, slot);
     state.litter.push({
       id: state.stats.litterSpawned + 1,
@@ -677,6 +664,9 @@ export function tickGuests(state: SimState): void {
   const shopSites = findShopSites(state);
   const rideOptions = openRideOptions(state);
 
+  // Hoisted out of the per-guest loop: one lookup, not one per guest.
+  const thirstWeather = weatherThirstMult(state);
+  const hasWayfinding = shopSites.some((site) => SHOP_DEFS[site.pieceId]?.effect === "wayfinding");
   for (let slot = 0; slot < g.count; slot++) {
     const guestState = g.state[slot]!;
     if (guestState === GUEST_STATE.off) {
@@ -690,10 +680,13 @@ export function tickGuests(state: SimState): void {
     g.pz[slot] = g.z[slot]!;
 
     // Needs decay (fun only while idle — strolling is its own reward).
-    addNeed(g, slot, "hunger", -DECAY_PER_TICK.hunger);
-    addNeed(g, slot, "thirst", -DECAY_PER_TICK.thirst);
-    addNeed(g, slot, "bladder", -DECAY_PER_TICK.bladder);
-    addNeed(g, slot, "energy", -DECAY_PER_TICK.energy);
+    const decay = state.difficultyMods.needDecayMult;
+    addNeed(g, slot, "hunger", -DECAY_PER_TICK.hunger * decay);
+    // Thirst is the one need weather touches — a heatwave makes guests
+    // thirsty, not hungry or tired (GAME_BALANCE "one knob per concept").
+    addNeed(g, slot, "thirst", -DECAY_PER_TICK.thirst * decay * thirstWeather);
+    addNeed(g, slot, "bladder", -DECAY_PER_TICK.bladder * decay);
+    addNeed(g, slot, "energy", -DECAY_PER_TICK.energy * decay);
     if (
       guestState === GUEST_STATE.idle ||
       guestState === GUEST_STATE.serving ||
@@ -778,7 +771,7 @@ export function tickGuests(state: SimState): void {
 
     // idle: staggered decisions
     if ((state.tick + slot) % DECIDE_PERIOD === 0) {
-      decide(state, slot, shopSites, rideOptions);
+      decide(state, slot, shopSites, rideOptions, hasWayfinding);
     }
   }
 }

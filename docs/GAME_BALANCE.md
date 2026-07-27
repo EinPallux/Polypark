@@ -69,6 +69,24 @@ Related: [GAME_DESIGN.md](../GAME_DESIGN.md) · [TECHNICAL_ARCHITECTURE.md](../T
 | **Commerce Quarter** ($15,000 · L14) | Office building $9,000 · shopfront $5,500 · billboard $800 | Rent/building/mo = $150 × rating × min(guests/500, 2) (shopfront ×0.6); +1 sponsor slot per 2 buildings; billboards +10% marketing efficiency each (max 3 counted) |
 | **Works Yard** ($10,000 · L12) | Workshop $7,500 · depot $6,000 · reclaimer $4,500 (one each) | Workshop: ride upkeep −15%, repair time −25% · depot: piece costs −8% · reclaimer: +10% bulldoze refund |
 
+> **Districts shipped in M5‑B: Parking Grounds and Resort Row.** All six plots are authored
+> (ids, prices, unlock levels) so the remaining four are a content file each and no framework
+> change. Buying a plot is the **only** way land value grows — and since land value feeds the
+> park valuation which sets borrowing headroom, without it The Consortium stays permanently
+> unreachable however well the park does.
+>
+> **Arrival capacity is a taper, not a ceiling.** §3.3 and GAME_DESIGN §6 read as a hard
+> 60‑concurrent cap; taken literally that would delete a game which benches happily at
+> 1,200–1,500 guests, and would read as a wall rather than a pressure. Shipped as
+> `admitFactor = live ≤ capacity ? 1 : max((capacity/live)^0.6, 0.15)` — continuous, monotonic
+> and floored, so a full lot slows the gate but can never shut it (ADR‑15). Capacity is
+> 60 at the gate + 5 per parking bay.
+>
+> **Resort Row** ships occupancy in the reduced form §3.3 allows — `f(rating)` only, since the
+> night‑hours term waits on night running. Rooms pay $30/night over the month's four park
+> nights and cost $6/room/month upkeep whether or not they sold, so over‑building is a real
+> mistake rather than a free bet.
+
 ## 4. Park‑level formulas
 
 ### 4.1 Appeal & arrivals
@@ -82,7 +100,14 @@ EntryPriceElasticity = clamp(1.6 − (entry / fairEntry)^1.4, 0.1, 1.3)
    fairEntry = $6 + $1.1 × Σ(top8 ride E) / 8 … shown to player as "guests expect ~$X"
 ```
 
-Novelty: new ride ×1.4 decaying to ×1.0 over 3 months; refurb restores to ×1.15.
+Novelty: new ride ×1.4 decaying to ×1.0 over 3 months; refurb restores to ×1.15 and decays
+again from there, so refurbishing is never a substitute for building something new.
+
+**Refurbishment (shipped, was overdue from M3).** `ride/refurbish` costs 25% of what the ride
+cost to build and buys back novelty plus a full reset of accumulated wear. It deliberately does
+**not** restore book value: depreciation floors at 45% of build cost, so resetting the age would
+turn a 25% spend into a 55% valuation gain — and park value sets borrowing headroom, which makes
+that an infinite‑credit loop. The player buys appeal and reliability here, never balance sheet.
 
 > **M2 interim (shipped, pre‑rides).** Until rides land (M3) the sim runs a reduced model with
 > the same elasticity shape (clamp and exponent unchanged):
@@ -104,6 +129,22 @@ Novelty: new ride ×1.4 decaying to ×1.0 over 3 months; refurb restores to ×1.
 Flow 15. Sub‑score formulas use rolling 1‑month windows (e.g., Care = 100 − litterDensity×22 −
 vomit×30 − citationPenalty − restroomShortfall×18, clamped). Full derivations live beside the
 code (`sim/rating/`) and must match this doc's weights.
+
+**Confidence blending (anti‑death‑spiral, pillar P3).** Every sub‑score is reported as
+`50 + confidence × (raw − 50)`, where `confidence = clamp(guestExposure / 25, 0, 1)` over the
+same rolling month. A park nobody has visited yet reads a flat 2.5★ rather than 0★, so a quiet
+opening week can never compound into an arrivals collapse the player cannot climb out of.
+Confidence reaches 1.0 at 25 guest‑months of evidence and is shown in the UI as
+"still settling" until then. A park is **seeded at 2.5★** on creation and on migration, and
+the stored value refreshes every 25 ticks from the sim tick — never from a UI read, since the
+rating feeds arrivals and a park must simulate identically whether or not a panel is open.
+
+Each sub‑score also reports its **top causes** as structured ids + magnitudes (`fun.noRides`,
+`care.litter`, …) — never sentences. The sim ships ids; the UI supplies the words, so a cause
+is one i18n key away from being explained in any language.
+
+A live Consortium loan caps the *displayed* rating at 4.5★ (§8.2); the underlying sub‑scores
+are unaffected.
 
 ### 4.3 Guest spending
 
@@ -194,8 +235,37 @@ variants).
 | ATM | $1,500 | $2.5 fee | — | wallet refill | 10 | $60 |
 | Info Kiosk | $2,000 | free | — | −60% lost chance in 40 m | — | $80 (Guide staffed) |
 
-Portion slider: ±30% price/satisfaction/cost linkage. "Fair price" hinting mirrors §4.1
-elasticity (tooltip: "guests think $9 is steep for a snack").
+> **Shipped roster.** Snack Shack · Sip Station · Restroom (M2) · **Cash Point (L5) · Info
+> Kiosk (L7) · First Aid (L9)** (M5). Each new one carries a real mechanical effect, because a
+> building that only decorates the palette is content in name only:
+> · **Cash Point** — charges a $2.50 fee and hands back $40, so a guest who ran dry keeps
+>   spending instead of trudging to the gate. The refill must exceed the fee or the machine is
+>   a trap rather than a service (asserted).
+> · **First Aid** — free, and free it stays (GAME_DESIGN §24). It supplies the inspection
+>   score's first‑aid term (§8.1), replacing the mechanic‑coverage proxy M4 shipped with a
+>   stated swap‑when‑it‑lands note. Coverage is one post per 400 monthly guests, so a growing
+>   park has to keep up rather than build one and forget it.
+> · **Info Kiosk** — free; widens how far guests will look for a shop (3 → 8 cells of reach),
+>   which is §6's wayfinding effect expressed as the search radius the sim actually has.
+>
+> **Grill Garden, Sweet Scoop, Poly Bistro and Gift Kiosk are NOT shipped**, and deliberately:
+> no pack piece is a restaurant, so they need real kit composition of the kind the flat rides
+> got. Shipping them as reskinned snack stalls would put four names on the menu with one
+> behaviour behind them.
+
+Portion slider: ±30% price/satisfaction/cost linkage (M5). **"Fair price" hinting ships**:
+click a shop in inspect mode to price it, and the panel states what guests will wear.
+
+**Per‑shop pricing (shipped, was overdue from M3).** Price lives on the placed piece, not the
+shop type, so two Snack Shacks can charge differently and demolish/undo carry the price. Guests
+weigh it: fair price = `default × 1.15 × archetypeTolerance × desperation`, where desperation
+rises to ~1.38 as the need empties — a starving guest forgives a lot. Past fair the chance of
+buying falls off smoothly rather than cutting off, so one cent over the line does not empty the
+queue. Archetype price tolerance (§4.3: 1.0 / 0.9 / 1.2 / 0.8 / 1.3) was specified in M2 and
+unread until now — pricing is what finally gave it something to bite on.
+
+Free facilities cannot be charged for at all (GAME_DESIGN §24), and a $40 ceiling caps the UI —
+a decency rail, not a balance dial, since elasticity already makes gouging unprofitable.
 
 > **M2 shipped subset.** Snack Shack, Sip Station and Restroom are live (catalog pieces
 > `coasterkit/stall-food|stall-drinks|stall-toilets`) with the costs/prices/satisfaction above.
@@ -221,6 +291,30 @@ as a coffee emote. Raise button: +10% wage = +8% effectiveness for 6 months.
 
 ## 8. Events & loans
 
+### 8.1a Weather chain (one kind per park day)
+
+Rain, Storm and Heatwave are **conditions, not cards** — the §8.1 table below lists them for
+frequency reference, but the Rain row's own cooldown column already reads "(weather‑driven)".
+They are drawn from a day‑to‑day Markov chain, three days ahead, and the forecast is persisted:
+the strip is a promise the sim keeps, or planning around a storm is impossible (pillar P5).
+
+| Kind | Arrivals | Thirst decay | Storm‑closes H2+ | Notes |
+|------|----------|--------------|------------------|-------|
+| Sunny | ×1.10 | ×1.0 | — | |
+| Overcast | ×1.00 | ×1.0 | — | The only kind a storm can brew out of |
+| Rain | ×0.60 | ×1.0 | — | Covered‑ride demand bonus deferred (no covered flag yet) |
+| Storm | ×0.35 | ×1.0 | yes | Reopens only what it closed, never a player‑closed ride |
+| Heatwave | ×0.85 | ×1.6 | — | No separate drink‑income bonus — see below |
+
+Chain rows sum to 1 and are asserted in `weather.test.ts`, together with the long‑run shares:
+rain 12–26%, storm 1–6%, heatwave 3–14%, fair weather >55%. Storms never follow a clear sky.
+A brand‑new park always opens sunny.
+
+**One knob per concept (§1 rule 4).** A heatwave raises Thirst decay and *nothing else* — the
+extra drink income follows from thirstier guests on its own. Paying the player a second time
+with a ×1.8 income multiplier would double‑count one event; the balance rule that forbids
+double‑penalties forbids double‑rewards the same way.
+
 ### 8.1 Event deck (Standard weights, avg 1.25/month)
 
 | Event | Weight | Cooldown | Effect summary |
@@ -240,9 +334,32 @@ as a coffee emote. Raise button: +10% wage = +8% effectiveness for 6 months.
 | Refurb subsidy | 5 | 4 mo | Next refurb 50% off, 1 month window |
 | Coaster‑of‑month | 4 | 6 mo | Submit best track: E≥6.5 → +0.2★, 🎟×2 |
 
-Scheduled **inspection** every 3 months ±2 weeks (§2 spot‑check odds on top): score =
+**Shipped in M4:** VIP critic · Influencer swarm · Breakdown streak · Litter wave · Sponsor
+offer · Tax audit · Coaster‑of‑month. Rain/Storm/Heatwave moved to the weather chain (§8.1a).
+Four cards wait on systems that do not exist yet and are named in ROADMAP M5 — Vandal night
+(damaged‑prop variants), Hygiene scare (per‑shop cleanliness), Lost kid (camera‑ping
+interaction), Refurb subsidy (`ride/refurbish`). A card that fires with no visible effect is
+worse than no card, so none of the four ships early.
+
+`eventsPerMonth` is an **expectation, not a count**: the whole part always draws, the fraction
+is a coin flip, so the long‑run average sits exactly on the §2 table. Cooldowns and
+prerequisites can only pull the realised rate *below* it, never above — asserted over 4,000
+months per difficulty. The deck goes silent during Receivership: it is a rescue, not a pile‑on,
+and the recovery chain has to stay winnable (ADR‑15).
+
+Scheduled **inspection** every 3 months ±1 month (§2 spot‑check odds on top): score =
 avg reliability (40%) + First Aid coverage (20%) + path crowding (20%) + citation history (20%);
-pass ≥70 → +0.1★; fail → $2,500 fine + worst ride closed until repaired + Care −10 for a month.
+pass ≥70 → +0.1★; fail → $2,500 fine + worst ride closed until the player reopens it + Care −10
+for a month (as decaying citations, so repeated failures cannot stack into a floor).
+
+> **Jitter granularity.** The doc's original "±2 weeks" cannot be expressed: inspections resolve
+> at month close, so the month is the smallest addressable unit and ±half a month rounds to
+> exactly zero — a perfectly predictable schedule, which is the one thing the jitter exists to
+> prevent. ±1 whole month is the nearest honest reading (inspections land every 2–4 months).
+>
+> **First Aid coverage** is 20% of the score and First Aid does not exist yet, so that share is
+> scored from mechanic coverage — the nearest shipped proxy for "this park can look after
+> people". ROADMAP M5 swaps it when the building lands.
 
 ### 8.2 Loans (offers scale with credit grade A–E)
 
@@ -264,20 +381,62 @@ one profitable month → debts current). Exit when debts current and cash ≥ $0
 press story (+0.2★ over 2 months). Optional sandbox toggle "Classic bankruptcy" replaces
 Receivership with a hard fail — off by default, never available in Stories.
 
+### 8.3 Marketing campaigns (one at a time; frozen in Receivership)
+
+| Campaign | Cost | Runs for | Reach | Skews toward |
+|----------|------|----------|-------|--------------|
+| Flyers | $1,200 | 1 mo | +15% arrivals | Family ×1.35 · Sightseer ×1.25 |
+| Online push | $3,000 | 2 mo | +30% arrivals | Superfan ×1.5 · Thrill ×1.4 · Foodie ×1.1 |
+| Parade day | $6,500 | 3 mo | +45% arrivals | Family ×1.5 · Foodie ×1.3 · Sightseer ×1.2 |
+
+Reach multiplies the arrivals term (§4.1 `marketingMult`); the skew reweights which archetypes
+those extra guests are drawn from, so a channel changes *who* shows up, not just how many.
+Cost is charged once at launch to the `marketing` expense category. Difficulty scales nothing
+here — the lever is the same on every setting.
+
+### 8.4 Difficulty modifiers (Relaxed / Standard / Tycoon)
+
+| Modifier | Relaxed | Standard | Tycoon |
+|----------|---------|----------|--------|
+| Starting cash | ×1.5 | ×1.0 | ×0.75 |
+| Loan APR offset | −200 bps | 0 | +300 bps |
+| Need decay | ×0.85 | ×1.0 | ×1.15 |
+| Price tolerance | ×1.2 | ×1.0 | ×0.85 |
+| Breakdown MTBF | ×2.0 | ×1.0 | ×0.67 |
+| Events per month | 0.75 | 1.25 | 1.75 |
+| Inspection chance/mo | 0.05 | 0.10 | 0.18 |
+| Star Ticket rate | ×0.75 | ×1.0 | ×1.25 |
+| Months insolvent → Receivership | 3 | 2 | 1 |
+
+Difficulty is chosen at park creation and stored on the save; the derived modifier table is
+recomputed on load (never serialized) so retuning this table reaches existing parks.
+
 ## 9. Progression
 
 ### 9.1 Park XP sources
 
 Guest‑exit joy (1–6 XP by mood) · milestones (first 100 guests: 500 XP…) · **Goal Deck cards**
 (small 60–150 XP, horizon cards 400–800 XP) · monthly rating bonus (rating × 60) · coaster
-completions (E×40). No XP from spending money (no pay‑to‑level loop). *(M2 pays XP from Goal
-Deck cards only; exit joy and the rating bonus switch on with the rating system.)*
+completions (E×40). No XP from spending money (no pay‑to‑level loop). *(All three ship as of M5: exit joy pays 1/2/4/6 XP by mood on departure, and the monthly
+rating bonus pays rating × 60. Spending money still pays nothing — no pay‑to‑level loop.)*
 
 ### 9.2 Level curve (1→30)
 
 `XP(next) = 400 × level^1.35` → L2=400, L5≈3,500 cum, L10≈17k, L20≈76k, L30≈187k cumulative.
 Target pacing (Standard, competent play): L1–8 in first hour, L15 ≈ hour 3, L30 ≈ hour 8–10 per
 park. Every 5th level = Milestone node (fireworks + 🎟1).
+
+**Unlock schedule (shipped).** L1 Snack Shack + Sip Station · L2 Restroom · L3 Teacup Twirl ·
+L4 Critter Carousel · L6 Mousetrap coasters · L8 Galleon Swing · L10 Rocket Orbit ·
+L12 Steelwind coasters · L14 Pumpkin Drop. Levels above 14 carry milestones only until the
+remaining ride families land — a node promising content the game cannot deliver is worse than
+an empty one.
+
+Two rules the table must keep. **Paths and scenery are never gated**: they are how a park
+exists at all, and locking them would turn "build your park" into "unlock your park". And an
+id the track never mentions defaults to *buildable*, so forgetting to author a node can never
+silently remove something from the palette. `unlockAll` is a real park setting (sandbox‑first,
+pillar P1), not a test backdoor — the tests use the same path a player can.
 
 ### 9.3 Star Tickets & Collection prices
 

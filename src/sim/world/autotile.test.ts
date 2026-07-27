@@ -3,7 +3,13 @@ import { createSim, type SimFacade } from "../api";
 import { findOpenFlat, TEST_PIECES, TEST_SITE } from "../testing/fixture";
 
 function makeSim(): SimFacade {
-  return createSim({ seed: 3, site: TEST_SITE, pieceDefs: TEST_PIECES });
+  return createSim({
+    // Progression is not what this test is about — build from a full palette.
+    unlockAll: true,
+    seed: 3,
+    site: TEST_SITE,
+    pieceDefs: TEST_PIECES,
+  });
 }
 
 function tileAt(sim: SimFacade, x: number, z: number) {
@@ -40,12 +46,7 @@ describe("path auto-tiling (ground_path* family)", () => {
     const c = { x: o.x + 1, z: o.z + 1 };
     sim.dispatch({
       type: "build/paintPath",
-      cells: [
-        c,
-        { x: c.x, z: c.z - 1 },
-        { x: c.x + 1, z: c.z },
-        { x: c.x, z: c.z + 1 },
-      ],
+      cells: [c, { x: c.x, z: c.z - 1 }, { x: c.x + 1, z: c.z }, { x: c.x, z: c.z + 1 }],
     });
     expect(tileAt(sim, c.x, c.z)?.kind).toBe("path-split"); // N+E+S, missing W → rot 0
     expect(tileAt(sim, c.x, c.z)?.rot).toBe(0);

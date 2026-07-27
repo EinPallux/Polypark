@@ -21,7 +21,13 @@ function stripCounters(snapshot: SimStateSnapshot): unknown {
 
 describe("undo/redo fuzz", () => {
   it("survives 100 random build ops, undo-all, redo-all", () => {
-    const sim = createSim({ seed: 99, site: TEST_SITE, pieceDefs: TEST_PIECES });
+    const sim = createSim({
+      // Progression is not what this test is about — build from a full palette.
+      unlockAll: true,
+      seed: 99,
+      site: TEST_SITE,
+      pieceDefs: TEST_PIECES,
+    });
     const initial = stripCounters(sim.snapshot());
     const rng = new RngStream("fuzz", 424242);
     let applied = 0;
@@ -61,7 +67,8 @@ describe("undo/redo fuzz", () => {
     }
 
     const final = sim.snapshot();
-    expect(final.world.placed.length + final.world.pathCells.filter((c) => c === 1).length,
+    expect(
+      final.world.placed.length + final.world.pathCells.filter((c) => c === 1).length,
     ).toBeGreaterThan(0);
 
     let undos = 0;

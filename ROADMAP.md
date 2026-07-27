@@ -82,7 +82,7 @@ with a living crowd · thought‑log spot test via the guest inspector (browser 
 open gate → guests counted in HUD → hire janitor. **Deferred, named:** hierarchical A* +
 congestion (plain A* + cache ships; revisit at M6 perf pass) · vomit + First Aid (with rides,
 M3) · emote cluster chips + hero guest pool (M6 polish) · country‑road car flavor (M4 Parking) ·
-shop price editing UI (M3 economy pass).
+shop price editing UI ✅ **shipped in the M4→M5 debt pass**.
 
 ## M3 · Rides & the track builder — ✅ complete 2026‑07‑26
 
@@ -115,8 +115,7 @@ circuit through the real UI → circuit closes with live stats → test → open
 teacups placed/tested/opened via roster + inspector, guests admitted, fares collected.
 **Deferred, named:** painted queue‑path pieces (virtual queues ship; CoasterKit queue tiles
 land M4) · banked "skew" pieces + Sky Serpent/Splashlog families (M5 coaster depth) · Build
-Catalog screen v1 (M4, with the tycoon layer's unlock surface) · refurbishment + visible aging
-(M4 economy pass) · staff pathfinding on paths (mechanics beeline; M4 staff polish).
+Catalog screen v1 (M4, with the tycoon layer's unlock surface) · refurbishment ✅ **shipped in the M4→M5 debt pass** (visible aging still M6 polish) · staff pathfinding on paths ✅ **shipped in the M4→M5 debt pass**.
 
 ## M4 · The tycoon layer — "real stakes" (≈3 weeks)
 
@@ -128,11 +127,34 @@ nodes · **districts framework + Parking Grounds + Resort Row** (arrival capacit
 flavor traffic) · remaining rides/shops (Flume, Poly Express, Karts, Putt Paradise,
 walkthroughs, Paddle Bay, Marble Cascade, Bistro…).
 
-**Demo:** a full sandbox park from $50k to 4★ through a storm, a failed inspection and a
-Consortium loan; sink into Receivership on purpose and climb back out; hotels fill for night
-hours behind a busy parking lot.
-**Accept:** balance invariants #1–#12 all green · event deck 10k‑month statistical test ·
-management panels answer the "two‑click rule" audit (UI_UX §7.1).
+**Scope call (owner‑approved 2026‑07‑27):** M4 ships as **money, rating and risk** — the
+"real stakes" identity — and the rest moves to M5. The original line was more than one
+coherent milestone; the precedent M1/M2/M3 set is to ship the coherent core and name the
+deferrals with reasons.
+
+**Shipping in M4:** full economy · loans/credit + Receivership · Park Rating (five sub‑scores
+with plain‑language causes) · marketing campaigns · difficulty presets · weather chain +
+3‑day forecast strip · event deck (7 cards) · safety inspections · the management window
+(Finance/Rating/Loans/Marketing).
+
+**Deferred, named, with reasons:**
+- **Districts framework + Parking Grounds + Resort Row** ✅ **shipped (M5‑B)**. The remaining
+  four districts are a content file each — the framework is done.
+- **Park Level track + unlock gating + Star Tickets** ✅ **shipped (M5‑A)**. A/B nodes remain.
+- **Staff zones for all four roles** → M5. The v4→v5 staff migration merges two id spaces *and*
+  changes a coordinate unit.
+- **Remaining rides/shops** → M5. Shipping nine ride families on top of four new subsystems is
+  exactly what breaks a milestone. The shops half (Bistro et al.) goes with them.
+- **Guests/Staff/Districts management panels** → M5, with the systems they would report on.
+- **4 event cards** (vandal night, hygiene scare, lost kid, refurb subsidy) → M5; each needs a
+  system that does not exist, and a card with no visible effect is worse than no card.
+- **Night hours** → M5 (needs the lamps rule + a lighting rig ROADMAP already puts in M6). The
+  demo statement below is amended accordingly.
+
+**Demo:** a sandbox park from $75k to 4★ through a storm, a failed inspection and a Consortium
+loan; sink into Receivership on purpose and climb back out.
+**Accept:** balance invariants #1–#12 all green · event deck 10k‑month statistical test ✅ ·
+management window answers the "two‑click rule" audit (UI_UX §7.1) ✅.
 
 ## M5 · The whole game — "shipping shape" (≈3 weeks)
 

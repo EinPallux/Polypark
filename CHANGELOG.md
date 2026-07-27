@@ -7,6 +7,193 @@ only where a migration ships — see TECHNICAL_ARCHITECTURE §8).
 
 ## [Unreleased]
 
+### M5‑A — Progression: the level track, unlocks and Star Tickets
+- **The park now has a shape over time.** Everything was buildable from minute one; the Park
+  Level track (GAME_BALANCE §9.2) hands content over as the park grows — L1 Snack Shack + Sip
+  Station through L14 Pumpkin Drop, with Mousetrap at L6 and Steelwind at L12. Gating covers
+  `build/place`, `build/placeFlatRide` and `ride/startTrack`, failing with a `locked` reason
+  that reads as "not yet", never "you failed to" (ADR‑15).
+- **Locked ≠ hidden.** The palette shows every ride greyed, wearing the level it arrives at, so
+  the palette *is* the roadmap — and a new Progress tab lays out the whole ladder in one place.
+  Hiding locked content would make the palette feel arbitrary instead of anticipatory.
+- **Two guardrails the tests pin.** Paths and scenery are never gated — they are how a park
+  exists at all. And an id the track never mentions defaults to *buildable*, so a missing node
+  can never silently remove something from the palette.
+- **`unlockAll` is a real park setting, not a test backdoor** (`?unlockAll=1`). It landed in
+  the same change as the gate, which is what kept 177 existing tests from going red at once,
+  and it means the suite exercises a path players can actually take.
+- **XP finally comes from running a park.** §9.1's exit‑joy XP (1/2/4/6 by departing mood) and
+  the monthly rating bonus (rating × 60) were deferred in M2 "until the rating system exists" —
+  it does now, so the level curve advances from guests enjoying themselves rather than only
+  from ticking goal cards. Spending money still pays nothing: no pay‑to‑level loop, asserted.
+- **Star Tickets** are banked at every milestone level and shown in the identity chip, which
+  had been hardcoded to `0` since M0.
+- The level curve moved from `goals/` to `content/progression.ts` — it is balance data, and
+  unlocks read it too.
+
+### M5‑C — Facilities: Cash Point, Info Kiosk, First Aid
+- **Three of GAME_BALANCE §6's buildings ship, each with a real effect.** A Cash Point charges
+  a fee and refills wallets, so a guest who ran dry keeps spending rather than leaving. An Info
+  Kiosk widens how far guests will look for a shop (3 → 8 cells) — §6's wayfinding effect
+  expressed as the search radius the sim actually has. First Aid is free and stays free
+  (GAME_DESIGN §24).
+- **First Aid closes the proxy M4 shipped with a note on it.** The inspection score's
+  first‑aid term was reading *mechanic* coverage because the building did not exist; it now
+  reads posts, at one per 400 monthly guests, so coverage cannot be bought once and forgotten
+  as the park grows.
+- **Four §6 buildings are deliberately still missing.** No pack piece is a restaurant, so Grill
+  Garden, Sweet Scoop, Poly Bistro and Gift Kiosk need real kit composition of the kind the
+  flat rides got. Shipping them as reskinned snack stalls would be four names on the menu with
+  one behaviour behind them.
+- `FacilityEffect` is separate from `NeedKey` on purpose: an ATM does not make you less hungry,
+  it makes you able to buy lunch.
+- **+3 kit pieces** → 107 pieces, 2.3 MB shipped.
+
+### M5‑B — Districts: the park becomes a resort
+- **Polypark stops being only a ride park.** Districts (GAME_DESIGN §6) are plots you buy once;
+  **Parking Grounds** and **Resort Row** ship their buildables, and all six are authored so the
+  remaining four are a content file each and no framework change. The unshipped four are listed
+  as "coming soon" rather than hidden — the shape of the resort is part of the pitch.
+- **Arrival capacity is a taper, not a ceiling.** §3.3 reads as a hard 60‑concurrent cap; taken
+  literally that deletes a game which benches at 1,200–1,500 guests. Shipped as
+  `max((capacity/live)^0.6, 0.15)` — continuous, monotonic and floored, so a full lot slows the
+  gate but can never shut it. Tests pin monotonicity and the floor, because a taper that let
+  more guests *speed up* the gate would make the park oscillate.
+- **Buying a plot is the only way land value grows**, and land value feeds the valuation that
+  sets borrowing headroom — without it The Consortium is permanently unreachable however well
+  the park does. That connection is now closed and tested.
+- **Resort Row** rooms pay nightly against the park's rating and cost upkeep whether or not
+  they sold, so over‑building is a real mistake rather than a free bet.
+- **Fixed: the valuation cache never saw a land purchase.** `computeValuation` is memoized on
+  `worldVersion`, which only `build/`, `ride/` and `shop/` commands bumped — so buying a plot
+  raised land value while the valuation kept serving a stale number, and borrowing headroom
+  would not widen until some unrelated build happened to invalidate the cache. Caught by the
+  test written for the feature, not by inspection.
+- **+6 kit pieces** (parking bay, lot road, lot light, cabin, hotel block, hedge) from
+  CityKitRoads and CityKitSuburban → 104 pieces, 2.3 MB shipped.
+- **Save migration matrix** (ROADMAP M5 acceptance): `save.test.ts` only ever exercised the
+  runner against a *fabricated* table, so nothing proved a real v1 save still opens. The real
+  chain now runs v1→v5 and validates against the live schema — the only test that would notice
+  a field added without a migration to seed it. It passes, which means five format versions of
+  additions have all been complete.
+- **⚠️ Open: the perf budget no longer reaches its 1,200-guest criterion.** The capacity taper
+  is doing exactly what it should, and the consequence is that a park with a modest lot settles
+  near 480 concurrent guests instead of ~1,250. The bench now says so out loud rather than
+  quoting a timing at a crowd size the run never reached. Two things need an owner call: whether
+  ~430 is the right ceiling for a park with **no** parking at all, and how the perf criterion
+  should be exercised now that the economy governs population.
+
+### M4 — The tycoon layer (🚧 in progress)
+- **Finance spine (`src/sim/economy/finance.ts`, `amortize.ts`):** three loan products with
+  APRs locked at origination off an A–E credit grade (GAME_BALANCE §8.2), a park valuation
+  (rides + pieces + paths + land, depreciating 2%/mo to a 45% floor) that gates borrowing at a
+  65% debt ratio, and a 7‑phase month close — accrue, sweep, amortize, arrears, grade, sweep
+  profit, settle. `minPaymentCents` rounds **up** and monthly interest rounds **down**, and the
+  doc comment carries the induction proof that a loan therefore always amortizes to exactly $0
+  within term (invariant #6, 20k‑case fuzz).
+- **Receivership, not game over (ADR‑15, GAME_DESIGN §14.3):** N insolvent months open an
+  administration that freezes marketing, caps construction at $1,000/item, sweeps half of each
+  profitable month against the oldest debt and halves interest — for at most 6 months, exiting
+  when debts are current and cash ≥ $0. No save can end. A new `refocusForReceivership()`
+  returns non‑recovery goal cards to the pool on entry, because three full slots would
+  otherwise mean the recovery chain never deals.
+- **Park Rating (`src/sim/rating/rating.ts`):** Fun 30 · Value 20 · Care 20 · Wonder 15 ·
+  Flow 15 over O(1) exponentially‑weighted month windows, each sub‑score reporting structured
+  top causes (`fun.noRides`, `care.litter`, optionally a ride key) that the UI turns into
+  sentences. **Confidence blending** — `50 + confidence × (raw − 50)` with confidence maxing at
+  25 guest‑months — means an empty park reads 2.5★ instead of 0★, so a slow opening can never
+  spiral (pillar P3). Rating feeds arrivals (×0.6–1.6); a live Consortium loan caps the
+  displayed stars at 4.5.
+- **Marketing + difficulty:** three campaigns that buy arrivals and skew *which* archetypes
+  arrive (GAME_BALANCE §8.3), and Relaxed/Standard/Tycoon presets whose 9 modifiers are derived
+  on load, never serialized, so retuning reaches existing parks (§8.4).
+- **Management window (`src/ui/game/ManagementWindow.tsx`):** MANAGE dock button and `M` open
+  one tabbed window — Finance (cash, park value, debt, asset breakdown), Rating (stars, five
+  weighted bars, each expanding to its top‑3 causes in plain language), Loans (credit grade,
+  live loans with payoff, three offers with the blocking reason on the button), Marketing. A
+  receivership banner explains what the administrator is doing. HUD vitals now show real stars,
+  outstanding debt and a receivership pill. Escape closes the window before the pause menu.
+- **Commands & save v5:** `finance/takeLoan`, `finance/payLoan`, `marketing/start` as
+  operational (non‑undoable) commands with replay pins so redo reproduces identical state;
+  receivership spend denial at five sites, bypassed when internal pins are present so undoing
+  a pre‑receivership build still works. Save v5 migrates v4 forward (standard difficulty, empty
+  finance, $20,000 land, zeroed rating windows). `ledgerCore.ts` extracted as a leaf module to
+  break a real finance↔ledger runtime cycle.
+- **Fixed: the rating was written by a read query.** `facade.rating()` — which the management
+  window polls on every sync — wrote the persisted `rating.stars`, and stars feeds
+  `ratingMult` → arrivals. Two identical parks diverged (hash `13eca40b` vs `662cb637`) purely
+  because one had the panel open. `tickRating` is now the sole writer, refreshing every 25
+  ticks off the sim tick; `evaluateRating` is pure. Related: a fresh park's stars were seeded
+  at 0, so a park nobody had opened a panel on took a permanent ×0.6 arrivals penalty — the
+  exact death spiral confidence blending exists to prevent. Seeded at neutral 2.5★ in both
+  creation and the v4→v5 migration. Three regression tests, each verified failing first.
+- **Fixed: blank copy from unchecked i18n keys.** Keys built from content ids reach `t()`
+  through a cast, so 17 were missing with no compiler complaint — M3's five ride goal cards
+  had been rendering as empty goal titles since it shipped, and M4's loan and campaign names
+  were blank. All added; `t()` now echoes an unknown key instead of rendering nothing; and
+  `src/ui/i18n/i18n.test.ts` proves every goal card, loan, campaign, ride and rating cause
+  resolves to real copy. Month counts pluralize ("1 month", not "1 months").
+- **One coherent calendar:** the code carried `TICKS_PER_GAME_DAY = 7200` next to a 3,000‑tick
+  month, so a "day" outlasted a "month" and the report fired ~2.4× per displayed day — visible
+  in the HUD, harmless only because the constant was dead code. GAME_DESIGN §16 already said
+  four day/night cycles per month, so a park day is 750 ticks. What was missing from the docs
+  is *why* the hands may sweep 24 h across 750 ticks: Polypark runs a literal **duration**
+  clock (needs, cycles, repairs) and a stylised **park** clock (the HUD, anything
+  day‑quantised). §16 now says so, and `parkClock()` is the single source of truth.
+- **Weather (`src/sim/weather/`):** a five‑kind Markov chain over park days — sunny, overcast,
+  rain, storm, heatwave — drawn three days ahead and *persisted*, so the forecast strip is a
+  promise the sim keeps rather than a guess it re‑rolls (P5). Storms never brew from a clear
+  sky, a new park always opens sunny, and long‑run shares are asserted against §8.1a. Weather
+  multiplies arrivals (the `weatherMult` term §4.1 always specified and nothing supplied); a
+  heatwave multiplies Thirst decay **and nothing else** — the extra drink income follows from
+  thirstier guests, so the doc's ×1.8 income bonus is deliberately not implemented. Storms shut
+  open coasters and reopen only what they closed.
+- **Event deck + inspections (`src/sim/events/`):** 7 cards at the difficulty's advertised rate,
+  cooldowns and prerequisites respected over a 10k‑month run (the ROADMAP's named M4 acceptance
+  criterion). `eventsPerMonth` is an expectation, not a count. Nothing compounds: timed effects
+  expire, Care penalties decay through `addCitations`, and the deck goes **silent during
+  Receivership** — a rescue, not a pile‑on. Inspections every 2–4 months fine the park and close
+  its busiest ride until the player reopens it.
+- **Two doc readings that could not be implemented as written**, both now recorded in
+  GAME_BALANCE rather than left as silent divergence: inspection jitter of "±2 weeks" rounds to
+  exactly zero on a month‑close boundary (so it is ±1 month), and First Aid is 20% of the
+  inspection score but does not exist yet (so that share reads mechanic coverage until M5).
+- **Adding an RNG stream no longer breaks saves.** `deserializeRngStreams` threw on a stream a
+  save predated, which would have bricked every park the moment `weather` landed; it now derives
+  a missing stream from the root seed — exactly what a fresh park does.
+- **Quality:** 158 unit tests (8 amortization, 17 finance, 12 rating, 12 weather, 11 deck,
+  10 i18n, 5 park clock); new e2e opens the management window, borrows, and reads the rating
+  through the real UI. Bench 1.83 ms/tick at 1,251–1,500 guests with 6 coasters (6 ms budget).
+
+### Debt pass — overdue deferrals from M2/M3, paid before M5
+- **Per‑shop pricing** (M2 → M3 → shipped, two milestones late). Shops charged a content
+  constant: no state, no command, no UI. That left a real hole, not a missing nicety —
+  Value's `value.shopPrice` cause hardcoded `ratio: 1`, so the tycoon layer scored the player
+  on a lever they had no way to touch, and GAME_BALANCE §4.3's archetype price tolerance had
+  been specified since M2 without a single reader. Price now lives on the placed piece, so two
+  Snack Shacks can differ and demolish/undo carry it. Guests weigh price against archetype
+  tolerance and need pressure; a gouging stall provably serves fewer guests at the same seed.
+  Free facilities stay free (GAME_DESIGN §24). Click a shop in inspect mode to price it, with
+  the "guests think $9 is steep" hint GAME_BALANCE §6 always asked for.
+- **Ride refurbishment** (M3 → shipped). 25% of build cost buys back novelty (to ×1.15, §4.1's
+  own number, decaying again from there) and clears accumulated wear. It deliberately does
+  **not** restore book value: depreciation floors at 45%, so resetting the age would turn a 25%
+  spend into a 55% valuation gain — and park value sets borrowing headroom, making that an
+  infinite‑credit loop.
+- **Staff pathfinding** (M3 → shipped). Mechanics walked straight lines across the grass. They
+  now follow the path network, with the beeline surviving as a deliberate fallback so a ride
+  with no route to it can never strand a mechanic — tested by bulldozing every path in the park
+  and asserting repairs still complete. `findPath` moved from `guests/` to `world/pathfind.ts`;
+  it is a property of the grid, and its old home is exactly why `rides.ts` could not use it.
+- **Two bugs found by looking at the result, not the tests.** `shop/setPrice` did not bump
+  `worldVersion`, so the command succeeded while the panel showed a stale number — invisible to
+  unit tests, obvious in a screenshot. And routing mechanics by aiming at cell centres made them
+  converge half a cell short of an arrival check measured against the cell origin, so they
+  walked forever and repairs silently stopped. Both now have tests.
+- **Aliasing bug found on the way:** `restoreState` reused the snapshot's own piece objects.
+  Harmless while every field was readonly; with a mutable price it meant a resumed park could
+  write back into the save it loaded from. Restore now clones.
+
 ### M3 — Rides & the track builder (✅ completed 2026‑07‑26)
 - **Track model (`src/content/track.ts`, `src/sim/rides/trackGraph.ts`):** the CoasterKit
   library measured piece by piece (M3 survey) into authored port metadata — 12 kinds

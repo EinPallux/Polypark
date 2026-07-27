@@ -17,6 +17,13 @@ export interface PlacedPiece {
   readonly z: number;
   readonly rot: Rotation;
   readonly placedAtTick: number;
+  /**
+   * What this shop charges, in cents. The ONE mutable field on a placed piece:
+   * price is the shop's whole management surface, and living on the piece means
+   * demolish/undo carry it for free rather than needing a parallel map to keep
+   * in step. 0 for anything that is not a shop, and for free facilities.
+   */
+  priceCents: number;
   /** Cents actually paid — refunds and undo restore from this, not list price. */
   readonly paidCents: number;
 }

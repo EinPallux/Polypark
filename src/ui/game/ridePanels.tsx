@@ -1,12 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { FLAT_RIDE_LIST } from "@/content/rides";
+import { FLAT_RIDES, FLAT_RIDE_LIST, REFURB_COST_RATE } from "@/content/rides";
 import { TRACK_FAMILIES, TRACK_KIND_LIST } from "@/content/track";
 import { RIDE_STATE } from "@/sim/api";
 import { money, moneyToDollarString } from "@/shared/money";
 import { t } from "@/ui/i18n/t";
 import { SlabButton } from "@/ui/kit/SlabButton";
+import { unlockLevel } from "@/sim/api";
 import { useGame } from "./store";
 
 /**
@@ -36,13 +37,18 @@ export function RidesPalette({ open, onClose }: { open: boolean; onClose: () => 
   const setBuildMode = useGame((state) => state.setBuildMode);
   const selectRide = useGame((state) => state.selectRide);
   const rides = useGame((state) => state.rides);
+  const progression = useGame((state) => state.progression);
+  const unlocked = new Set(progression?.unlocked ?? []);
   if (!open) {
     return null;
   }
   const roster = [...(rides?.tracked ?? []), ...(rides?.flat ?? [])];
   return (
     <div className="pointer-events-auto absolute bottom-24 left-1/2 z-20 w-[520px] -translate-x-1/2">
-      <div className="panel-cut bg-frost-100/95 p-4 shadow-[var(--elev-slab)]" data-testid="rides-palette">
+      <div
+        className="panel-cut bg-frost-100/95 p-4 shadow-[var(--elev-slab)]"
+        data-testid="rides-palette"
+      >
         <div className="mb-2 flex items-center justify-between">
           <h2 className="skew-ui font-ui text-lg font-bold text-ink-700 uppercase">
             {t("play.dock.rides")}
@@ -57,17 +63,32 @@ export function RidesPalette({ open, onClose }: { open: boolean; onClose: () => 
         <div className="mb-3 flex gap-2">
           {(["steel", "mouse"] as const).map((family) => {
             const def = TRACK_FAMILIES[family];
+            const needs = unlocked.has(family) ? null : unlockLevel(family);
             return (
               <button
                 key={family}
                 type="button"
                 data-testid={`ride-start-${family}`}
+                disabled={needs !== null}
+                title={needs !== null ? t("palette.locked", { level: needs }) : undefined}
                 onClick={() => {
+                  if (needs !== null) {
+                    return;
+                  }
                   setBuildMode({ kind: "track", family, rideId: null });
                   onClose();
                 }}
-                className="skew-ui flex-1 cursor-pointer bg-ink-900 px-3 py-2 text-left hover:bg-ink-700"
+                className={`skew-ui flex-1 px-3 py-2 text-left ${
+                  needs !== null
+                    ? "cursor-not-allowed bg-ink-900/40"
+                    : "cursor-pointer bg-ink-900 hover:bg-ink-700"
+                }`}
               >
+                {needs !== null ? (
+                  <span className="unskew-ui block font-ui text-[10px] font-bold text-gold-400 uppercase">
+                    {t("palette.locked", { level: needs })}
+                  </span>
+                ) : null}
                 <span className="unskew-ui block font-ui text-sm font-bold text-white uppercase">
                   🎢 {t(`ride.family.${family}` as never)}
                 </span>
@@ -82,31 +103,48 @@ export function RidesPalette({ open, onClose }: { open: boolean; onClose: () => 
           {t("ride.palette.flat")}
         </p>
         <div className="grid grid-cols-5 gap-2">
-          {FLAT_RIDE_LIST.map((def) => (
-            <button
-              key={def.id}
-              type="button"
-              data-testid={`ride-flat-${def.id}`}
-              onClick={() => {
-                setBuildMode({ kind: "place-ride", defId: def.id });
-                onClose();
-              }}
-              className="cursor-pointer bg-white/70 p-1.5 text-center hover:bg-gold-400/40"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element -- tiny local thumbs */}
-              <img
-                src={FLAT_RIDE_THUMBS[def.id] ?? ""}
-                alt=""
-                className="mx-auto h-12 w-12 object-contain"
-              />
-              <span className="block font-ui text-[11px] leading-tight font-bold text-ink-700">
-                {t(def.nameKey as never)}
-              </span>
-              <span className="block font-numeral text-[10px] text-ink-500 tabular-nums">
-                {moneyToDollarString(money(def.costCents))}
-              </span>
-            </button>
-          ))}
+          {FLAT_RIDE_LIST.map((def) => {
+            const needs = unlocked.has(def.id) ? null : unlockLevel(def.id);
+            return (
+              <button
+                key={def.id}
+                type="button"
+                data-testid={`ride-flat-${def.id}`}
+                disabled={needs !== null}
+                title={needs !== null ? t("palette.locked", { level: needs }) : undefined}
+                onClick={() => {
+                  if (needs !== null) {
+                    return;
+                  }
+                  setBuildMode({ kind: "place-ride", defId: def.id });
+                  onClose();
+                }}
+                className={`relative p-1.5 text-center ${
+                  needs !== null
+                    ? "cursor-not-allowed bg-white/40 opacity-50 grayscale"
+                    : "cursor-pointer bg-white/70 hover:bg-gold-400/40"
+                }`}
+              >
+                {needs !== null ? (
+                  <span className="absolute top-0.5 right-0.5 bg-ink-900/85 px-1 font-ui text-[9px] font-bold text-gold-400">
+                    L{needs}
+                  </span>
+                ) : null}
+                {/* eslint-disable-next-line @next/next/no-img-element -- tiny local thumbs */}
+                <img
+                  src={FLAT_RIDE_THUMBS[def.id] ?? ""}
+                  alt=""
+                  className="mx-auto h-12 w-12 object-contain"
+                />
+                <span className="block font-ui text-[11px] leading-tight font-bold text-ink-700">
+                  {t(def.nameKey as never)}
+                </span>
+                <span className="block font-numeral text-[10px] text-ink-500 tabular-nums">
+                  {moneyToDollarString(money(def.costCents))}
+                </span>
+              </button>
+            );
+          })}
         </div>
         {roster.length > 0 && (
           <>
@@ -216,7 +254,10 @@ function BuilderBody({
   const kinds = TRACK_KIND_LIST.filter((kind) => kind !== "station");
 
   return (
-    <div className="pointer-events-auto absolute top-24 left-4 z-20 w-72" data-testid="track-builder">
+    <div
+      className="pointer-events-auto absolute top-24 left-4 z-20 w-72"
+      data-testid="track-builder"
+    >
       <div className="panel-cut bg-ink-900/92 p-3 shadow-[var(--elev-slab)]">
         <div className="flex items-center justify-between">
           <h2 className="skew-ui font-ui text-base font-bold text-gold-400 uppercase">
@@ -240,7 +281,10 @@ function BuilderBody({
               : t(`ride.builder.invalid.${evaln.reason}` as never)}
         </p>
         {evaln.valid && (
-          <p data-testid="builder-stats" className="mt-1 font-numeral text-sm text-white tabular-nums">
+          <p
+            data-testid="builder-stats"
+            className="mt-1 font-numeral text-sm text-white tabular-nums"
+          >
             {t("ride.inspector.stats", { e: evaln.eStat, i: evaln.iStat, n: evaln.nStat })}
           </p>
         )}
@@ -336,6 +380,7 @@ export function RideInspector() {
   const setRideState = useGame((state) => state.setRideState);
   const setRidePrice = useGame((state) => state.setRidePrice);
   const demolishRide = useGame((state) => state.demolishRide);
+  const refurbishRide = useGame((state) => state.refurbishRide);
   const setBuildMode = useGame((state) => state.setBuildMode);
 
   if (selectedRide === null || buildMode.kind === "track") {
@@ -353,7 +398,10 @@ export function RideInspector() {
   const stats = tracked ? tracked.evaln : null;
 
   return (
-    <div className="pointer-events-auto absolute bottom-24 right-4 z-20 w-72" data-testid="ride-inspector">
+    <div
+      className="pointer-events-auto absolute bottom-24 right-4 z-20 w-72"
+      data-testid="ride-inspector"
+    >
       <div className="panel-cut bg-frost-100/95 p-4 shadow-[var(--elev-slab)]">
         <div className="flex items-center justify-between">
           <h2 className="skew-ui font-ui text-lg font-bold text-ink-700 uppercase">🎢 {name}</h2>
@@ -365,7 +413,10 @@ export function RideInspector() {
             ✕
           </button>
         </div>
-        <p data-testid="ride-state" className="mt-1 font-ui text-sm font-bold text-ink-500 uppercase">
+        <p
+          data-testid="ride-state"
+          className="mt-1 font-ui text-sm font-bold text-ink-500 uppercase"
+        >
           {stateLabel(ride.state)}
         </p>
         {stats?.valid && (
@@ -433,6 +484,23 @@ export function RideInspector() {
               {t("ride.builder.title")}
             </SlabButton>
           )}
+          <SlabButton
+            variant="secondary"
+            data-testid="ride-refurbish"
+            title={t("ride.refurbishHint")}
+            onClick={() => refurbishRide(ride.key)}
+          >
+            {t("ride.refurbish", {
+              cost: moneyToDollarString(
+                money(
+                  Math.round(
+                    (tracked ? tracked.totalSpentCents : FLAT_RIDES[flat!.defId].costCents) *
+                      REFURB_COST_RATE,
+                  ),
+                ),
+              ),
+            })}
+          </SlabButton>
           <SlabButton
             variant="secondary"
             data-testid="ride-demolish"

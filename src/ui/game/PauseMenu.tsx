@@ -45,7 +45,12 @@ export function PauseMenu() {
         <SlabButton variant="secondary" size="lg" onClick={() => router.push("/options")}>
           {t("pause.options")}
         </SlabButton>
-        <SlabButton variant="danger" size="lg" data-testid="pause-exit" onClick={() => router.push("/")}>
+        <SlabButton
+          variant="danger"
+          size="lg"
+          data-testid="pause-exit"
+          onClick={() => router.push("/")}
+        >
           {t("pause.exit")}
         </SlabButton>
         <p className="mt-1 font-body text-xs text-ink-500">{t("pause.exitHint")}</p>

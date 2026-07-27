@@ -11,6 +11,140 @@ export type Migration = (raw: Record<string, unknown>) => Record<string, unknown
 
 /** Keyed by the version the migration upgrades FROM. */
 export const MIGRATIONS: Readonly<Record<number, Migration>> = {
+  // v4 (M3) → v5 (M4): no economy layer existed — every park was Standard,
+  // debt-free, and owned only its home plot.
+  4: (raw) => {
+    const sim = (raw["sim"] ?? {}) as Record<string, unknown>;
+    const ledger = (sim["ledger"] ?? {}) as Record<string, unknown>;
+    const expense = (ledger["expense"] ?? {}) as Record<string, unknown>;
+    const stats = (sim["stats"] ?? {}) as Record<string, unknown>;
+    const world = (sim["world"] ?? {}) as Record<string, unknown>;
+    // Shops became priceable in v5. Seed each placed piece at its shop's
+    // default so an upgraded park charges exactly what it charged before.
+    // why: literal cents, not SHOP_DEFS — a migration is a frozen snapshot
+    // (TECH §8) and must not shift when the shop table is retuned.
+    const V5_DEFAULT_PRICE_CENTS: Record<string, number> = {
+      "coasterkit/stall-food": 6_00,
+      "coasterkit/stall-drinks": 4_00,
+      "coasterkit/stall-toilets": 0,
+    };
+    const placed = (Array.isArray(world["placed"]) ? world["placed"] : []) as Record<
+      string,
+      unknown
+    >[];
+    return {
+      ...raw,
+      sim: {
+        ...sim,
+        world: {
+          ...world,
+          placed: placed.map((piece) => ({
+            ...piece,
+            priceCents: V5_DEFAULT_PRICE_CENTS[String(piece["pieceId"])] ?? 0,
+          })),
+        },
+        difficulty: "standard",
+        // Progression arrived in v5. A v4 park has banked no tickets, and it
+        // was built with everything available — so it keeps that, rather than
+        // having pieces it already placed become un-rebuildable.
+        starTickets: 0,
+        unlockAll: true,
+        // Rides predate refurbishment: none has ever been refitted, so its
+        // refurb clock is simply its build clock.
+        rides: (() => {
+          const rides = (sim["rides"] ?? {}) as Record<string, unknown>;
+          const stamp = (list: unknown, tickKey: string): unknown[] =>
+            (Array.isArray(list) ? list : []).map((r) => {
+              const ride = r as Record<string, unknown>;
+              return { ...ride, refurbishedAtTick: Number(ride[tickKey] ?? 0) };
+            });
+          return {
+            ...rides,
+            tracked: stamp(rides["tracked"], "createdAtTick"),
+            flat: stamp(rides["flat"], "placedAtTick"),
+          };
+        })(),
+        finance: {
+          nextLoanId: 1,
+          loans: [],
+          credit: { gradeIndex: 2, cleanMonths: 0, missedPaymentsTotal: 0 },
+          landValueCents: 20_000_00,
+          campaign: null,
+          receivership: {
+            active: false,
+            enteredMonth: 0,
+            monthsActive: 0,
+            sweptCents: 0,
+            comebackMonthsRemaining: 0,
+          },
+          insolventMonths: 0,
+          repossessedRideKey: 0,
+          hardFail: false,
+        },
+        // No v4 park ever owned a plot.
+        districts: { owned: [], billboardCount: 0, turnedAwayThisMonth: 0 },
+        // No deck has ever been dealt to a v4 park. First inspection is a full
+        // interval from where the park stands, never immediately on load.
+        // why: literals — a migration is a frozen snapshot (TECH §8).
+        deck: {
+          lastDrawnMonth: {},
+          active: [],
+          nextInspectionMonth: Number(sim["monthNumber"] ?? 0) + 3,
+          sponsorUntilDay: -1,
+        },
+        // A v4 park has no sky yet. Start it clear, and set dayIndex from the
+        // tick it is already at so the chain resumes today instead of
+        // fast-forwarding every day the park has ever run.
+        // why: literals, not the content constants — a migration is a frozen
+        // snapshot of one format (TECH §8) and must not drift when weather is
+        // retuned. 750 is TICKS_PER_PARK_DAY at v5.
+        weather: {
+          today: "sunny",
+          forecast: ["sunny", "overcast", "sunny"],
+          dayIndex: Math.floor(Number(sim["tick"] ?? 0) / 750),
+          closedByWeather: [],
+        },
+        rating: {
+          guestExposure: { num: 0, den: 0 },
+          litterDensity: { num: 0, den: 0 },
+          crowding: { num: 0, den: 0 },
+          queueWait: { num: 0, den: 0 },
+          departures: { total: 0 },
+          happyDepartures: { total: 0 },
+          riders: { total: 0 },
+          citations: { total: 0 },
+          perRide: {},
+          mirror: { departures: 0, happyDepartures: 0, riders: 0 },
+          pressStars: 0,
+          capStars: 5,
+          // Neutral, not zero: stars feeds ratingMult → arrivals, and a v4 park
+          // has no rating history to judge it by. tickRating refreshes it.
+          // why: a literal, not RATING_NEUTRAL_STARS — a migration is a frozen
+          // snapshot of one format, so retuning that constant must not silently
+          // rewrite what old saves upgraded into (TECH §8). It also keeps the
+          // rating engine out of the title route's bundle.
+          stars: 2.5,
+          subscores: { fun: 50, value: 50, care: 50, wonder: 50, flow: 50 },
+        },
+        ledger: {
+          ...ledger,
+          income: { sponsor: 0, ...((ledger["income"] ?? {}) as Record<string, unknown>) },
+          expense: { marketing: 0, interest: 0, admin: 0, ...expense },
+          financing: { borrowed: 0, principalRepaid: 0, settlement: 0 },
+        },
+        // Spread defaults FIRST so real counters are never clobbered.
+        stats: {
+          loansTaken: 0,
+          loansPaidOff: 0,
+          campaignsRun: 0,
+          paymentsMissed: 0,
+          receiverships: 0,
+          repossessions: 0,
+          ...stats,
+        },
+      },
+    };
+  },
   // v3 (M2) → v4 (M3): rides did not exist yet — empty roster, no mechanics.
   3: (raw) => {
     const sim = (raw["sim"] ?? {}) as Record<string, unknown>;

@@ -14,6 +14,8 @@ function makeLivingPark(): { sim: SimFacade; spineEnd: { x: number; z: number } 
     cost: SHOP_DEFS[pieceId]!.buildCost,
   }));
   const sim = createSim({
+    // Progression is not what this test is about — build from a full palette.
+    unlockAll: true,
     seed: 777,
     parkName: "Test Life",
     site: TEST_SITE,
@@ -25,13 +27,31 @@ function makeLivingPark(): { sim: SimFacade; spineEnd: { x: number; z: number } 
   expect(sim.dispatch({ type: "build/paintPath", cells }).ok).toBe(true);
   // Shops flanking the spine (entrances touch the path).
   expect(
-    sim.dispatch({ type: "build/place", pieceId: "coasterkit/stall-food", x: gate.x - 1, z: gate.z - 3, rot: 0 }).ok,
+    sim.dispatch({
+      type: "build/place",
+      pieceId: "coasterkit/stall-food",
+      x: gate.x - 1,
+      z: gate.z - 3,
+      rot: 0,
+    }).ok,
   ).toBe(true);
   expect(
-    sim.dispatch({ type: "build/place", pieceId: "coasterkit/stall-drinks", x: gate.x + 1, z: gate.z - 4, rot: 0 }).ok,
+    sim.dispatch({
+      type: "build/place",
+      pieceId: "coasterkit/stall-drinks",
+      x: gate.x + 1,
+      z: gate.z - 4,
+      rot: 0,
+    }).ok,
   ).toBe(true);
   expect(
-    sim.dispatch({ type: "build/place", pieceId: "coasterkit/stall-toilets", x: gate.x - 1, z: gate.z - 6, rot: 0 }).ok,
+    sim.dispatch({
+      type: "build/place",
+      pieceId: "coasterkit/stall-toilets",
+      x: gate.x - 1,
+      z: gate.z - 6,
+      rot: 0,
+    }).ok,
   ).toBe(true);
   sim.dispatch({ type: "park/setOpen", open: true });
   return { sim, spineEnd: { x: gate.x, z: gate.z - 9 } };
@@ -45,7 +65,13 @@ describe("M2 — the living park", () => {
     expect(open).toBeGreaterThan(0);
     expect(sim.hud().tick).toBe(600);
 
-    const closed = createSim({ seed: 777, site: TEST_SITE, pieceDefs: TEST_PIECES });
+    const closed = createSim({
+      // Progression is not what this test is about — build from a full palette.
+      unlockAll: true,
+      seed: 777,
+      site: TEST_SITE,
+      pieceDefs: TEST_PIECES,
+    });
     closed.advance(600);
     expect(closed.hud().guestCount).toBe(0);
   });
@@ -118,6 +144,8 @@ describe("M2 — the living park", () => {
       cost: SHOP_DEFS[pieceId]!.buildCost,
     }));
     const resumed = createSim({
+      // Progression is not what this test is about — build from a full palette.
+      unlockAll: true,
       seed: snapshot.seed,
       site: TEST_SITE,
       pieceDefs: [...TEST_PIECES, ...shopPieces],

@@ -320,6 +320,95 @@
     {
       "aabb": {
         "max": [
+          0.025,
+          0.6,
+          0.025
+        ],
+        "min": [
+          -0.025,
+          0,
+          -0.212
+        ]
+      },
+      "category": "prop",
+      "file": "models/cityroads/lot-light.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "cityroads/lot-light",
+      "kit": "base",
+      "pack": "Kenney_CityKitRoads",
+      "sizeBytes": 12320,
+      "source": "Kenney_CityKitRoads/GLB format/light-square.glb",
+      "tags": [
+        "lamp",
+        "parking",
+        "district"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.5,
+          0.02,
+          0.5
+        ],
+        "min": [
+          -0.5,
+          0,
+          -0.5
+        ]
+      },
+      "category": "building",
+      "file": "models/cityroads/lot-road.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "cityroads/lot-road",
+      "kit": "base",
+      "pack": "Kenney_CityKitRoads",
+      "sizeBytes": 11920,
+      "source": "Kenney_CityKitRoads/GLB format/road-straight.glb",
+      "tags": [
+        "parking",
+        "district",
+        "road"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.5,
+          0.02,
+          0.5
+        ],
+        "min": [
+          -0.5,
+          0,
+          -0.5
+        ]
+      },
+      "category": "building",
+      "file": "models/cityroads/parking-bay.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "cityroads/parking-bay",
+      "kit": "base",
+      "pack": "Kenney_CityKitRoads",
+      "sizeBytes": 13072,
+      "source": "Kenney_CityKitRoads/GLB format/road-driveway-double.glb",
+      "tags": [
+        "parking",
+        "district"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
           0.25,
           -0.9,
           4
@@ -817,6 +906,35 @@
       "tags": [
         "shop",
         "food"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.5,
+          1.5,
+          0.5
+        ],
+        "min": [
+          -0.5,
+          0,
+          -0.65
+        ]
+      },
+      "category": "building",
+      "file": "models/coasterkit/stall-info.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "coasterkit/stall-info",
+      "kit": "base",
+      "pack": "Kenney_CoasterKit",
+      "sizeBytes": 17480,
+      "source": "Kenney_CoasterKit/GLB format/stall-information.glb",
+      "tags": [
+        "shop",
+        "info"
       ]
     },
     {
@@ -1752,6 +1870,64 @@
       "tags": [
         "ride",
         "platform"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.225,
+          1.093,
+          0.212
+        ],
+        "min": [
+          -0.225,
+          0,
+          -0.269
+        ]
+      },
+      "category": "building",
+      "file": "models/minimarket/atm.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "minimarket/atm",
+      "kit": "base",
+      "pack": "Kenney_MiniMarketKit",
+      "sizeBytes": 18356,
+      "source": "Kenney_MiniMarketKit/GLB format/bottle-return.glb",
+      "tags": [
+        "shop",
+        "atm"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          1,
+          1.981,
+          1.1
+        ],
+        "min": [
+          -1,
+          0,
+          -1.1
+        ]
+      },
+      "category": "building",
+      "file": "models/modularbuildings/first-aid.glb",
+      "footprint": {
+        "d": 2,
+        "w": 1
+      },
+      "id": "modularbuildings/first-aid",
+      "kit": "base",
+      "pack": "Kenney_ModularBuildingsKit",
+      "sizeBytes": 21416,
+      "source": "Kenney_ModularBuildingsKit/GLB format/building-sample-house-c.glb",
+      "tags": [
+        "shop",
+        "first-aid"
       ]
     },
     {
@@ -2746,6 +2922,96 @@
       "tags": [
         "ride",
         "pumpkin"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.65,
+          0.834,
+          0.514
+        ],
+        "min": [
+          -0.65,
+          0,
+          -0.514
+        ]
+      },
+      "category": "building",
+      "file": "models/suburban/cabin.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "suburban/cabin",
+      "kit": "base",
+      "pack": "Kenney_CityKitSuburban",
+      "sizeBytes": 45944,
+      "source": "Kenney_CityKitSuburban/GLB format/building-type-a.glb",
+      "tags": [
+        "hotel",
+        "district",
+        "resort"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.838,
+          0.27,
+          0.237
+        ],
+        "min": [
+          -0.838,
+          0,
+          -0.2
+        ]
+      },
+      "category": "scenery",
+      "file": "models/suburban/hedge.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "suburban/hedge",
+      "kit": "base",
+      "pack": "Kenney_CityKitSuburban",
+      "sizeBytes": 22584,
+      "source": "Kenney_CityKitSuburban/GLB format/fence-1x4.glb",
+      "tags": [
+        "fence",
+        "district",
+        "resort"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.65,
+          1.137,
+          0.514
+        ],
+        "min": [
+          -0.65,
+          0,
+          -0.514
+        ]
+      },
+      "category": "building",
+      "file": "models/suburban/hotel-block.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "suburban/hotel-block",
+      "kit": "base",
+      "pack": "Kenney_CityKitSuburban",
+      "sizeBytes": 62032,
+      "source": "Kenney_CityKitSuburban/GLB format/building-type-e.glb",
+      "tags": [
+        "hotel",
+        "district",
+        "resort"
       ]
     },
     {

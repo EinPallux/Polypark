@@ -48,10 +48,16 @@ function isEligible(state: SimState, card: GoalCardDef): boolean {
   if (card.requiresStat && statValue(state, card.requiresStat.stat) < card.requiresStat.atLeast) {
     return false;
   }
+  // Recovery cards deal in on Receivership entry and stop being dealt on exit.
+  // Cards already in hand are never yanked mid-progress — a card vanishing
+  // would read as a punishment, and nothing here punishes (ADR-15).
+  if ((card.requiresReceivership ?? false) !== state.finance.receivership.active) {
+    return false;
+  }
   return true;
 }
 
-const TIER_ORDER = { guidance: 0, growth: 1, mastery: 2 } as const;
+const TIER_ORDER = { recovery: 0, guidance: 1, growth: 2, mastery: 3 } as const;
 
 function deal(state: SimState): void {
   while (state.goals.active.length < ACTIVE_GOAL_SLOTS) {
@@ -103,6 +109,19 @@ export interface CompletedGoal {
 }
 
 /** Advance the deck; returns any cards completed this tick. */
+/**
+ * Receivership deals its recovery chain immediately: the administrator
+ * refocuses the park, so non-recovery cards go back to the pool (no cooldown,
+ * no penalty — they return later untouched). Without this the chain could
+ * never appear, because three slots are already full when trouble hits.
+ */
+export function refocusForReceivership(state: SimState): void {
+  state.goals.active = state.goals.active.filter((active) => {
+    const card = GOAL_CARDS.find((c) => c.id === active.cardId);
+    return card?.tier === "recovery";
+  });
+}
+
 export function tickGoals(state: SimState): CompletedGoal[] {
   if (state.goals.active.length < ACTIVE_GOAL_SLOTS) {
     deal(state);
@@ -138,16 +157,5 @@ export function dismissGoal(state: SimState, cardId: string): boolean {
   return true;
 }
 
-/** XP → level via the GAME_BALANCE §9.2 curve. */
-export function levelForXp(xp: number): number {
-  let level = 1;
-  let cumulative = 0;
-  while (level < 30) {
-    cumulative += 400 * Math.pow(level, 1.35);
-    if (xp < cumulative) {
-      return level;
-    }
-    level += 1;
-  }
-  return 30;
-}
+// The level curve lives with the rest of the progression content.
+export { levelForXp } from "@/content/progression";

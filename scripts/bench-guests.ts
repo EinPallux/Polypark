@@ -23,17 +23,24 @@ const pieceDefs: SimPieceDef[] = [
     footprint: { w: 1, d: 1 },
     cost: SHOP_DEFS[id]!.buildCost,
   })),
+  // The lot: without it the gate throttles (§3.3) and the bench quietly stops
+  // measuring the crowd size it reports.
+  { id: "cityroads/parking-bay", category: "building", footprint: { w: 1, d: 1 }, cost: money(150_00) },
 ];
 
 // A funded park: plaza + 30 shops overrun the $75k sandbox start, so boost the
 // bankroll through the public snapshot/resume seam (no sim internals touched).
 const seedSim = createSim({
+  // Progression is not what this test is about — build from a full palette.
+  unlockAll: true,
   seed: 4242,
   parkName: "Bench Park",
   site: MEADOWBROOK,
   pieceDefs,
 });
 const sim = createSim({
+  // Progression is not what this test is about — build from a full palette.
+  unlockAll: true,
   seed: 4242,
   parkName: "Bench Park",
   site: MEADOWBROOK,
@@ -57,6 +64,22 @@ const paint = sim.dispatch({ type: "build/paintPath", cells });
 if (!paint.ok) {
   throw new Error(`bench: path paint failed: ${paint.reason}`);
 }
+
+// A parking lot, because a park without one throttles at the gate (§3.3) and
+// the bench would quietly stop testing the crowd size it claims to. A real
+// park at this scale has parking; so does this one.
+let bays = 0;
+for (let z = MEADOWBROOK.gate.z; z >= 8 && bays < 260; z--) {
+  for (let x = 8; x <= MEADOWBROOK.cells.w - 8 && bays < 260; x++) {
+    // Every other island row; the rest stay free for shops.
+    if (isIsland(x, z) && z % 8 === 2) {
+      if (sim.dispatch({ type: "build/place", pieceId: "cityroads/parking-bay", x, z, rot: 0 }).ok) {
+        bays += 1;
+      }
+    }
+  }
+}
+console.log("parking bays      ", bays);
 
 // Shops on the islands so needs get met and guests linger.
 const shopIds = Object.keys(SHOP_DEFS);
@@ -154,13 +177,21 @@ for (let i = 0; i < SAMPLES; i++) {
 }
 
 const avg = totalMs / SAMPLES;
-const openCoasters = sim
-  .ridesView()
-  .tracked.filter((ride) => ride.state === 2).length;
+const openCoasters = sim.ridesView().tracked.filter((ride) => ride.state === 2).length;
 console.log(`shops placed        ${placed}`);
 console.log(`plaza path cells    ${cells.length}`);
 console.log(`coasters running    ${openCoasters}`);
 console.log(`population timed    ${popAtStart} → peak ${popPeak} (target ${TARGET})`);
+if (popPeak < TARGET) {
+  // Say it plainly. Since M5-B the gate throttles above arrival capacity
+  // (§3.3), so this park settles where its lot allows rather than at TARGET —
+  // and a perf number quoted at a crowd size the run never reached would be
+  // a budget that silently stopped testing anything.
+  console.log(
+    `WARN  crowd capped by arrival capacity (${bays} bays ⇒ ${60 + bays * 5} capacity). ` +
+      `Timing is valid for ${popPeak} guests, NOT the ${TARGET}-guest acceptance criterion.`,
+  );
+}
 console.log(`avg tick            ${avg.toFixed(3)} ms`);
 console.log(`worst tick          ${worstMs.toFixed(3)} ms`);
 const LIMIT_MS = 6;

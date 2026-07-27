@@ -18,7 +18,8 @@ import { money, type Money } from "@/shared/money";
  *   ground). Family meshes hang `railToOrigin` above their rails.
  */
 
-export type TrackFamilyId = "steel" | "mouse";
+export const TRACK_FAMILY_IDS = ["steel", "mouse"] as const;
+export type TrackFamilyId = (typeof TRACK_FAMILY_IDS)[number];
 
 export type TrackKind =
   | "station"

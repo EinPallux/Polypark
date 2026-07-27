@@ -9,11 +9,16 @@ import { SITES, MEADOWBROOK } from "@/content/sites/meadowbrook";
 import {
   createFixedStepper,
   createSim,
+  type FinanceView,
   type FixedStepper,
   type FlatRideView,
   type GameSpeed,
   type HudView,
   type MonthlyReport,
+  type RatingView,
+  type WeatherView,
+  type ProgressionView,
+  type DistrictsView,
   type Rotation,
   type SimFacade,
   type SimStateSnapshot,
@@ -21,8 +26,11 @@ import {
 } from "@/sim/api";
 import { readSlot, writeSlot, requestPersistence, type SlotMeta } from "@/save/store";
 import { type FlatRideId } from "@/content/rides";
+import { type LoanProductId } from "@/content/loans";
+import { type MarketingCampaignId } from "@/content/marketing";
 import { type TrackFamilyId, type TrackKind } from "@/content/track";
 import { SAVE_FORMAT_VERSION, type SaveFile } from "@/save/schema";
+import { SHOP_DEFS } from "@/content/shops";
 import { t } from "@/ui/i18n/t";
 
 /**
@@ -60,7 +68,13 @@ interface GameState {
   snapshot: SimStateSnapshot | null;
   hud: HudView | null;
   rides: { tracked: TrackedRideView[]; flat: FlatRideView[] } | null;
+  finance: FinanceView | null;
+  rating: RatingView | null;
+  weather: WeatherView | null;
+  progression: ProgressionView | null;
+  districts: DistrictsView | null;
   selectedRide: number | null;
+  selectedShop: number | null;
   rideAlong: number | null;
   stepper: FixedStepper;
   selectedGuest: number | null;
@@ -78,7 +92,7 @@ interface GameState {
   /** True once the 3D scene's model Suspense has resolved (e2e readiness). */
   sceneReady: boolean;
 
-  boot: (options: { fresh: boolean; bench?: number }) => Promise<void>;
+  boot: (options: { fresh: boolean; bench?: number; unlockAll?: boolean }) => Promise<void>;
   syncFromSim: () => void;
   setSpeed: (speed: GameSpeed) => void;
   setBuildMode: (mode: BuildMode) => void;
@@ -100,12 +114,19 @@ interface GameState {
   fireJanitor: () => void;
   hireMechanic: () => void;
   fireMechanic: () => void;
+  takeLoan: (product: LoanProductId) => void;
+  payLoan: (loanId: number, amount: number | "payoff") => void;
+  startCampaign: (campaign: MarketingCampaignId) => void;
   appendTrackPiece: (kind: TrackKind, flipped: boolean) => void;
   popTrackPiece: () => void;
   setRideState: (key: number, to: "closed" | "testing" | "open") => void;
   setRidePrice: (key: number, cents: number) => void;
   demolishRide: (key: number) => void;
   selectRide: (key: number | null) => void;
+  selectShop: (id: number | null) => void;
+  setShopPrice: (placedId: number, cents: number) => void;
+  refurbishRide: (key: number) => void;
+  buyDistrict: (id: string) => void;
   setRideAlong: (key: number | null) => void;
   dismissGoal: (cardId: string) => void;
   selectGuest: (slot: number | null) => void;
@@ -130,7 +151,13 @@ export const useGame = create<GameState>()(
     snapshot: null,
     hud: null,
     rides: null,
+    finance: null,
+    rating: null,
+    weather: null,
+    progression: null,
+    districts: null,
     selectedRide: null,
+    selectedShop: null,
     rideAlong: null,
     stepper: createFixedStepper(),
     selectedGuest: null,
@@ -148,7 +175,7 @@ export const useGame = create<GameState>()(
     sceneReady: false,
     toasts: [],
 
-    async boot({ fresh, bench }) {
+    async boot({ fresh, bench, unlockAll }) {
       try {
         const response = await fetch("/content/catalog.json");
         const catalog = parseCatalog(await response.json());
@@ -167,6 +194,10 @@ export const useGame = create<GameState>()(
           // why: zod validated the payload at decode; the remaining gap is
           // readonly-tuple variance between the schema type and the snapshot.
           ...(resume ? { resumeFrom: resume.sim as unknown as SimStateSnapshot } : {}),
+          // Sandbox: ?unlockAll=1 opens the whole palette from level 1. A real
+          // park option (pillar P1), which is also what lets the e2e specs
+          // build coasters without grinding to level 6 first.
+          ...(unlockAll ? { unlockAll: true } : {}),
         });
         // Perf harness (ROADMAP M1 acceptance): ?bench=N fills the site with
         // free random scenery so any machine can load-test the renderer.
@@ -214,6 +245,11 @@ export const useGame = create<GameState>()(
       set((current) => ({
         hud: facade.hud(),
         rides: facade.ridesView(),
+        finance: facade.finance(),
+        rating: facade.rating(),
+        weather: facade.weather(),
+        progression: facade.progression(),
+        districts: facade.districts(),
         worldVersion,
         ...(current.worldVersion !== worldVersion ? { snapshot: facade.snapshot() } : {}),
       }));
@@ -232,7 +268,24 @@ export const useGame = create<GameState>()(
             t("goal.completedToast", { title: t(`goal.${event.cardId}` as never), xp: event.rewardXp }),
           );
         } else if (event.type === "park/levelUp") {
-          get().pushToast("good", t("play.levelUp", { level: event.level }));
+          // Name what arrived. "Level 6!" alone makes the player go hunting;
+          // "Unlocked: Mousetrap coasters" sends them straight to the dock.
+          if (event.unlocked.length > 0) {
+            get().pushToast(
+              "good",
+              t("play.levelUpUnlocked", {
+                level: event.level,
+                what: event.unlocked.map((id) => t(`unlock.${id}` as never)).join(", "),
+              }),
+            );
+          } else if (event.starTickets > 0) {
+            get().pushToast(
+              "good",
+              t("play.levelUpTicket", { level: event.level, tickets: event.starTickets }),
+            );
+          } else {
+            get().pushToast("good", t("play.levelUp", { level: event.level }));
+          }
         } else if (event.type === "park/monthReport") {
           set({ monthReport: event.report });
         } else if (event.type === "ride/broke") {
@@ -241,6 +294,28 @@ export const useGame = create<GameState>()(
           get().pushToast("good", t("ride.repairedToast"));
         } else if (event.type === "ride/testPassed") {
           get().pushToast("good", t("ride.testPassedToast"));
+        } else if (event.type === "event/drawn") {
+          get().pushToast(
+            "neutral",
+            t("event.drawnToast", { name: t(`event.${event.card}.name` as never) }),
+          );
+        } else if (event.type === "inspection/passed") {
+          get().pushToast("good", t("inspection.passedToast", { score: event.score }));
+        } else if (event.type === "inspection/failed") {
+          get().pushToast("bad", t("inspection.failedToast", { score: event.score }));
+        } else if (event.type === "weather/changed") {
+          // A storm that silently shuts the coasters would read as a bug, so
+          // the closure (and the reopening) is always spoken aloud.
+          if (event.weather === "storm" && event.ridesClosed > 0) {
+            get().pushToast("bad", t("weather.stormClosedRides", { count: event.ridesClosed }));
+          } else if (event.ridesClosed > 0) {
+            get().pushToast("good", t("weather.stormPassedRides", { count: event.ridesClosed }));
+          } else {
+            get().pushToast(
+              event.weather === "storm" || event.weather === "rain" ? "bad" : "neutral",
+              t("weather.changedToast", { weather: t(`weather.${event.weather}` as never) }),
+            );
+          }
         }
       }
     },
@@ -356,6 +431,13 @@ export const useGame = create<GameState>()(
           }
         }
         state.syncFromSim();
+      } else if (buildMode.kind === "inspect") {
+        // Clicking a shop in inspect mode opens its price panel — the same
+        // gesture that already selects a ride.
+        const piece = facade
+          .placedPieces()
+          .find((p) => p.x === x && p.z === z && SHOP_DEFS[p.pieceId] !== undefined);
+        set({ selectedShop: piece ? piece.id : null });
       } else if (buildMode.kind === "path") {
         set({ pathDrag: [{ x, z }] });
       } else if (buildMode.kind === "bulldoze") {
@@ -447,6 +529,29 @@ export const useGame = create<GameState>()(
       get().facade?.dispatch({ type: "staff/fireJanitor" });
       get().syncFromSim();
     },
+    takeLoan(product) {
+      const result = get().facade?.dispatch({ type: "finance/takeLoan", product });
+      if (result && !result.ok) {
+        get().pushToast("bad", t("manage.loanRefused"));
+      } else {
+        get().pushToast("good", t("manage.loanTakenToast"));
+      }
+      get().syncFromSim();
+    },
+    payLoan(loanId, amount) {
+      const result = get().facade?.dispatch({ type: "finance/payLoan", loanId, amount });
+      if (result && !result.ok && result.reason === "not-enough-money") {
+        get().pushToast("bad", t("play.deny.money"));
+      }
+      get().syncFromSim();
+    },
+    startCampaign(campaign) {
+      const result = get().facade?.dispatch({ type: "marketing/start", campaign });
+      if (result && !result.ok) {
+        get().pushToast("bad", t("play.deny.money"));
+      }
+      get().syncFromSim();
+    },
     hireMechanic() {
       const result = get().facade?.dispatch({ type: "staff/hireMechanic" });
       if (result && !result.ok && result.reason === "not-enough-money") {
@@ -512,6 +617,50 @@ export const useGame = create<GameState>()(
       });
       state.syncFromSim();
     },
+    selectShop(id) {
+      set({ selectedShop: id });
+    },
+
+    buyDistrict(id) {
+      const { facade } = get();
+      if (!facade) {
+        return;
+      }
+      const result = facade.dispatch({
+        type: "district/purchase",
+        district: id as never,
+      });
+      if (!result.ok) {
+        get().pushToast("bad", DENIAL_TEXT[result.reason] ?? t("play.deny.generic"));
+      } else {
+        get().pushToast("good", t("district.boughtToast"));
+      }
+      get().syncFromSim();
+    },
+
+    refurbishRide(key) {
+      const { facade } = get();
+      if (!facade) {
+        return;
+      }
+      const result = facade.dispatch({ type: "ride/refurbish", rideId: key });
+      if (!result.ok) {
+        get().pushToast("bad", DENIAL_TEXT[result.reason] ?? t("play.deny.generic"));
+      } else {
+        get().pushToast("good", t("ride.refurbishedToast"));
+      }
+      get().syncFromSim();
+    },
+
+    setShopPrice(placedId, cents) {
+      const { facade } = get();
+      if (!facade) {
+        return;
+      }
+      facade.dispatch({ type: "shop/setPrice", placedId, cents });
+      get().syncFromSim();
+    },
+
     selectRide(key) {
       set({ selectedRide: key });
     },

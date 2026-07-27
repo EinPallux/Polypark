@@ -6,6 +6,13 @@ import { money, type Money } from "@/shared/money";
  */
 export type NeedKey = "hunger" | "thirst" | "bladder" | "energy" | "fun";
 
+/**
+ * What a facility does beyond satisfying a need. Kept separate from NeedKey so
+ * a facility can have a real effect without pretending to be a need — an ATM
+ * does not make you less hungry, it makes you able to buy lunch.
+ */
+export type FacilityEffect = "wallet" | "firstAid" | "wayfinding";
+
 export interface ShopDef {
   readonly pieceId: string;
   readonly buildCost: Money;
@@ -21,6 +28,8 @@ export interface ShopDef {
   /** Chance a serving eventually becomes litter (GAME_DESIGN §12.3). */
   readonly litterChance: number;
   readonly ledgerCategory: "food" | "drink" | "facility";
+  /** Optional facility behaviour (GAME_BALANCE §6). */
+  readonly effect?: FacilityEffect;
 }
 
 export const SHOP_DEFS: Readonly<Record<string, ShopDef>> = {
@@ -60,4 +69,74 @@ export const SHOP_DEFS: Readonly<Record<string, ShopDef>> = {
     litterChance: 0,
     ledgerCategory: "facility",
   },
+  /**
+   * Facilities (GAME_BALANCE §6). Each has a real mechanical effect — a
+   * building that only decorates the palette is content in name only.
+   */
+  "minimarket/atm": {
+    pieceId: "minimarket/atm",
+    buildCost: money(1_500_00),
+    defaultPriceCents: 2_50, // the fee IS the product
+    unitCostCents: 0,
+    satisfies: "fun", // nominal; the wallet top-up is the point
+    amount: 0,
+    serveTicks: 4,
+    upkeepCents: 60_00,
+    litterChance: 0,
+    ledgerCategory: "facility",
+    effect: "wallet",
+  },
+  "modularbuildings/first-aid": {
+    pieceId: "modularbuildings/first-aid",
+    buildCost: money(3_600_00),
+    defaultPriceCents: 0, // free, and stays free (GAME_DESIGN §24)
+    unitCostCents: 0,
+    satisfies: "energy",
+    amount: 35,
+    serveTicks: 15,
+    upkeepCents: 160_00,
+    litterChance: 0,
+    ledgerCategory: "facility",
+    effect: "firstAid",
+  },
+  "coasterkit/stall-info": {
+    pieceId: "coasterkit/stall-info",
+    buildCost: money(2_000_00),
+    defaultPriceCents: 0,
+    unitCostCents: 0,
+    satisfies: "fun",
+    amount: 6,
+    serveTicks: 6,
+    upkeepCents: 80_00,
+    litterChance: 0,
+    ledgerCategory: "facility",
+    effect: "wayfinding",
+  },
 };
+
+/**
+ * Hard ceiling on any shop price. Not a balance dial — a decency rail: the
+ * elasticity model already makes gouging unprofitable, and this only stops the
+ * UI offering a number no guest would ever pay (GAME_DESIGN §24).
+ */
+export const SHOP_PRICE_CEILING_CENTS = 40_00;
+
+/**
+ * How far above the default price guests will tolerate before they start
+ * walking away, scaled by each archetype's price tolerance (GAME_BALANCE §4.3).
+ * At 1.0 the shop is at its default; the walk-away curve starts past this.
+ */
+export const SHOP_FAIR_PRICE_RATIO = 1.15;
+
+/** How much cash an ATM hands a guest (GAME_BALANCE §4.3 refill). */
+export const ATM_REFILL_CENTS = 40_00;
+/**
+ * How far guests will look for a shop, in cells — and how much further an Info
+ * Kiosk lets them look. A park too big to navigate is the problem the kiosk
+ * exists to solve (§6: "−60% lost chance in 40 m").
+ */
+export const SHOP_SEARCH_REACH = 3;
+export const INFO_KIOSK_REACH_BONUS = 5;
+
+/** Guests per month one First Aid post covers (inspection score, §8.1). */
+export const FIRST_AID_GUESTS_PER_POST = 400;
