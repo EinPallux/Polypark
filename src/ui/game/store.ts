@@ -16,6 +16,7 @@ import {
   type HudView,
   type MonthlyReport,
   type RatingView,
+  type WeatherView,
   type Rotation,
   type SimFacade,
   type SimStateSnapshot,
@@ -66,6 +67,7 @@ interface GameState {
   rides: { tracked: TrackedRideView[]; flat: FlatRideView[] } | null;
   finance: FinanceView | null;
   rating: RatingView | null;
+  weather: WeatherView | null;
   selectedRide: number | null;
   rideAlong: number | null;
   stepper: FixedStepper;
@@ -141,6 +143,7 @@ export const useGame = create<GameState>()(
     rides: null,
     finance: null,
     rating: null,
+    weather: null,
     selectedRide: null,
     rideAlong: null,
     stepper: createFixedStepper(),
@@ -227,6 +230,7 @@ export const useGame = create<GameState>()(
         rides: facade.ridesView(),
         finance: facade.finance(),
         rating: facade.rating(),
+        weather: facade.weather(),
         worldVersion,
         ...(current.worldVersion !== worldVersion ? { snapshot: facade.snapshot() } : {}),
       }));
@@ -254,6 +258,19 @@ export const useGame = create<GameState>()(
           get().pushToast("good", t("ride.repairedToast"));
         } else if (event.type === "ride/testPassed") {
           get().pushToast("good", t("ride.testPassedToast"));
+        } else if (event.type === "weather/changed") {
+          // A storm that silently shuts the coasters would read as a bug, so
+          // the closure (and the reopening) is always spoken aloud.
+          if (event.weather === "storm" && event.ridesClosed > 0) {
+            get().pushToast("bad", t("weather.stormClosedRides", { count: event.ridesClosed }));
+          } else if (event.ridesClosed > 0) {
+            get().pushToast("good", t("weather.stormPassedRides", { count: event.ridesClosed }));
+          } else {
+            get().pushToast(
+              event.weather === "storm" || event.weather === "rain" ? "bad" : "neutral",
+              t("weather.changedToast", { weather: t(`weather.${event.weather}` as never) }),
+            );
+          }
         }
       }
     },

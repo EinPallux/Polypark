@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { moneyToDollarString, money } from "@/shared/money";
+import { type WeatherId } from "@/content/weather";
 import { parkClock, type GameSpeed } from "@/sim/api";
 import { t } from "@/ui/i18n/t";
 import { Keycap } from "@/ui/kit/Keycap";
@@ -73,8 +74,23 @@ function Vitals() {
   );
 }
 
+/** Glyphs only — the label underneath carries the meaning for screen readers. */
+const WEATHER_GLYPH: Record<WeatherId, string> = {
+  sunny: "☀",
+  overcast: "☁",
+  rain: "🌧",
+  storm: "⛈",
+  heatwave: "🔥",
+};
+
+/**
+ * Clock + three-day forecast. The forecast is drawn ahead by the sim and
+ * persisted, so what this shows is what will happen — that is the whole
+ * point of showing it (GAME_DESIGN §16, pillar P5).
+ */
 function Clock() {
   const tick = useGame((state) => state.hud?.tick ?? 0);
+  const weather = useGame((state) => state.weather);
   const { time, day } = useMemo(() => clockText(tick), [tick]);
   return (
     <div className="pointer-events-auto flex items-center gap-3 bg-ink-900/85 px-4 py-1.5 text-white shadow-[var(--elev-slab)]">
@@ -82,7 +98,31 @@ function Clock() {
       <span className="font-ui text-xs font-semibold tracking-[0.08em] text-frost-300/80 uppercase">
         {t("play.day", { day })}
       </span>
-      <span aria-hidden>☀</span>
+      {weather ? (
+        <span
+          className="flex items-center gap-2 border-l border-white/15 pl-3"
+          data-testid="forecast-strip"
+        >
+          <span
+            className="text-lg leading-none"
+            title={`${t("weather.today")}: ${t(`weather.${weather.today}` as never)}`}
+            data-testid="weather-today"
+          >
+            {WEATHER_GLYPH[weather.today]}
+          </span>
+          <span className="sr-only">{t(`weather.${weather.today}` as never)}</span>
+          {weather.forecast.map((kind, i) => (
+            <span
+              key={i}
+              className="text-xs leading-none opacity-55"
+              title={`+${i + 1}d: ${t(`weather.${kind}` as never)}`}
+              data-testid={`weather-day-${i + 1}`}
+            >
+              {WEATHER_GLYPH[kind]}
+            </span>
+          ))}
+        </span>
+      ) : null}
     </div>
   );
 }

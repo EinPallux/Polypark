@@ -237,6 +237,30 @@ as a coffee emote. Raise button: +10% wage = +8% effectiveness for 6 months.
 
 ## 8. Events & loans
 
+### 8.1a Weather chain (one kind per park day)
+
+Rain, Storm and Heatwave are **conditions, not cards** — the §8.1 table below lists them for
+frequency reference, but the Rain row's own cooldown column already reads "(weather‑driven)".
+They are drawn from a day‑to‑day Markov chain, three days ahead, and the forecast is persisted:
+the strip is a promise the sim keeps, or planning around a storm is impossible (pillar P5).
+
+| Kind | Arrivals | Thirst decay | Storm‑closes H2+ | Notes |
+|------|----------|--------------|------------------|-------|
+| Sunny | ×1.10 | ×1.0 | — | |
+| Overcast | ×1.00 | ×1.0 | — | The only kind a storm can brew out of |
+| Rain | ×0.60 | ×1.0 | — | Covered‑ride demand bonus deferred (no covered flag yet) |
+| Storm | ×0.35 | ×1.0 | yes | Reopens only what it closed, never a player‑closed ride |
+| Heatwave | ×0.85 | ×1.6 | — | No separate drink‑income bonus — see below |
+
+Chain rows sum to 1 and are asserted in `weather.test.ts`, together with the long‑run shares:
+rain 12–26%, storm 1–6%, heatwave 3–14%, fair weather >55%. Storms never follow a clear sky.
+A brand‑new park always opens sunny.
+
+**One knob per concept (§1 rule 4).** A heatwave raises Thirst decay and *nothing else* — the
+extra drink income follows from thirstier guests on its own. Paying the player a second time
+with a ×1.8 income multiplier would double‑count one event; the balance rule that forbids
+double‑penalties forbids double‑rewards the same way.
+
 ### 8.1 Event deck (Standard weights, avg 1.25/month)
 
 | Event | Weight | Cooldown | Effect summary |

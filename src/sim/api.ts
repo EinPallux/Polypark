@@ -49,6 +49,9 @@ import {
 } from "./economy/finance";
 import { campaignIsLive, tickMarketing } from "./economy/marketing";
 import { evaluateRating, tickRating, type RatingView } from "./rating/rating";
+import { tickWeather } from "./weather/weather";
+import { type WeatherId } from "@/content/weather";
+import { parkClock } from "./core/loop";
 export type { RatingView, RatingCause, RatingCauseId, SubScore } from "./rating/rating";
 export { RATING_CAUSE_IDS } from "./rating/rating";
 import { minPaymentCents } from "./economy/amortize";
@@ -201,6 +204,13 @@ export interface FinanceView {
   readonly difficulty: DifficultyId;
 }
 
+export interface WeatherView {
+  readonly today: WeatherId;
+  /** The next FORECAST_DAYS days — already drawn, so the strip cannot lie. */
+  readonly forecast: readonly WeatherId[];
+  readonly dayNumber: number;
+}
+
 /** Live read-only views into the guest SoA for the crowd renderer (zero-copy). */
 export interface GuestRenderView {
   readonly count: number;
@@ -271,6 +281,7 @@ export interface SimFacade {
   ): { reason: CommandFailure | null; preview: TrackEvaluation | null };
   finance(): FinanceView;
   rating(): RatingView;
+  weather(): WeatherView;
 }
 
 export interface CreateSimOptions {
@@ -357,11 +368,22 @@ export function createSim(options: CreateSimOptions): SimFacade {
 
   return {
     advance(ticks: number): void {
-      // System order is fixed and versioned (TECH §4.1): guests → staff →
-      // rides → goals → ledger. New systems slot before goals/ledger so the
-      // stat counters they bump are visible the same tick.
+      // System order is fixed and versioned (TECH §4.1): weather → guests →
+      // staff → rides → goals → rating → marketing → ledger → finance close.
+      // New systems slot before goals/ledger so the stat counters they bump
+      // are visible the same tick.
       for (let i = 0; i < ticks; i++) {
         state.tick += 1;
+        // Weather runs FIRST: arrivals, thirst decay and storm closures all
+        // read today's sky, and they must read the same one all tick long.
+        const weatherEvent = tickWeather(state);
+        if (weatherEvent) {
+          events.emit({
+            type: "weather/changed",
+            weather: weatherEvent.weather,
+            ridesClosed: weatherEvent.ridesClosed,
+          });
+        }
         tickGuests(state);
         tickJanitors(state);
         const rideEvents: RideEvent[] = [];
@@ -476,6 +498,11 @@ export function createSim(options: CreateSimOptions): SimFacade {
       };
     },
     rating: () => evaluateRating(state),
+    weather: () => ({
+      today: state.weather.today,
+      forecast: [...state.weather.forecast],
+      dayNumber: parkClock(state.tick).dayNumber,
+    }),
     finance: () => {
       const finance = state.finance;
       const receivership = finance.receivership;

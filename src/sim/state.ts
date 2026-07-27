@@ -32,6 +32,7 @@ import {
 import { type FlatRide, type Mechanic, type TrackedRide } from "./rides/rides";
 import { createFinanceState, type FinanceState } from "./economy/finance";
 import { createRatingState, type RatingState } from "./rating/rating";
+import { createWeatherState, type WeatherState } from "./weather/weather";
 import {
   DEFAULT_DIFFICULTY,
   DIFFICULTY_MODS,
@@ -129,6 +130,7 @@ export interface SimState {
   difficultyMods: DifficultyMods;
   finance: FinanceState;
   rating: RatingState;
+  weather: WeatherState;
   /** District state (M4 districts subsystem); null until a plot is bought. */
   districts: { billboardCount: number } | null;
   ledger: Ledger;
@@ -175,6 +177,7 @@ export interface SimStateSnapshot {
   /** FinanceState minus the derived valuation cache (never hashed). */
   readonly finance: Omit<FinanceState, "valuationCacheKey" | "valuationCache">;
   readonly rating: RatingState;
+  readonly weather: WeatherState;
   readonly districts: { readonly billboardCount: number } | null;
   readonly guests: {
     readonly count: number;
@@ -229,12 +232,14 @@ export function createInitialState(
   options?: CreateStateOptions,
 ): SimState {
   const difficulty = options?.difficulty ?? DEFAULT_DIFFICULTY;
+  // Hoisted so weather can draw its opening forecast from the same streams.
+  const rng = createRngStreams(seed);
   return {
     tick: 0,
     seed,
     parkName,
     money: startingCashFor(options?.startingCashCents ?? STARTING_MONEY, difficulty),
-    rng: createRngStreams(seed),
+    rng,
     world: createWorld(site, pieceDefs),
     parkOpen: false,
     entryFeeCents: DEFAULT_ENTRY_FEE_CENTS,
@@ -250,6 +255,7 @@ export function createInitialState(
     difficultyMods: DIFFICULTY_MODS[difficulty],
     finance: createFinanceState(options?.hardFail ?? false),
     rating: createRatingState(),
+    weather: createWeatherState(rng.weather),
     districts: null,
     ledger: createLedger(),
     monthNumber: 0,
@@ -355,6 +361,7 @@ export function snapshotState(state: SimState): SimStateSnapshot {
     difficulty: state.difficulty,
     finance: snapshotFinance(state.finance),
     rating: structuredClone(state.rating),
+    weather: structuredClone(state.weather),
     districts: state.districts ? { ...state.districts } : null,
     guests: {
       count: n,
@@ -465,7 +472,7 @@ export function restoreState(
     seed: snapshot.seed,
     parkName: snapshot.parkName,
     money: money(snapshot.money),
-    rng: deserializeRngStreams(snapshot.rng),
+    rng: deserializeRngStreams(snapshot.rng, snapshot.seed),
     world,
     parkOpen: snapshot.parkOpen,
     entryFeeCents: snapshot.entryFeeCents,
@@ -486,6 +493,7 @@ export function restoreState(
       valuationCache: null,
     },
     rating: structuredClone(snapshot.rating),
+    weather: structuredClone(snapshot.weather),
     districts: snapshot.districts ? { ...snapshot.districts } : null,
     ledger: structuredClone(snapshot.ledger),
     monthNumber: snapshot.monthNumber,

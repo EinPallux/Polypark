@@ -14,6 +14,7 @@ import {
 } from "../rides/rides";
 import { archetypeWeights, marketingMult } from "../economy/marketing";
 import { ratingMult } from "../rating/rating";
+import { weatherArrivalsMult, weatherThirstMult } from "../weather/weather";
 
 /**
  * The guest simulation (GAME_DESIGN §12): SoA typed arrays at a hard cap,
@@ -275,7 +276,14 @@ export function arrivalsPerMinute(state: SimState): number {
     1.3,
   );
   // Marketing supplies the marketingMult term GAME_BALANCE §4.1 always had.
-  return appeal * rhythm * elasticity * marketingMult(state) * ratingMult(state);
+  return (
+    appeal *
+    rhythm *
+    elasticity *
+    marketingMult(state) *
+    ratingMult(state) *
+    weatherArrivalsMult(state)
+  );
 }
 
 function spawnGuest(state: SimState): number | null {
@@ -683,6 +691,8 @@ export function tickGuests(state: SimState): void {
   const shopSites = findShopSites(state);
   const rideOptions = openRideOptions(state);
 
+  // Hoisted out of the per-guest loop: one lookup, not one per guest.
+  const thirstWeather = weatherThirstMult(state);
   for (let slot = 0; slot < g.count; slot++) {
     const guestState = g.state[slot]!;
     if (guestState === GUEST_STATE.off) {
@@ -698,7 +708,9 @@ export function tickGuests(state: SimState): void {
     // Needs decay (fun only while idle — strolling is its own reward).
     const decay = state.difficultyMods.needDecayMult;
     addNeed(g, slot, "hunger", -DECAY_PER_TICK.hunger * decay);
-    addNeed(g, slot, "thirst", -DECAY_PER_TICK.thirst * decay);
+    // Thirst is the one need weather touches — a heatwave makes guests
+    // thirsty, not hungry or tired (GAME_BALANCE "one knob per concept").
+    addNeed(g, slot, "thirst", -DECAY_PER_TICK.thirst * decay * thirstWeather);
     addNeed(g, slot, "bladder", -DECAY_PER_TICK.bladder * decay);
     addNeed(g, slot, "energy", -DECAY_PER_TICK.energy * decay);
     if (

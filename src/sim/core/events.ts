@@ -3,6 +3,7 @@
  * Events are collected per advance and drained by the facade — the sim never
  * calls into UI code (TECHNICAL_ARCHITECTURE §3).
  */
+import { type WeatherId } from "@/content/weather";
 import { type MonthlyReport } from "../economy/ledger";
 import { type CreditGrade, type LoanProductId } from "@/content/loans";
 import { type MarketingCampaignId } from "@/content/marketing";
@@ -12,6 +13,12 @@ export type SimEvent =
   | { readonly type: "park/renamed"; readonly name: string }
   | { readonly type: "goal/completed"; readonly cardId: string; readonly rewardXp: number }
   | { readonly type: "park/levelUp"; readonly level: number }
+  | {
+      readonly type: "weather/changed";
+      readonly weather: WeatherId;
+      /** Tall rides a storm just shut, or reopened when it passed. */
+      readonly ridesClosed: number;
+    }
   | { readonly type: "park/monthReport"; readonly report: MonthlyReport }
   | { readonly type: "ride/broke"; readonly rideKey: number }
   | { readonly type: "ride/repaired"; readonly rideKey: number }

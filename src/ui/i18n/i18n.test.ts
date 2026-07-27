@@ -5,6 +5,7 @@ import { MARKETING_CAMPAIGNS } from "@/content/marketing";
 import { FLAT_RIDES } from "@/content/rides";
 import { TRACK_FAMILY_IDS } from "@/content/track";
 import { RATING_CAUSE_IDS } from "@/sim/api";
+import { WEATHER, WEATHER_IDS } from "@/content/weather";
 import { en } from "./en";
 import { months, t } from "./t";
 
@@ -31,6 +32,14 @@ describe("every dynamically-built key resolves", () => {
     const missing = [
       ...Object.keys(FLAT_RIDES).filter((id) => !has(`ride.${id}`)),
       ...TRACK_FAMILY_IDS.filter((id) => !has(`ride.family.${id}`)),
+    ];
+    expect(missing).toEqual([]);
+  });
+
+  it("names every kind of weather, in the table and on the strip", () => {
+    const missing = [
+      ...WEATHER_IDS.filter((id) => !has(`weather.${id}`)),
+      ...Object.values(WEATHER).filter((def) => !has(def.nameKey)).map((d) => d.id),
     ];
     expect(missing).toEqual([]);
   });

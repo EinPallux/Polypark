@@ -1,3 +1,4 @@
+import { WEATHER_IDS } from "@/content/weather";
 import { z } from "zod";
 
 /**
@@ -189,6 +190,14 @@ export const SimSnapshotSchema = z.object({
     pressStars: z.number(),
     capStars: z.number(),
     stars: z.number(),
+  }),
+  weather: z.object({
+    today: z.enum(WEATHER_IDS),
+    // The forecast is persisted, not re-rolled: the strip promised the player
+    // these three days and reloading must not change the answer (P5).
+    forecast: z.array(z.enum(WEATHER_IDS)),
+    dayIndex: z.number().int(),
+    closedByWeather: z.array(z.number().int()),
   }),
   districts: z.object({ billboardCount: z.number().int() }).nullable(),
   stats: z.record(z.string(), z.number()),

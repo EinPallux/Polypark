@@ -41,6 +41,18 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
           hardFail: false,
         },
         districts: null,
+        // A v4 park has no sky yet. Start it clear, and set dayIndex from the
+        // tick it is already at so the chain resumes today instead of
+        // fast-forwarding every day the park has ever run.
+        // why: literals, not the content constants — a migration is a frozen
+        // snapshot of one format (TECH §8) and must not drift when weather is
+        // retuned. 750 is TICKS_PER_PARK_DAY at v5.
+        weather: {
+          today: "sunny",
+          forecast: ["sunny", "overcast", "sunny"],
+          dayIndex: Math.floor(Number(sim["tick"] ?? 0) / 750),
+          closedByWeather: [],
+        },
         rating: {
           guestExposure: { num: 0, den: 0 },
           litterDensity: { num: 0, den: 0 },

@@ -38,7 +38,19 @@ describe("seeded RNG streams (TECH §4.3)", () => {
     const original = createRngStreams(99);
     original.rides.next();
     original.rides.next();
-    const resumed = deserializeRngStreams(serializeRngStreams(original));
+    const resumed = deserializeRngStreams(serializeRngStreams(original), 99);
+    expect(resumed.rides.next()).toBe(original.rides.next());
+  });
+
+  it("derives a stream the save predates instead of refusing to load", () => {
+    // Adding a named stream must never brick an existing park. A save written
+    // before `weather` existed simply has no state for it; deriving from the
+    // root seed is exactly what a fresh park does.
+    const original = createRngStreams(99);
+    const withoutWeather = serializeRngStreams(original).filter((s) => s.name !== "weather");
+    const resumed = deserializeRngStreams(withoutWeather, 99);
+    expect(resumed.weather.next()).toBe(RngStream.fromSeed(99, "weather").next());
+    // Streams the save *did* carry are still restored exactly.
     expect(resumed.rides.next()).toBe(original.rides.next());
   });
 

@@ -108,6 +108,18 @@ export const en = {
   "play.vitals.receivership": "Receivership",
   "play.hint.manage": "Manage",
   "play.day": "Day {day}",
+  // Weather (GAME_DESIGN §16). The forecast strip is a promise, so the copy
+  // stays plain — no hedging words that would make it read as a guess.
+  "weather.sunny": "Sunny",
+  "weather.overcast": "Overcast",
+  "weather.rain": "Rain",
+  "weather.storm": "Storm",
+  "weather.heatwave": "Heatwave",
+  "weather.forecast": "Forecast",
+  "weather.today": "Today",
+  "weather.changedToast": "{weather} today",
+  "weather.stormClosedRides": "Storm — {count} tall rides closed for the day",
+  "weather.stormPassedRides": "The storm passed — {count} rides reopened",
   "pause.title": "Paused",
   "pause.resume": "Resume",
   "pause.save": "Save park",
