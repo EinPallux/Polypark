@@ -65,6 +65,7 @@ if (!paint.ok) {
   throw new Error(`bench: path paint failed: ${paint.reason}`);
 }
 
+
 // A parking lot, because a park without one throttles at the gate (§3.3) and
 // the bench would quietly stop testing the crowd size it claims to. A real
 // park at this scale has parking; so does this one.
@@ -86,7 +87,8 @@ const shopIds = Object.keys(SHOP_DEFS);
 let placed = 0;
 for (let z = 8; z <= MEADOWBROOK.gate.z; z++) {
   for (let x = 8; x <= MEADOWBROOK.cells.w - 8; x++) {
-    if (isIsland(x, z)) {
+    // Skip the rows the lot reserved — parking and shops share the islands.
+    if (isIsland(x, z) && z % 8 !== 2) {
       const pieceId = shopIds[placed % shopIds.length]!;
       if (sim.dispatch({ type: "build/place", pieceId, x, z, rot: 0 }).ok) {
         placed += 1;
@@ -147,7 +149,15 @@ outerScan: for (let cz = 1; cz < MEADOWBROOK.cells.d - 2 && coasters < 6; cz += 
   }
 }
 console.log(`coasters sited: ${coasters}`);
-sim.advance(400); // let every test circuit finish
+
+
+// Let every test circuit finish. A fixed 400 was enough when the crowd was
+// smaller; a busier sim leaves the slowest circuit still testing, and one
+// coaster then never opens — which quietly drops the M3 acceptance criterion
+// from 6 running coasters to 5. Wait for the actual condition instead.
+for (let i = 0; i < 40 && sim.ridesView().tracked.some((r) => !r.tested); i++) {
+  sim.advance(100);
+}
 for (const ride of sim.ridesView().tracked) {
   sim.dispatch({ type: "ride/setState", rideId: ride.key, to: "open" });
 }
@@ -177,7 +187,20 @@ for (let i = 0; i < SAMPLES; i++) {
 }
 
 const avg = totalMs / SAMPLES;
-const openCoasters = sim.ridesView().tracked.filter((ride) => ride.state === 2).length;
+const tracked = sim.ridesView().tracked;
+const openCoasters = tracked.filter((ride) => ride.state === 2).length;
+// Coasters can be shut AFTER opening by a storm, a breakdown or a failed
+// inspection — all systems that did not exist when this bench first reported
+// six. Fewer than six running is the sim being alive, not a regression, so
+// report why rather than leaving a bare number to be misread.
+const closedWhy = tracked.length - openCoasters;
+if (closedWhy > 0) {
+  const broken = tracked.filter((r) => r.state === 3).length;
+  console.log(
+    `coasters closed     ${closedWhy} of ${tracked.length} ` +
+      `(${broken} broken · weather ${sim.weather().today} · rest closed by inspection or storm)`,
+  );
+}
 console.log(`shops placed        ${placed}`);
 console.log(`plaza path cells    ${cells.length}`);
 console.log(`coasters running    ${openCoasters}`);

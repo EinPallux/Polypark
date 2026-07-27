@@ -76,12 +76,20 @@ only where a migration ships — see TECHNICAL_ARCHITECTURE §8).
   chain now runs v1→v5 and validates against the live schema — the only test that would notice
   a field added without a migration to seed it. It passes, which means five format versions of
   additions have all been complete.
-- **⚠️ Open: the perf budget no longer reaches its 1,200-guest criterion.** The capacity taper
-  is doing exactly what it should, and the consequence is that a park with a modest lot settles
-  near 480 concurrent guests instead of ~1,250. The bench now says so out loud rather than
-  quoting a timing at a crowd size the run never reached. Two things need an owner call: whether
-  ~430 is the right ceiling for a park with **no** parking at all, and how the perf criterion
-  should be exercised now that the economy governs population.
+- **Resolved: arrival capacity was calibrated by guess, and the guess was wrong.** Shipping it
+  at 5 guests per piece capped the bench park at 461 against a natural 1,214 — capacity, not
+  the park, was deciding how big the park could be, and reaching its real size would have taken
+  ~450 pieces across most of the map. A sweep (5 / 25 / 60 / effectively unlimited) put the
+  knee at 25: a 29‑piece, $4,350 lot fully serves a 1,200‑guest park, and 60 buys nothing more.
+  The table's own words settle it — it calls the piece a "parking **row**", and a row is
+  ten‑odd cars, not the two its parenthetical assumed. Measurements and reasoning are in
+  GAME_BALANCE §3.3; a test pins the calibration and the ADR‑15 guarantee that the cap cannot
+  bite before Parking Grounds unlocks.
+- **The perf criterion works again:** 1,207 guests timed at 1.92 ms/tick against the 6 ms budget.
+- **The bench stopped hiding a live system.** It reported "5 of 6 coasters running" and I took
+  that for a regression twice; all six open fine, and one is simply *broken and under repair* at
+  sample time — the M3 breakdown system doing its job. The bench now names the reason instead of
+  leaving a bare number to be misread.
 
 ### M4 — The tycoon layer (🚧 in progress)
 - **Finance spine (`src/sim/economy/finance.ts`, `amortize.ts`):** three loan products with

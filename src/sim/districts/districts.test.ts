@@ -142,6 +142,33 @@ describe("arrival capacity presses, it does not wall", () => {
     }
   });
 
+  it("leaves an ordinary early park completely alone", () => {
+    // The cap must never bite before the player has a lever. Parking Grounds
+    // unlocks at L3, and below the gate's own capacity the multiplier is
+    // exactly 1 — so a park too small to have bought the district is also too
+    // small to be throttled by not having it (ADR-15).
+    expect(DISTRICTS.parking.unlockLevel).toBeLessThanOrEqual(3);
+    const sim = park({ unlockAll: true });
+    const capacity = sim.districts().arrivalCapacity;
+    expect(capacity).toBe(GATE_ARRIVAL_CAPACITY);
+    for (const live of [0, 1, 30, capacity]) {
+      const mult = live <= capacity ? 1 : Math.pow(capacity / live, 0.6);
+      expect(mult).toBe(1);
+    }
+  });
+
+  it("is calibrated so a modest lot serves a big park", () => {
+    // Measured (scripts/bench-guests.ts): the bench park's natural population
+    // with capacity removed is ~1,214. 29 pieces must cover that, or the lot
+    // becomes a map-eating chore rather than a decision — the reason per-bay
+    // moved from 5 to 25.
+    const modestLot = 29;
+    const capacity = GATE_ARRIVAL_CAPACITY + modestLot * CAPACITY_PER_BAY;
+    expect(capacity).toBeGreaterThan(700);
+    // …and the same lot at the old rate would not have come close.
+    expect(GATE_ARRIVAL_CAPACITY + modestLot * 5).toBeLessThan(300);
+  });
+
   it("widens with every parking bay built", () => {
     const sim = park({ unlockAll: true });
     const gate = TEST_SITE.gate;

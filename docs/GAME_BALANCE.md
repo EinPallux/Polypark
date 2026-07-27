@@ -79,8 +79,24 @@ Related: [GAME_DESIGN.md](../GAME_DESIGN.md) · [TECHNICAL_ARCHITECTURE.md](../T
 > 60‑concurrent cap; taken literally that would delete a game which benches happily at
 > 1,200–1,500 guests, and would read as a wall rather than a pressure. Shipped as
 > `admitFactor = live ≤ capacity ? 1 : max((capacity/live)^0.6, 0.15)` — continuous, monotonic
-> and floored, so a full lot slows the gate but can never shut it (ADR‑15). Capacity is
-> 60 at the gate + 5 per parking bay.
+> and floored, so a full lot slows the gate but can never shut it (ADR‑15).
+>
+> **Capacity is 60 at the gate + 25 per parking piece**, and the 25 is measured rather than
+> guessed. The table above calls the piece a "parking **row**" and then parenthesises it as
+> "2 cars ≈ 5 guests"; those disagree, and the parenthetical was the wrong one — a row is ten‑odd
+> cars. Swept on the bench park, whose natural population with capacity removed entirely is
+> **~1,214 guests**:
+>
+> | Per piece | 29‑piece lot ⇒ capacity | Population reached |
+> |-----------|------------------------|--------------------|
+> | 5 | 205 | 461 — capacity dominates; ~450 pieces needed to reach the park's real size |
+> | **25** | **785** | **1,235 — a $4,350 lot fully serves a big park** |
+> | 60 | 1,800 | 1,214 — no further gain, capacity has stopped binding |
+>
+> A park that never buys Parking Grounds settles near **430 guests** — profitable and perfectly
+> playable, just smaller. Growth is opt‑in, which is what "all districts optional" has to mean;
+> and since the district unlocks at L3 while a park that small cannot yet draw 430 guests, the
+> cap can never bite before the player has the lever to answer it.
 >
 > **Resort Row** ships occupancy in the reduced form §3.3 allows — `f(rating)` only, since the
 > night‑hours term waits on night running. Rooms pay $30/night over the month's four park
