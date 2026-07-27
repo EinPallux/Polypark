@@ -163,6 +163,39 @@ describe("the sub-scores respond to the park", () => {
   });
 });
 
+describe("reading the rating never changes the park", () => {
+  it("leaves the hash untouched whether or not rating() was called", () => {
+    // The management window polls facade.rating() every sync. stars is saved
+    // AND feeds ratingMult → arrivals, so a read that wrote it would make the
+    // guest count depend on whether a panel happened to be open.
+    const watched = livingPark();
+    const ignored = livingPark();
+    for (let i = 0; i < 40; i++) {
+      watched.rating(); // somebody has the panel open
+      watched.advance(25);
+      ignored.advance(25);
+    }
+    expect(watched.hash()).toBe(ignored.hash());
+    expect(watched.hud().guestCount).toBe(ignored.hud().guestCount);
+  });
+
+  it("starts a fresh park at neutral stars, not zero", () => {
+    // stars drives ratingMult (0.6 at 0★). A park that had never opened a
+    // panel used to sit at 0★ forever and take a permanent arrivals penalty.
+    const sim = makePark();
+    expect(sim.snapshot().rating.stars).toBe(2.5);
+    expect(sim.hud().ratingStars).toBe(2.5);
+    sim.advance(30);
+    expect(sim.snapshot().rating.stars).toBeGreaterThan(0);
+  });
+
+  it("keeps the stored stars in step with a fresh evaluation", () => {
+    const sim = livingPark();
+    sim.advance(25 - (sim.hud().tick % 25)); // land on a refresh tick
+    expect(sim.snapshot().rating.stars).toBe(sim.rating().stars);
+  });
+});
+
 describe("cost and persistence", () => {
   it("a full game-month of sampling leaves the windows well-formed", () => {
     // Cost is measured by scripts/bench-guests.ts, not the clock — sim/ has no

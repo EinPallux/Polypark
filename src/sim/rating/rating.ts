@@ -63,6 +63,15 @@ export const sumOf = (sum: RollingSum): number => sum.total;
 
 const RATING_NEUTRAL = 50;
 const RATING_FULL_EVIDENCE_GUESTS = 25;
+/** A park with no evidence yet reads neutral, and is fed back as neutral. */
+export const RATING_NEUTRAL_STARS = 2.5;
+/**
+ * How often tickRating refreshes the stored stars. The sub-scores walk every
+ * ride and placed piece, so this runs at 2.5 game-minutes rather than every
+ * tick — fresh enough for the HUD, 4% of the cost, and fixed to the tick
+ * number so it never depends on when anyone asked to read the rating.
+ */
+const RATING_REFRESH_TICKS = 25;
 
 const NOVELTY_PEAK_BONUS = 0.4;
 const NOVELTY_MONTHS = 3;
@@ -150,7 +159,7 @@ export function createRatingState(): RatingState {
     mirror: { departures: 0, happyDepartures: 0, riders: 0 },
     pressStars: 0,
     capStars: 5,
-    stars: 0,
+    stars: RATING_NEUTRAL_STARS,
     subscores: { fun: 50, value: 50, care: 50, wonder: 50, flow: 50 },
   };
 }
@@ -254,6 +263,21 @@ export function tickRating(state: SimState): void {
     }
   }
   rating.capStars = cap;
+
+  // 6. Refresh the stored stars. This is the ONLY writer: stars is persisted
+  // and feeds ratingMult → arrivals, so if a read query wrote it, opening the
+  // management window would change how many guests show up.
+  if (state.tick % RATING_REFRESH_TICKS === 0) {
+    const view = evaluateRating(state);
+    rating.stars = view.stars;
+    rating.subscores = {
+      fun: view.fun.score,
+      value: view.value.score,
+      care: view.care.score,
+      wonder: view.wonder.score,
+      flow: view.flow.score,
+    };
+  }
 }
 
 /** Inspections and press events swing the rating directly. */
@@ -603,7 +627,11 @@ function flowScore(state: SimState): SubScore {
 
 const round1 = (v: number): number => Math.round(v * 10) / 10;
 
-/** Full evaluation with causes. Called on demand (panel) and monthly. */
+/**
+ * Full evaluation with causes. **Pure** — it reads state and returns a view,
+ * never writes. tickRating owns the stored `stars`/`subscores`; if this wrote
+ * them, whether the player had a panel open would change the simulation.
+ */
 export function evaluateRating(state: SimState): RatingView {
   const rating = state.rating;
   const confidence = clamp(
@@ -636,9 +664,6 @@ export function evaluateRating(state: SimState): RatingView {
   const stars = round1(
     Math.min(clamp((5 * weighted) / 100 + rating.pressStars, 0, 5), rating.capStars),
   );
-
-  rating.stars = stars;
-  rating.subscores = blended;
 
   return {
     stars,

@@ -43,13 +43,21 @@ only where a migration ships — see TECHNICAL_ARCHITECTURE §8).
   a pre‑receivership build still works. Save v5 migrates v4 forward (standard difficulty, empty
   finance, $20,000 land, zeroed rating windows). `ledgerCore.ts` extracted as a leaf module to
   break a real finance↔ledger runtime cycle.
+- **Fixed: the rating was written by a read query.** `facade.rating()` — which the management
+  window polls on every sync — wrote the persisted `rating.stars`, and stars feeds
+  `ratingMult` → arrivals. Two identical parks diverged (hash `13eca40b` vs `662cb637`) purely
+  because one had the panel open. `tickRating` is now the sole writer, refreshing every 25
+  ticks off the sim tick; `evaluateRating` is pure. Related: a fresh park's stars were seeded
+  at 0, so a park nobody had opened a panel on took a permanent ×0.6 arrivals penalty — the
+  exact death spiral confidence blending exists to prevent. Seeded at neutral 2.5★ in both
+  creation and the v4→v5 migration. Three regression tests, each verified failing first.
 - **Fixed: blank copy from unchecked i18n keys.** Keys built from content ids reach `t()`
   through a cast, so 17 were missing with no compiler complaint — M3's five ride goal cards
   had been rendering as empty goal titles since it shipped, and M4's loan and campaign names
   were blank. All added; `t()` now echoes an unknown key instead of rendering nothing; and
   `src/ui/i18n/i18n.test.ts` proves every goal card, loan, campaign, ride and rating cause
   resolves to real copy. Month counts pluralize ("1 month", not "1 months").
-- **Quality:** 123 unit tests (8 amortization, 17 finance, 9 rating, 7 i18n); new e2e opens the
+- **Quality:** 128 unit tests (8 amortization, 17 finance, 12 rating, 7 i18n); new e2e opens the
   management window, borrows, and reads the rating through the real UI.
 
 ### M3 — Rides & the track builder (✅ completed 2026‑07‑26)

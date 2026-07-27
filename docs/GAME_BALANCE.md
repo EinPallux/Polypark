@@ -110,7 +110,9 @@ code (`sim/rating/`) and must match this doc's weights.
 same rolling month. A park nobody has visited yet reads a flat 2.5★ rather than 0★, so a quiet
 opening week can never compound into an arrivals collapse the player cannot climb out of.
 Confidence reaches 1.0 at 25 guest‑months of evidence and is shown in the UI as
-"still settling" until then.
+"still settling" until then. A park is **seeded at 2.5★** on creation and on migration, and
+the stored value refreshes every 25 ticks from the sim tick — never from a UI read, since the
+rating feeds arrivals and a park must simulate identically whether or not a panel is open.
 
 Each sub‑score also reports its **top causes** as structured ids + magnitudes (`fun.noRides`,
 `care.litter`, …) — never sentences. The sim ships ids; the UI supplies the words, so a cause

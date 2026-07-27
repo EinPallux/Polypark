@@ -54,7 +54,13 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
           mirror: { departures: 0, happyDepartures: 0, riders: 0 },
           pressStars: 0,
           capStars: 5,
-          stars: 0,
+          // Neutral, not zero: stars feeds ratingMult → arrivals, and a v4 park
+          // has no rating history to judge it by. tickRating refreshes it.
+          // why: a literal, not RATING_NEUTRAL_STARS — a migration is a frozen
+          // snapshot of one format, so retuning that constant must not silently
+          // rewrite what old saves upgraded into (TECH §8). It also keeps the
+          // rating engine out of the title route's bundle.
+          stars: 2.5,
           subscores: { fun: 50, value: 50, care: 50, wonder: 50, flow: 50 },
         },
         ledger: {
