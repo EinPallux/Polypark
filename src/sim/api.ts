@@ -92,11 +92,15 @@ export type {
 };
 export {
   createFixedStepper,
+  parkClock,
   TICKS_PER_SECOND,
   TICKS_PER_GAME_MONTH,
+  TICKS_PER_PARK_DAY,
+  PARK_DAYS_PER_MONTH,
   GAME_SECONDS_PER_TICK,
   type FixedStepper,
   type GameSpeed,
+  type ParkClock,
 } from "./core/loop";
 export { type MonthlyReport } from "./economy/ledger";
 export { EMOTE, GUEST_STATE } from "./guests/guests";

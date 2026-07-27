@@ -494,8 +494,17 @@ poofs, refunds, grumpy emotes — never harm (§24).
 - **Clock:** 1 real s = 2 game min at 1×; speeds pause/1×/2×/4×. Park hours 09:00–21:00; night
   runs (to 24:00) unlock via Park Level — lamps required; night parks are gorgeous, lucrative,
   and the reason Resort Row exists.
-- **Calendar:** 1 month = one report cycle ≈ 10 real minutes at 1×; four day/night cycles per
-  month (skybox morning/day/night).
+- **Calendar:** 1 month = one report cycle ≈ 10 real minutes at 1× (3,000 ticks); four
+  day/night cycles per month (skybox morning/day/night) ⇒ a park day is 750 ticks.
+- **Two clocks, deliberately out of step.** The *duration* clock is literal — one tick is 12
+  game‑seconds, and every need decay, ride cycle and repair time is quoted in game‑minutes off
+  it. The *park* clock (the hands in the HUD) is a rhythm dial: it sweeps a full 24 h across
+  those 750 ticks, ~9.6× faster than the duration clock. Deriving the hands literally would
+  make a day 7,200 ticks — longer than a month — and fire the monthly report twice before
+  lunch. The stylisation reads true where it matters: a guest who stays open‑to‑close lives
+  ~75 duration‑minutes of need decay, most of one Fun cycle, so "a guest spends the day at the
+  park" is honest. Anything day‑quantised (weather, night hours, hotel occupancy) keys off the
+  park clock; anything measured in minutes keys off the duration clock.
 - **Weather:** Sunny · Overcast · Rain (attendance −, covered rides +) · Storm (tall/fast rides
   auto‑close, rare) · Heatwave (thirst ↑↑, splash rides boom) · Snow (Winterfest site profile).
   A 3‑day forecast strip makes weather plannable, not a slot machine (P5).

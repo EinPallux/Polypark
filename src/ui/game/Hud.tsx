@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { moneyToDollarString, money } from "@/shared/money";
-import { GAME_SECONDS_PER_TICK, type GameSpeed } from "@/sim/api";
+import { parkClock, type GameSpeed } from "@/sim/api";
 import { t } from "@/ui/i18n/t";
 import { Keycap } from "@/ui/kit/Keycap";
 import { HintRail, type Hint } from "@/ui/kit/HintRail";
@@ -17,14 +17,12 @@ import { useGame } from "./store";
  */
 
 function clockText(tick: number): { time: string; day: number } {
-  const totalMinutes = Math.floor((tick * GAME_SECONDS_PER_TICK) / 60);
-  const minutesIntoDay = (9 * 60 + totalMinutes) % (24 * 60);
-  const hours = Math.floor(minutesIntoDay / 60);
-  const minutes = minutesIntoDay % 60;
-  const day = Math.floor((9 * 60 + totalMinutes) / (24 * 60)) + 1;
+  const { minuteOfDay, dayNumber } = parkClock(tick);
+  const hours = Math.floor(minuteOfDay / 60);
+  const minutes = minuteOfDay % 60;
   return {
     time: `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`,
-    day,
+    day: dayNumber,
   };
 }
 
