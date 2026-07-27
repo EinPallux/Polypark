@@ -12,6 +12,7 @@ import {
   tryEnqueue,
   type OpenRideOption,
 } from "../rides/rides";
+import { archetypeWeights, marketingMult } from "../economy/marketing";
 
 /**
  * The guest simulation (GAME_DESIGN §12): SoA typed arrays at a hard cap,
@@ -272,7 +273,8 @@ export function arrivalsPerMinute(state: SimState): number {
     Math.max(1.6 - (state.entryFeeCents / fairEntry) ** 1.4, 0.1),
     1.3,
   );
-  return appeal * rhythm * elasticity;
+  // Marketing supplies the marketingMult term GAME_BALANCE §4.1 always had.
+  return appeal * rhythm * elasticity * marketingMult(state);
 }
 
 function spawnGuest(state: SimState): number | null {
@@ -285,11 +287,14 @@ function spawnGuest(state: SimState): number | null {
     g.count += 1;
   }
   const rng = state.rng.guests;
+  // Same single draw on the same stream as M2 — a campaign reweights WHO shows
+  // up, never how many (reach is marketingMult's job), so no stream reshuffle.
   const roll = rng.next();
+  const weights = archetypeWeights(state, ARCHETYPE_WEIGHTS);
   let archetype = 0;
   let cumulative = 0;
-  for (let i = 0; i < ARCHETYPE_WEIGHTS.length; i++) {
-    cumulative += ARCHETYPE_WEIGHTS[i]!;
+  for (let i = 0; i < weights.length; i++) {
+    cumulative += weights[i]!;
     if (roll < cumulative) {
       archetype = i;
       break;
@@ -690,10 +695,11 @@ export function tickGuests(state: SimState): void {
     g.pz[slot] = g.z[slot]!;
 
     // Needs decay (fun only while idle — strolling is its own reward).
-    addNeed(g, slot, "hunger", -DECAY_PER_TICK.hunger);
-    addNeed(g, slot, "thirst", -DECAY_PER_TICK.thirst);
-    addNeed(g, slot, "bladder", -DECAY_PER_TICK.bladder);
-    addNeed(g, slot, "energy", -DECAY_PER_TICK.energy);
+    const decay = state.difficultyMods.needDecayMult;
+    addNeed(g, slot, "hunger", -DECAY_PER_TICK.hunger * decay);
+    addNeed(g, slot, "thirst", -DECAY_PER_TICK.thirst * decay);
+    addNeed(g, slot, "bladder", -DECAY_PER_TICK.bladder * decay);
+    addNeed(g, slot, "energy", -DECAY_PER_TICK.energy * decay);
     if (
       guestState === GUEST_STATE.idle ||
       guestState === GUEST_STATE.serving ||

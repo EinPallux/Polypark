@@ -218,7 +218,9 @@ function boardFromQueue(
   }
 }
 
-function rollBreakdown(state: SimState, mtbf: number, cycleCount: number): boolean {
+function rollBreakdown(state: SimState, baseMtbf: number, cycleCount: number): boolean {
+  // Difficulty scales reliability in exactly one place (GAME_BALANCE §2).
+  const mtbf = baseMtbf * state.difficultyMods.breakdownMtbfMult;
   const age = 1 + cycleCount / 600;
   const mechanics = state.mechanics.length;
   const ridesTotal = state.rides.tracked.size + state.rides.flat.size;
@@ -259,6 +261,10 @@ export function tickRides(state: SimState, events: RideEvent[]): void {
 
 function tickTrackedRide(state: SimState, ride: TrackedRide, events: RideEvent[]): void {
   if (ride.state === RIDE_STATE.closed || ride.state === RIDE_STATE.broken) {
+    return;
+  }
+  // Collections hold the trains: the ride cannot run until arrears clear.
+  if (state.finance.repossessedRideKey === ride.id) {
     return;
   }
   if (!ride.evaln.valid) {
@@ -328,6 +334,9 @@ function tickTrackedRide(state: SimState, ride: TrackedRide, events: RideEvent[]
 
 function tickFlatRide(state: SimState, ride: FlatRide, events: RideEvent[]): void {
   if (ride.state === RIDE_STATE.closed || ride.state === RIDE_STATE.broken) {
+    return;
+  }
+  if (state.finance.repossessedRideKey === -ride.id) {
     return;
   }
   const def = FLAT_RIDES[ride.defId];

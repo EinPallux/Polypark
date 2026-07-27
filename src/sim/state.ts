@@ -30,6 +30,13 @@ import {
   type TrackPose,
 } from "./rides/trackGraph";
 import { type FlatRide, type Mechanic, type TrackedRide } from "./rides/rides";
+import { createFinanceState, type FinanceState } from "./economy/finance";
+import {
+  DEFAULT_DIFFICULTY,
+  DIFFICULTY_MODS,
+  type DifficultyId,
+  type DifficultyMods,
+} from "@/content/difficulty";
 
 /**
  * The whole mutable simulation state (v3: M2 adds the living park — guests,
@@ -44,6 +51,9 @@ export type Stats = Record<StatKey, number> & {
   ridesTested: number;
   breakdowns: number;
   repairsDone: number;
+  paymentsMissed: number;
+  receiverships: number;
+  repossessions: number;
 };
 
 export function createStats(): Stats {
@@ -62,12 +72,18 @@ export function createStats(): Stats {
     ridesOpened: 0,
     ridersServed: 0,
     mechanicsHired: 0,
+    loansTaken: 0,
+    loansPaidOff: 0,
+    campaignsRun: 0,
     guestsDeparted: 0,
     happyDepartures: 0,
     litterSpawned: 0,
     ridesTested: 0,
     breakdowns: 0,
     repairsDone: 0,
+    paymentsMissed: 0,
+    receiverships: 0,
+    repossessions: 0,
   };
 }
 
@@ -106,6 +122,13 @@ export interface SimState {
   rides: RidesState;
   mechanics: Mechanic[];
   nextMechanicId: number;
+  /** Chosen at creation, immutable: it scales starting cash (GAME_BALANCE §2). */
+  difficulty: DifficultyId;
+  /** Resolved modifiers — derived from `difficulty`, never saved. */
+  difficultyMods: DifficultyMods;
+  finance: FinanceState;
+  /** District state (M4 districts subsystem); null until a plot is bought. */
+  districts: { billboardCount: number } | null;
   ledger: Ledger;
   monthNumber: number;
   lastMonthGuests: number;
@@ -146,6 +169,10 @@ export interface SimStateSnapshot {
   };
   readonly mechanics: readonly Mechanic[];
   readonly nextMechanicId: number;
+  readonly difficulty: DifficultyId;
+  /** FinanceState minus the derived valuation cache (never hashed). */
+  readonly finance: Omit<FinanceState, "valuationCacheKey" | "valuationCache">;
+  readonly districts: { readonly billboardCount: number } | null;
   readonly guests: {
     readonly count: number;
     readonly freeList: readonly number[];
@@ -178,17 +205,32 @@ function buildShopUpkeep(): Map<string, number> {
   return new Map(Object.values(SHOP_DEFS).map((def) => [def.pieceId, def.upkeepCents]));
 }
 
+export interface CreateStateOptions {
+  readonly difficulty?: DifficultyId;
+  readonly startingCashCents?: number;
+  readonly hardFail?: boolean;
+}
+
+/** Starting cash after the difficulty multiplier (GAME_BALANCE §2). */
+export function startingCashFor(baseCents: number, difficulty: DifficultyId): Money {
+  return money(scaleCents(baseCents, DIFFICULTY_MODS[difficulty].startingCashMult));
+}
+
+const scaleCents = (cents: number, factor: number): number => Math.round(cents * factor);
+
 export function createInitialState(
   seed: number,
   parkName: string,
   site: SiteDescriptor,
   pieceDefs: readonly SimPieceDef[],
+  options?: CreateStateOptions,
 ): SimState {
+  const difficulty = options?.difficulty ?? DEFAULT_DIFFICULTY;
   return {
     tick: 0,
     seed,
     parkName,
-    money: STARTING_MONEY,
+    money: startingCashFor(options?.startingCashCents ?? STARTING_MONEY, difficulty),
     rng: createRngStreams(seed),
     world: createWorld(site, pieceDefs),
     parkOpen: false,
@@ -201,6 +243,10 @@ export function createInitialState(
     rides: { tracked: new Map(), flat: new Map(), nextId: 1 },
     mechanics: [],
     nextMechanicId: 1,
+    difficulty,
+    difficultyMods: DIFFICULTY_MODS[difficulty],
+    finance: createFinanceState(options?.hardFail ?? false),
+    districts: null,
     ledger: createLedger(),
     monthNumber: 0,
     lastMonthGuests: 0,
@@ -209,6 +255,16 @@ export function createInitialState(
     xp: 0,
     shopUpkeep: buildShopUpkeep(),
   };
+}
+
+/** Strips the derived valuation cache so the state hash cannot depend on it. */
+function snapshotFinance(
+  finance: FinanceState,
+): Omit<FinanceState, "valuationCacheKey" | "valuationCache"> {
+  const { valuationCacheKey, valuationCache, ...rest } = finance;
+  void valuationCacheKey;
+  void valuationCache;
+  return structuredClone(rest);
 }
 
 const packArray = (array: ArrayLike<number>, count: number): number[] =>
@@ -292,6 +348,9 @@ export function snapshotState(state: SimState): SimStateSnapshot {
     },
     mechanics: state.mechanics.map((m) => ({ ...m })),
     nextMechanicId: state.nextMechanicId,
+    difficulty: state.difficulty,
+    finance: snapshotFinance(state.finance),
+    districts: state.districts ? { ...state.districts } : null,
     guests: {
       count: n,
       freeList: [...g.freeList],
@@ -413,6 +472,15 @@ export function restoreState(
     rides: { tracked, flat, nextId: snapshot.rides.nextId },
     mechanics: snapshot.mechanics.map((m) => ({ ...m })),
     nextMechanicId: snapshot.nextMechanicId,
+    difficulty: snapshot.difficulty,
+    // Derived from the id, never persisted: retuning §2 reaches every save.
+    difficultyMods: DIFFICULTY_MODS[snapshot.difficulty],
+    finance: {
+      ...structuredClone(snapshot.finance),
+      valuationCacheKey: -1,
+      valuationCache: null,
+    },
+    districts: snapshot.districts ? { ...snapshot.districts } : null,
     ledger: structuredClone(snapshot.ledger),
     monthNumber: snapshot.monthNumber,
     lastMonthGuests: snapshot.lastMonthGuests,

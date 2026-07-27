@@ -17,9 +17,13 @@ export type StatKey =
   | "flatRidesBuilt"
   | "ridesOpened"
   | "ridersServed"
-  | "mechanicsHired";
+  | "mechanicsHired"
+  | "loansTaken"
+  | "loansPaidOff"
+  | "campaignsRun";
 
-export type GoalTier = "guidance" | "growth" | "mastery";
+/** Recovery outranks everything: it only deals during Receivership (§9.4). */
+export type GoalTier = "recovery" | "guidance" | "growth" | "mastery";
 
 export interface GoalCardDef {
   readonly id: string;
@@ -30,6 +34,8 @@ export interface GoalCardDef {
   readonly rewardXp: number;
   /** Stat prerequisite before the card becomes eligible (gentle sequencing). */
   readonly requiresStat?: { readonly stat: StatKey; readonly atLeast: number };
+  /** Recovery cards deal only while Receivership is active, and vice versa. */
+  readonly requiresReceivership?: boolean;
 }
 
 export const GOAL_CARDS: readonly GoalCardDef[] = [
@@ -54,6 +60,14 @@ export const GOAL_CARDS: readonly GoalCardDef[] = [
   { id: "profitable-month", tier: "mastery", stat: "monthsProfit", target: 1, rewardXp: 400, requiresStat: { stat: "guestsWelcomed", atLeast: 50 } },
   { id: "path-network", tier: "mastery", stat: "pathCellsBuilt", target: 80, rewardXp: 300, requiresStat: { stat: "pathCellsBuilt", atLeast: 20 } },
   { id: "hundred-riders", tier: "mastery", stat: "ridersServed", target: 100, rewardXp: 400, requiresStat: { stat: "ridesOpened", atLeast: 1 } },
+  // Finance (M4)
+  { id: "first-loan", tier: "growth", stat: "loansTaken", target: 1, rewardXp: 150, requiresStat: { stat: "guestsWelcomed", atLeast: 40 } },
+  { id: "pay-it-off", tier: "mastery", stat: "loansPaidOff", target: 1, rewardXp: 400, requiresStat: { stat: "loansTaken", atLeast: 1 } },
+  { id: "spread-the-word", tier: "growth", stat: "campaignsRun", target: 1, rewardXp: 150, requiresStat: { stat: "guestsWelcomed", atLeast: 40 } },
+  // Recovery — dealt only while the administrator is in (GAME_DESIGN §14.3)
+  { id: "recovery-reopen-rides", tier: "recovery", stat: "ridesOpened", target: 1, rewardXp: 250, requiresReceivership: true },
+  { id: "recovery-profitable-month", tier: "recovery", stat: "monthsProfit", target: 1, rewardXp: 350, requiresReceivership: true },
+  { id: "recovery-debts-current", tier: "recovery", stat: "loansPaidOff", target: 1, rewardXp: 400, requiresReceivership: true },
 ];
 
 export const ACTIVE_GOAL_SLOTS = 3;

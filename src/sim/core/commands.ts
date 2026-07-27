@@ -17,6 +17,18 @@ import {
   type TrackPieceState,
   type TrackPose,
 } from "../rides/trackGraph";
+import { LOAN_PRODUCTS, type LoanProductId } from "@/content/loans";
+import { MARKETING_CAMPAIGNS, type MarketingCampaignId } from "@/content/marketing";
+import {
+  offerBlockedReason,
+  openLoan,
+  payLoan as applyLoanPayment,
+  payoffCents,
+  receivershipSpendDenial,
+  totalArrears,
+} from "../economy/finance";
+import { startCampaign } from "../economy/marketing";
+import { campaignIsLive } from "../economy/marketing";
 import {
   flatRideEntranceCell,
   MAX_TRACK_PIECES,
@@ -82,6 +94,25 @@ export type Command =
   | { readonly type: "staff/fireMechanic" }
   | { readonly type: "goal/dismiss"; readonly cardId: string }
   | {
+      readonly type: "finance/takeLoan";
+      readonly product: LoanProductId;
+      readonly forceId?: number;
+      readonly forceAprBps?: number;
+      readonly forceMinPaymentCents?: number;
+      readonly forceOpenedMonth?: number;
+    }
+  | {
+      readonly type: "finance/payLoan";
+      readonly loanId: number;
+      /** Integer cents, or "payoff" for balance + arrears. */
+      readonly amount: number | "payoff";
+    }
+  | {
+      readonly type: "marketing/start";
+      readonly campaign: MarketingCampaignId;
+      readonly forceStartTick?: number;
+    }
+  | {
       readonly type: "ride/startTrack";
       readonly family: TrackFamilyId;
       readonly mx: number;
@@ -130,7 +161,14 @@ export type Command =
     }
   | { readonly type: "debug/noop" };
 
-export type CommandFailure = PlaceDenial | "invalid" | "nothing-to-do";
+export type CommandFailure =
+  | PlaceDenial
+  | "invalid"
+  | "nothing-to-do"
+  /** Receivership caps discretionary construction (GAME_DESIGN §14.3). */
+  | "receivership-limited"
+  /** The ride's trains are held by collections until arrears clear. */
+  | "repossessed";
 
 export type CommandResult =
   | {
@@ -321,6 +359,10 @@ const handlers: HandlerMap = {
       return { ok: false, reason: "unknown-piece" };
     }
     const cost = money(command.forceCostCents ?? def.cost);
+    const capped = receivershipSpendDenial(state, cost, command.forceCostCents === undefined);
+    if (capped) {
+      return { ok: false, reason: capped };
+    }
     if (state.money < cost) {
       return { ok: false, reason: "not-enough-money" };
     }
@@ -414,6 +456,14 @@ const handlers: HandlerMap = {
     }
     const perCell = money(command.forceCostCentsPerCell ?? PATH_LIST_COST_CENTS);
     const total = money(perCell * applied.length);
+    const cappedPath = receivershipSpendDenial(
+      state,
+      total,
+      command.forceCostCentsPerCell === undefined,
+    );
+    if (cappedPath) {
+      return { ok: false, reason: cappedPath };
+    }
     if (state.money < total) {
       return { ok: false, reason: "not-enough-money" };
     }
@@ -519,6 +569,87 @@ const handlers: HandlerMap = {
       : { ok: false, reason: "nothing-to-do" };
   },
 
+  "finance/takeLoan": (state, command) => {
+    const product = LOAN_PRODUCTS[command.product] as (typeof LOAN_PRODUCTS)[LoanProductId] | undefined;
+    if (!product) {
+      return { ok: false, reason: "invalid" };
+    }
+    // Internal replays skip the gate: the loan already happened once.
+    if (command.forceId === undefined && offerBlockedReason(state, command.product) !== null) {
+      return { ok: false, reason: "invalid" };
+    }
+    const { loan } = openLoan(state, command.product, {
+      ...(command.forceId !== undefined ? { forceId: command.forceId } : {}),
+      ...(command.forceAprBps !== undefined ? { forceAprBps: command.forceAprBps } : {}),
+      ...(command.forceMinPaymentCents !== undefined
+        ? { forceMinPaymentCents: command.forceMinPaymentCents }
+        : {}),
+      ...(command.forceOpenedMonth !== undefined
+        ? { forceOpenedMonth: command.forceOpenedMonth }
+        : {}),
+    });
+    if (command.forceId === undefined) {
+      state.stats.loansTaken += 1;
+    }
+    return {
+      ok: true,
+      replay: {
+        type: "finance/takeLoan",
+        product: command.product,
+        forceId: loan.id,
+        forceAprBps: loan.aprBpsLocked,
+        forceMinPaymentCents: loan.minPaymentCents,
+        forceOpenedMonth: loan.openedMonth,
+      },
+    };
+  },
+
+  "finance/payLoan": (state, command) => {
+    const loan = state.finance.loans.find((l) => l.id === command.loanId);
+    if (!loan) {
+      return { ok: false, reason: "nothing-to-do" };
+    }
+    const requested =
+      command.amount === "payoff" ? payoffCents(loan) : Math.floor(command.amount);
+    if (!Number.isSafeInteger(requested) || requested <= 0) {
+      return { ok: false, reason: "invalid" };
+    }
+    if (state.money < Math.min(requested, payoffCents(loan))) {
+      return { ok: false, reason: "not-enough-money" };
+    }
+    applyLoanPayment(state, loan, requested);
+    if (loan.balanceCents <= 0 && loan.arrearsCents <= 0) {
+      state.finance.loans = state.finance.loans.filter((l) => l.id !== loan.id);
+      state.stats.loansPaidOff += 1;
+    }
+    // Paying off arrears releases repossessed trains immediately — never make
+    // the player wait a month for the fix they just bought.
+    if (state.finance.repossessedRideKey !== 0 && totalArrears(state) === 0) {
+      state.finance.repossessedRideKey = 0;
+    }
+    return { ok: true };
+  },
+
+  "marketing/start": (state, command) => {
+    const def = MARKETING_CAMPAIGNS[command.campaign] as
+      | (typeof MARKETING_CAMPAIGNS)[MarketingCampaignId]
+      | undefined;
+    if (!def || state.finance.receivership.active || campaignIsLive(state)) {
+      return { ok: false, reason: "invalid" };
+    }
+    if (state.money < def.costCents) {
+      return { ok: false, reason: "not-enough-money" };
+    }
+    state.money = subMoney(state.money, money(def.costCents));
+    state.ledger.expense.marketing += def.costCents;
+    const startTick = command.forceStartTick ?? state.tick;
+    startCampaign(state, command.campaign, startTick);
+    return {
+      ok: true,
+      replay: { type: "marketing/start", campaign: command.campaign, forceStartTick: startTick },
+    };
+  },
+
   "staff/hireMechanic": (state) => {
     const fee = money(MECHANIC_HIRE_FEE_CENTS);
     if (state.money < fee) {
@@ -578,6 +709,14 @@ const handlers: HandlerMap = {
       }
     }
     const cost = money(command.forceCostCents ?? family.baseCostCents + family.trainCostCents);
+    const cappedTrack = receivershipSpendDenial(
+      state,
+      cost,
+      command.forceCostCents === undefined,
+    );
+    if (cappedTrack) {
+      return { ok: false, reason: cappedTrack };
+    }
     if (state.money < cost) {
       return { ok: false, reason: "not-enough-money" };
     }
@@ -645,6 +784,14 @@ const handlers: HandlerMap = {
     }
     // Below-clearance non-station pieces still must not sit on claimed ground.
     const cost = money(command.forceCostCents ?? trackPieceCost(ride.family, command.kind));
+    const cappedPiece = receivershipSpendDenial(
+      state,
+      cost,
+      command.forceCostCents === undefined,
+    );
+    if (cappedPiece) {
+      return { ok: false, reason: cappedPiece };
+    }
     if (state.money < cost) {
       return { ok: false, reason: "not-enough-money" };
     }
@@ -732,6 +879,12 @@ const handlers: HandlerMap = {
       return { ok: false, reason: "invalid" };
     }
     const isTracked = "trainPhase" in ride;
+    if (
+      (command.to === "testing" || command.to === "open") &&
+      state.finance.repossessedRideKey === command.rideId
+    ) {
+      return { ok: false, reason: "repossessed" };
+    }
     if (command.to === "testing" || command.to === "open") {
       if (isTracked && !(ride).evaln.valid) {
         return { ok: false, reason: "invalid" };
@@ -829,6 +982,14 @@ const handlers: HandlerMap = {
       }
     }
     const cost = money(command.forceCostCents ?? def.costCents);
+    const cappedFlat = receivershipSpendDenial(
+      state,
+      cost,
+      command.forceCostCents === undefined,
+    );
+    if (cappedFlat) {
+      return { ok: false, reason: cappedFlat };
+    }
     if (state.money < cost) {
       return { ok: false, reason: "not-enough-money" };
     }

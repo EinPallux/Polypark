@@ -12,9 +12,11 @@ import { z } from "zod";
  *          ledger, stats, goals, xp.
  * v4 (M3): + rides (tracked coasters with piece lists + flat rides),
  *          mechanics, guest rideId lane.
+ * v5 (M4): + difficulty, finance (loans/credit/land value/campaign/
+ *          receivership), the ledger's financing section, district state.
  */
 
-export const SAVE_FORMAT_VERSION = 4;
+export const SAVE_FORMAT_VERSION = 5;
 
 export const RngStreamStateSchema = z.object({
   name: z.string(),
@@ -105,6 +107,49 @@ const FlatRideSchema = z.object({
   everOpened: z.boolean(),
 });
 
+const LoanSchema = z.object({
+  id: z.number().int().positive(),
+  product: z.enum(["piggy", "trust", "consortium"]),
+  principalCents: z.number().int(),
+  aprBpsLocked: z.number().int(),
+  termMonths: z.number().int(),
+  minPaymentCents: z.number().int(),
+  balanceCents: z.number().int(),
+  monthsPaid: z.number().int(),
+  arrearsCents: z.number().int(),
+  missedPayments: z.number().int(),
+  totalInterestPaidCents: z.number().int(),
+  openedMonth: z.number().int(),
+});
+
+const FinanceSchema = z.object({
+  nextLoanId: z.number().int().positive(),
+  loans: z.array(LoanSchema),
+  credit: z.object({
+    gradeIndex: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
+    cleanMonths: z.number().int(),
+    missedPaymentsTotal: z.number().int(),
+  }),
+  landValueCents: z.number().int(),
+  campaign: z
+    .object({
+      campaign: z.enum(["flyers", "online", "parade"]),
+      startedAtTick: z.number().int(),
+      endsAtTick: z.number().int(),
+    })
+    .nullable(),
+  receivership: z.object({
+    active: z.boolean(),
+    enteredMonth: z.number().int(),
+    monthsActive: z.number().int(),
+    sweptCents: z.number().int(),
+    comebackMonthsRemaining: z.number().int(),
+  }),
+  insolventMonths: z.number().int(),
+  repossessedRideKey: z.number().int(),
+  hardFail: z.boolean(),
+});
+
 const MechanicSchema = z.object({
   id: z.number().int().positive(),
   x: z.number(),
@@ -134,7 +179,11 @@ export const SimSnapshotSchema = z.object({
   ledger: z.object({
     income: z.record(z.string(), z.number()),
     expense: z.record(z.string(), z.number()),
+    financing: z.record(z.string(), z.number()),
   }),
+  difficulty: z.enum(["relaxed", "standard", "tycoon"]),
+  finance: FinanceSchema,
+  districts: z.object({ billboardCount: z.number().int() }).nullable(),
   stats: z.record(z.string(), z.number()),
   goals: z.object({
     active: z.array(z.object({ cardId: z.string(), baseValue: z.number() })),

@@ -36,11 +36,34 @@ import {
 import { tickJanitors } from "./staff/janitors";
 import { RIDE_STATE, tickMechanics, tickRides, type RideEvent } from "./rides/rides";
 import {
+  debtTotalCents,
+  financeMonthClose,
+  offerBlockedReason,
+  payoffCents,
+  quotedAprBps,
+  valuationOf,
+  RECEIVERSHIP_MAX_MONTHS,
+  type FinanceEvent,
+  type OfferBlockedReason,
+  type ParkValuation,
+} from "./economy/finance";
+import { campaignIsLive, tickMarketing } from "./economy/marketing";
+import { minPaymentCents } from "./economy/amortize";
+import { CREDIT_GRADES, LOAN_PRODUCT_LIST, type CreditGrade, type LoanProductId } from "@/content/loans";
+import { type MarketingCampaignId } from "@/content/marketing";
+import { type DifficultyId } from "@/content/difficulty";
+import {
   type TrackEvaluation,
   type TrackPieceState,
   type TrackPose,
 } from "./rides/trackGraph";
-import { goalProgress, levelForXp, tickGoals, type GoalProgress } from "./goals/goals";
+import {
+  goalProgress,
+  levelForXp,
+  refocusForReceivership,
+  tickGoals,
+  type GoalProgress,
+} from "./goals/goals";
 import { tickLedger } from "./economy/ledger";
 import {
   checkPaintPath,
@@ -124,6 +147,53 @@ export interface FlatRideView {
   readonly entranceZ: number;
 }
 
+export interface LoanView {
+  readonly id: number;
+  readonly product: LoanProductId;
+  readonly principalCents: number;
+  readonly balanceCents: number;
+  readonly aprBps: number;
+  readonly termMonths: number;
+  readonly monthsPaid: number;
+  readonly minPaymentCents: number;
+  readonly arrearsCents: number;
+  readonly missedPayments: number;
+  readonly monthsRemaining: number;
+  readonly totalInterestPaidCents: number;
+  /** Cash to close it today — payoff is free, no penalty. */
+  readonly payoffCents: number;
+}
+
+export interface LoanOfferView {
+  readonly product: LoanProductId;
+  readonly principalCents: number;
+  readonly termMonths: number;
+  readonly aprBps: number;
+  readonly minPaymentCents: number;
+  readonly originationFeeCents: number;
+  readonly blocked: OfferBlockedReason | null;
+}
+
+export interface FinanceView {
+  readonly valuation: ParkValuation;
+  readonly loans: readonly LoanView[];
+  readonly offers: readonly LoanOfferView[];
+  readonly creditGrade: CreditGrade;
+  readonly monthsToNextGrade: number;
+  readonly campaign: MarketingCampaignId | null;
+  readonly campaignEndsAtTick: number | null;
+  readonly receivership: {
+    readonly active: boolean;
+    readonly monthsActive: number;
+    readonly monthsRemaining: number;
+    readonly sweptCents: number;
+    readonly comebackMonthsRemaining: number;
+  };
+  readonly insolventMonths: number;
+  readonly repossessedRideKey: number;
+  readonly difficulty: DifficultyId;
+}
+
 /** Live read-only views into the guest SoA for the crowd renderer (zero-copy). */
 export interface GuestRenderView {
   readonly count: number;
@@ -151,6 +221,10 @@ export interface HudView {
   readonly xp: number;
   readonly level: number;
   readonly goals: readonly GoalProgress[];
+  readonly receivershipActive: boolean;
+  readonly debtCents: number;
+  readonly creditGrade: CreditGrade;
+  readonly activeCampaign: MarketingCampaignId | null;
 }
 
 export interface SimFacade {
@@ -187,6 +261,7 @@ export interface SimFacade {
     kind: TrackKind,
     flipped: boolean,
   ): { reason: CommandFailure | null; preview: TrackEvaluation | null };
+  finance(): FinanceView;
 }
 
 export interface CreateSimOptions {
@@ -195,6 +270,52 @@ export interface CreateSimOptions {
   readonly site: SiteDescriptor;
   readonly pieceDefs: readonly SimPieceDef[];
   readonly resumeFrom?: SimStateSnapshot;
+  readonly difficulty?: DifficultyId;
+  readonly startingCashCents?: number;
+  readonly hardFail?: boolean;
+}
+
+/** Translate a finance module event into the public SimEvent union. */
+function emitFinanceEvent(
+  events: { emit(event: SimEvent): void },
+  financeEvent: FinanceEvent,
+): void {
+  switch (financeEvent.kind) {
+    case "loanTaken":
+      events.emit({
+        type: "finance/loanTaken",
+        product: financeEvent.product,
+        amountCents: financeEvent.amountCents,
+      });
+      return;
+    case "loanPaidOff":
+      events.emit({ type: "finance/loanPaidOff", product: financeEvent.product });
+      return;
+    case "paymentMissed":
+      events.emit({ type: "finance/paymentMissed", amountCents: financeEvent.amountCents });
+      return;
+    case "creditChanged":
+      events.emit({
+        type: "finance/creditChanged",
+        grade: CREDIT_GRADES[financeEvent.gradeIndex] ?? "C",
+      });
+      return;
+    case "collections":
+      events.emit({ type: "finance/collections", rideKey: financeEvent.rideKey });
+      return;
+    case "repossessionCleared":
+      events.emit({ type: "finance/repossessionCleared", rideKey: financeEvent.rideKey });
+      return;
+    case "receivershipEntered":
+      events.emit({ type: "finance/receivershipEntered" });
+      return;
+    case "receivershipExited":
+      events.emit({ type: "finance/receivershipExited", settled: financeEvent.settled });
+      return;
+    case "campaignEnded":
+      events.emit({ type: "marketing/campaignEnded", campaign: financeEvent.campaign });
+      return;
+  }
 }
 
 export function createSim(options: CreateSimOptions): SimFacade {
@@ -205,6 +326,13 @@ export function createSim(options: CreateSimOptions): SimFacade {
         options.parkName ?? "My Polypark",
         options.site,
         options.pieceDefs,
+        {
+          ...(options.difficulty ? { difficulty: options.difficulty } : {}),
+          ...(options.startingCashCents !== undefined
+            ? { startingCashCents: options.startingCashCents }
+            : {}),
+          ...(options.hardFail !== undefined ? { hardFail: options.hardFail } : {}),
+        },
       );
   const bus = createCommandBus();
   const events = createEventCollector();
@@ -248,9 +376,25 @@ export function createSim(options: CreateSimOptions): SimFacade {
             events.emit({ type: "park/levelUp", level: after });
           }
         }
-        const report = tickLedger(state);
-        if (report) {
-          events.emit({ type: "park/monthReport", report });
+        const financeEvents: FinanceEvent[] = [];
+        tickMarketing(state, financeEvents);
+        const closed = tickLedger(state, financeEvents);
+        if (closed) {
+          // Finance closes AFTER the ledger: the sweep and the credit ladder
+          // both read the report's operating net.
+          const outcome = financeMonthClose(
+            state,
+            closed.report,
+            closed.missedPayment,
+            financeEvents,
+          );
+          if (outcome.receivershipEntered) {
+            refocusForReceivership(state);
+          }
+          events.emit({ type: "park/monthReport", report: closed.report });
+        }
+        for (const financeEvent of financeEvents) {
+          emitFinanceEvent(events, financeEvent);
         }
       }
     },
@@ -314,6 +458,63 @@ export function createSim(options: CreateSimOptions): SimFacade {
         xp: state.xp,
         level: levelForXp(state.xp),
         goals: goalProgress(state),
+        receivershipActive: state.finance.receivership.active,
+        debtCents: debtTotalCents(state),
+        creditGrade: CREDIT_GRADES[state.finance.credit.gradeIndex] ?? "C",
+        activeCampaign: campaignIsLive(state) ? state.finance.campaign!.campaign : null,
+      };
+    },
+    finance: () => {
+      const finance = state.finance;
+      const receivership = finance.receivership;
+      return {
+        valuation: valuationOf(state, version),
+        loans: finance.loans.map((loan) => ({
+          id: loan.id,
+          product: loan.product,
+          principalCents: loan.principalCents,
+          balanceCents: loan.balanceCents,
+          aprBps: loan.aprBpsLocked,
+          termMonths: loan.termMonths,
+          monthsPaid: loan.monthsPaid,
+          minPaymentCents: loan.minPaymentCents,
+          arrearsCents: loan.arrearsCents,
+          missedPayments: loan.missedPayments,
+          monthsRemaining: Math.max(0, loan.termMonths - loan.monthsPaid),
+          totalInterestPaidCents: loan.totalInterestPaidCents,
+          payoffCents: payoffCents(loan),
+        })),
+        offers: LOAN_PRODUCT_LIST.map((product) => {
+          const apr = quotedAprBps(state, product.id);
+          return {
+            product: product.id,
+            principalCents: product.principalCents,
+            termMonths: product.termMonths,
+            aprBps: apr,
+            minPaymentCents: minPaymentCents(product.principalCents, apr, product.termMonths),
+            originationFeeCents: Math.round(
+              (product.principalCents * product.originationBps) / 10_000,
+            ),
+            blocked: offerBlockedReason(state, product.id),
+          };
+        }),
+        creditGrade: CREDIT_GRADES[finance.credit.gradeIndex] ?? "C",
+        monthsToNextGrade:
+          finance.credit.gradeIndex === 0 ? 0 : 6 - finance.credit.cleanMonths,
+        campaign: campaignIsLive(state) ? finance.campaign!.campaign : null,
+        campaignEndsAtTick: campaignIsLive(state) ? finance.campaign!.endsAtTick : null,
+        receivership: {
+          active: receivership.active,
+          monthsActive: receivership.monthsActive,
+          monthsRemaining: receivership.active
+            ? Math.max(0, RECEIVERSHIP_MAX_MONTHS - receivership.monthsActive)
+            : 0,
+          sweptCents: receivership.sweptCents,
+          comebackMonthsRemaining: receivership.comebackMonthsRemaining,
+        },
+        insolventMonths: finance.insolventMonths,
+        repossessedRideKey: finance.repossessedRideKey,
+        difficulty: state.difficulty,
       };
     },
     ridesView: () => {

@@ -1,8 +1,25 @@
-import { addMoney, money, subMoney } from "@/shared/money";
 import { FLAT_RIDES } from "@/content/rides";
 import { TRACK_FAMILIES } from "@/content/track";
 import { type SimState } from "../state";
 import { TICKS_PER_GAME_MONTH } from "../core/loop";
+import { accrueFinanceCharges, type FinanceEvent } from "./finance";
+import {
+  addExpense,
+  createLedger,
+  type MonthlyReport,
+} from "./ledgerCore";
+
+export {
+  addExpense,
+  addFinancing,
+  addIncome,
+  createLedger,
+  type ExpenseCategory,
+  type FinancingCategory,
+  type IncomeCategory,
+  type Ledger,
+  type MonthlyReport,
+} from "./ledgerCore";
 
 /** Monthly ride upkeep (per-piece for coasters, flat per GAME_BALANCE §5). */
 function rideUpkeepCentsOf(state: SimState): number {
@@ -16,50 +33,18 @@ function rideUpkeepCentsOf(state: SimState): number {
   return total;
 }
 
-/**
- * Monthly income/expense ledger (GAME_DESIGN §14). Categories accumulate in
- * cents; the month closes on the tick boundary — wages and upkeep post, a
- * MonthlyReport is emitted, and the accumulators reset.
- */
-export type IncomeCategory = "entry" | "food" | "drink" | "facility" | "ride";
-export type ExpenseCategory = "goods" | "wages" | "upkeep" | "construction";
-
-export interface Ledger {
-  income: Record<IncomeCategory, number>;
-  expense: Record<ExpenseCategory, number>;
-}
-
-export function createLedger(): Ledger {
-  return {
-    income: { entry: 0, food: 0, drink: 0, facility: 0, ride: 0 },
-    expense: { goods: 0, wages: 0, upkeep: 0, construction: 0 },
-  };
-}
-
-export function addIncome(state: SimState, category: IncomeCategory, cents: number): void {
-  state.ledger.income[category] += cents;
-  state.money = addMoney(state.money, money(cents));
-}
-
-export function addExpense(state: SimState, category: ExpenseCategory, cents: number): void {
-  state.ledger.expense[category] += cents;
-  state.money = subMoney(state.money, money(cents));
-}
-
-export interface MonthlyReport {
-  readonly month: number;
-  readonly income: Record<IncomeCategory, number>;
-  readonly expense: Record<ExpenseCategory, number>;
-  readonly netCents: number;
-  readonly guestsVisited: number;
-  readonly endCashCents: number;
-}
-
 const JANITOR_WAGE_CENTS = 620_00; // GAME_BALANCE §7
 const MECHANIC_WAGE_CENTS = 950_00; // GAME_BALANCE §7
 
-/** Returns a report exactly on month boundaries, else null. */
-export function tickLedger(state: SimState): MonthlyReport | null {
+/**
+ * Returns a report exactly on month boundaries, else null. `financeEvents`
+ * collects anything the finance charges raised (missed payments, payoffs) so
+ * the facade can surface them without the ledger knowing about the event bus.
+ */
+export function tickLedger(
+  state: SimState,
+  financeEvents: FinanceEvent[] = [],
+): { report: MonthlyReport; missedPayment: boolean } | null {
   if (state.tick === 0 || state.tick % TICKS_PER_GAME_MONTH !== 0) {
     return null;
   }
@@ -80,9 +65,12 @@ export function tickLedger(state: SimState): MonthlyReport | null {
   if (rideUpkeep > 0) {
     addExpense(state, "upkeep", rideUpkeep);
   }
+  // Interest, scheduled payments and late fees land inside the closing month.
+  const missedPayment = accrueFinanceCharges(state, financeEvents);
 
   const income = { ...state.ledger.income };
   const expense = { ...state.ledger.expense };
+  const financing = { ...state.ledger.financing };
   const totalIncome = Object.values(income).reduce((a, b) => a + b, 0);
   const totalExpense = Object.values(expense).reduce((a, b) => a + b, 0);
   const net = totalIncome - totalExpense;
@@ -94,11 +82,14 @@ export function tickLedger(state: SimState): MonthlyReport | null {
     month: state.monthNumber,
     income,
     expense,
+    financing,
     netCents: net,
+    cashDeltaCents:
+      net + financing.borrowed + financing.settlement - financing.principalRepaid,
     guestsVisited: state.stats.guestsWelcomed - state.lastMonthGuests,
     endCashCents: state.money,
   };
   state.lastMonthGuests = state.stats.guestsWelcomed;
   state.ledger = createLedger();
-  return report;
+  return { report, missedPayment };
 }

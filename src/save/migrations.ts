@@ -11,6 +11,54 @@ export type Migration = (raw: Record<string, unknown>) => Record<string, unknown
 
 /** Keyed by the version the migration upgrades FROM. */
 export const MIGRATIONS: Readonly<Record<number, Migration>> = {
+  // v4 (M3) → v5 (M4): no economy layer existed — every park was Standard,
+  // debt-free, and owned only its home plot.
+  4: (raw) => {
+    const sim = (raw["sim"] ?? {}) as Record<string, unknown>;
+    const ledger = (sim["ledger"] ?? {}) as Record<string, unknown>;
+    const expense = (ledger["expense"] ?? {}) as Record<string, unknown>;
+    const stats = (sim["stats"] ?? {}) as Record<string, unknown>;
+    return {
+      ...raw,
+      sim: {
+        ...sim,
+        difficulty: "standard",
+        finance: {
+          nextLoanId: 1,
+          loans: [],
+          credit: { gradeIndex: 2, cleanMonths: 0, missedPaymentsTotal: 0 },
+          landValueCents: 20_000_00,
+          campaign: null,
+          receivership: {
+            active: false,
+            enteredMonth: 0,
+            monthsActive: 0,
+            sweptCents: 0,
+            comebackMonthsRemaining: 0,
+          },
+          insolventMonths: 0,
+          repossessedRideKey: 0,
+          hardFail: false,
+        },
+        districts: null,
+        ledger: {
+          ...ledger,
+          expense: { marketing: 0, interest: 0, ...expense },
+          financing: { borrowed: 0, principalRepaid: 0, settlement: 0 },
+        },
+        // Spread defaults FIRST so real counters are never clobbered.
+        stats: {
+          loansTaken: 0,
+          loansPaidOff: 0,
+          campaignsRun: 0,
+          paymentsMissed: 0,
+          receiverships: 0,
+          repossessions: 0,
+          ...stats,
+        },
+      },
+    };
+  },
   // v3 (M2) → v4 (M3): rides did not exist yet — empty roster, no mechanics.
   3: (raw) => {
     const sim = (raw["sim"] ?? {}) as Record<string, unknown>;
