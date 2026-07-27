@@ -280,9 +280,32 @@ double‑penalties forbids double‑rewards the same way.
 | Refurb subsidy | 5 | 4 mo | Next refurb 50% off, 1 month window |
 | Coaster‑of‑month | 4 | 6 mo | Submit best track: E≥6.5 → +0.2★, 🎟×2 |
 
-Scheduled **inspection** every 3 months ±2 weeks (§2 spot‑check odds on top): score =
+**Shipped in M4:** VIP critic · Influencer swarm · Breakdown streak · Litter wave · Sponsor
+offer · Tax audit · Coaster‑of‑month. Rain/Storm/Heatwave moved to the weather chain (§8.1a).
+Four cards wait on systems that do not exist yet and are named in ROADMAP M5 — Vandal night
+(damaged‑prop variants), Hygiene scare (per‑shop cleanliness), Lost kid (camera‑ping
+interaction), Refurb subsidy (`ride/refurbish`). A card that fires with no visible effect is
+worse than no card, so none of the four ships early.
+
+`eventsPerMonth` is an **expectation, not a count**: the whole part always draws, the fraction
+is a coin flip, so the long‑run average sits exactly on the §2 table. Cooldowns and
+prerequisites can only pull the realised rate *below* it, never above — asserted over 4,000
+months per difficulty. The deck goes silent during Receivership: it is a rescue, not a pile‑on,
+and the recovery chain has to stay winnable (ADR‑15).
+
+Scheduled **inspection** every 3 months ±1 month (§2 spot‑check odds on top): score =
 avg reliability (40%) + First Aid coverage (20%) + path crowding (20%) + citation history (20%);
-pass ≥70 → +0.1★; fail → $2,500 fine + worst ride closed until repaired + Care −10 for a month.
+pass ≥70 → +0.1★; fail → $2,500 fine + worst ride closed until the player reopens it + Care −10
+for a month (as decaying citations, so repeated failures cannot stack into a floor).
+
+> **Jitter granularity.** The doc's original "±2 weeks" cannot be expressed: inspections resolve
+> at month close, so the month is the smallest addressable unit and ±half a month rounds to
+> exactly zero — a perfectly predictable schedule, which is the one thing the jitter exists to
+> prevent. ±1 whole month is the nearest honest reading (inspections land every 2–4 months).
+>
+> **First Aid coverage** is 20% of the score and First Aid does not exist yet, so that share is
+> scored from mechanic coverage — the nearest shipped proxy for "this park can look after
+> people". ROADMAP M5 swaps it when the building lands.
 
 ### 8.2 Loans (offers scale with credit grade A–E)
 

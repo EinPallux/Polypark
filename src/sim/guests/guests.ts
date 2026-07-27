@@ -15,6 +15,7 @@ import {
 import { archetypeWeights, marketingMult } from "../economy/marketing";
 import { ratingMult } from "../rating/rating";
 import { weatherArrivalsMult, weatherThirstMult } from "../weather/weather";
+import { eventArrivalsMult, eventLitterMult } from "../events/effects";
 
 /**
  * The guest simulation (GAME_DESIGN §12): SoA typed arrays at a hard cap,
@@ -282,7 +283,8 @@ export function arrivalsPerMinute(state: SimState): number {
     elasticity *
     marketingMult(state) *
     ratingMult(state) *
-    weatherArrivalsMult(state)
+    weatherArrivalsMult(state) *
+    eventArrivalsMult(state)
   );
 }
 
@@ -660,7 +662,10 @@ function finishServing(state: SimState, slot: number): void {
     think(g, slot, "thought.relieved");
   }
   // Litter happens a few steps later, on a path cell near the shop.
-  if (def.litterChance > 0 && state.rng.guests.chance(def.litterChance)) {
+  // A litter wave or an influencer swarm makes guests messier — one roll,
+  // scaled, rather than a second source of litter nobody can see the cause of.
+  const litterChance = Math.min(1, def.litterChance * eventLitterMult(state));
+  if (litterChance > 0 && state.rng.guests.chance(litterChance)) {
     const cell = guestCell(state, slot);
     state.litter.push({
       id: state.stats.litterSpawned + 1,

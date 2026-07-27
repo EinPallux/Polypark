@@ -258,6 +258,15 @@ export const useGame = create<GameState>()(
           get().pushToast("good", t("ride.repairedToast"));
         } else if (event.type === "ride/testPassed") {
           get().pushToast("good", t("ride.testPassedToast"));
+        } else if (event.type === "event/drawn") {
+          get().pushToast(
+            "neutral",
+            t("event.drawnToast", { name: t(`event.${event.card}.name` as never) }),
+          );
+        } else if (event.type === "inspection/passed") {
+          get().pushToast("good", t("inspection.passedToast", { score: event.score }));
+        } else if (event.type === "inspection/failed") {
+          get().pushToast("bad", t("inspection.failedToast", { score: event.score }));
         } else if (event.type === "weather/changed") {
           // A storm that silently shuts the coasters would read as a bug, so
           // the closure (and the reopening) is always spoken aloud.

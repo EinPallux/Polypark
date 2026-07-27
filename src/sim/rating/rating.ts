@@ -1,6 +1,7 @@
 import { FLAT_RIDES } from "@/content/rides";
 import { TRACK_FAMILIES } from "@/content/track";
 import { SHOP_DEFS } from "@/content/shops";
+import { eventWonderPenalty } from "../events/effects";
 import { type SimState } from "../state";
 import { GAME_SECONDS_PER_TICK, TICKS_PER_GAME_MONTH } from "../core/loop";
 import { RIDE_STATE } from "../rides/rides";
@@ -314,6 +315,7 @@ export const RATING_CAUSE_IDS = [
   "care.restrooms",
   "care.citations",
   "wonder.bare",
+  "wonder.sponsored",
   "wonder.samey",
   "flow.queues",
   "flow.crowded",
@@ -568,11 +570,17 @@ function wonderScore(state: SimState): SubScore {
   // Terrain views: the share of path that runs above the site's water level.
   const viewScore = 60;
 
+  // A sponsor's ride wrap pays well and looks cheap — the Wonder cost is the
+  // whole trade, so it comes off the top rather than hiding in a sub-term.
+  const sponsorPenalty = eventWonderPenalty(state);
   const score = clamp(
-    W_DENSITY * densityScore + W_VARIETY * varietyScore + W_VIEW * viewScore,
+    W_DENSITY * densityScore + W_VARIETY * varietyScore + W_VIEW * viewScore - sponsorPenalty,
     0,
     100,
   );
+  if (sponsorPenalty > 0) {
+    causes.push({ cause: "wonder.sponsored", magnitude: sponsorPenalty });
+  }
   if (densityScore < 50) {
     causes.push({ cause: "wonder.bare", magnitude: Math.round(50 - densityScore) });
   }

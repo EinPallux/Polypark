@@ -41,6 +41,15 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
           hardFail: false,
         },
         districts: null,
+        // No deck has ever been dealt to a v4 park. First inspection is a full
+        // interval from where the park stands, never immediately on load.
+        // why: literals — a migration is a frozen snapshot (TECH §8).
+        deck: {
+          lastDrawnMonth: {},
+          active: [],
+          nextInspectionMonth: Number(sim["monthNumber"] ?? 0) + 3,
+          sponsorUntilDay: -1,
+        },
         // A v4 park has no sky yet. Start it clear, and set dayIndex from the
         // tick it is already at so the chain resumes today instead of
         // fast-forwarding every day the park has ever run.
@@ -77,7 +86,8 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
         },
         ledger: {
           ...ledger,
-          expense: { marketing: 0, interest: 0, ...expense },
+          income: { sponsor: 0, ...((ledger["income"] ?? {}) as Record<string, unknown>) },
+          expense: { marketing: 0, interest: 0, admin: 0, ...expense },
           financing: { borrowed: 0, principalRepaid: 0, settlement: 0 },
         },
         // Spread defaults FIRST so real counters are never clobbered.

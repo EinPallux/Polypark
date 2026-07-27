@@ -6,14 +6,15 @@ import { type SimState } from "../state";
  * cents; the month closes on the tick boundary — wages and upkeep post, a
  * MonthlyReport is emitted, and the accumulators reset.
  */
-export type IncomeCategory = "entry" | "food" | "drink" | "facility" | "ride";
+export type IncomeCategory = "entry" | "food" | "drink" | "facility" | "ride" | "sponsor";
 export type ExpenseCategory =
   | "goods"
   | "wages"
   | "upkeep"
   | "construction"
   | "marketing"
-  | "interest";
+  | "interest"
+  | "admin";
 /**
  * Financing moves cash without being income or expense: borrowing is not
  * profit and repaying principal is not a cost. Keeping it in its own section
@@ -29,8 +30,16 @@ export interface Ledger {
 
 export function createLedger(): Ledger {
   return {
-    income: { entry: 0, food: 0, drink: 0, facility: 0, ride: 0 },
-    expense: { goods: 0, wages: 0, upkeep: 0, construction: 0, marketing: 0, interest: 0 },
+    income: { entry: 0, food: 0, drink: 0, facility: 0, ride: 0, sponsor: 0 },
+    expense: {
+      goods: 0,
+      wages: 0,
+      upkeep: 0,
+      construction: 0,
+      marketing: 0,
+      interest: 0,
+      admin: 0,
+    },
     financing: { borrowed: 0, principalRepaid: 0, settlement: 0 },
   };
 }

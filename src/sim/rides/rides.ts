@@ -1,5 +1,6 @@
 import { FLAT_RIDES, type FlatRideId } from "@/content/rides";
 import { TRACK_FAMILIES, type TrackFamilyId } from "@/content/track";
+import { eventMtbfMult } from "../events/effects";
 import { type SimState } from "../state";
 import { EMOTE, GUEST_STATE } from "../guests/emotes";
 import { addIncome } from "../economy/ledger";
@@ -218,9 +219,16 @@ function boardFromQueue(
   }
 }
 
-function rollBreakdown(state: SimState, baseMtbf: number, cycleCount: number): boolean {
-  // Difficulty scales reliability in exactly one place (GAME_BALANCE §2).
-  const mtbf = baseMtbf * state.difficultyMods.breakdownMtbfMult;
+function rollBreakdown(
+  state: SimState,
+  baseMtbf: number,
+  cycleCount: number,
+  rideKey: number,
+): boolean {
+  // Difficulty scales reliability in exactly one place (GAME_BALANCE §2); a
+  // breakdown-streak card scales this one ride's MTBF on top for its week.
+  const mtbf =
+    baseMtbf * state.difficultyMods.breakdownMtbfMult * eventMtbfMult(state, rideKey);
   const age = 1 + cycleCount / 600;
   const mechanics = state.mechanics.length;
   const ridesTotal = state.rides.tracked.size + state.rides.flat.size;
@@ -322,7 +330,7 @@ function tickTrackedRide(state: SimState, ride: TrackedRide, events: RideEvent[]
       }
       return;
     }
-    if (rollBreakdown(state, family.breakdownMtbfCycles, ride.cycleCount)) {
+    if (rollBreakdown(state, family.breakdownMtbfCycles, ride.cycleCount, ride.id)) {
       ride.state = RIDE_STATE.broken;
       ride.breakdownTicks = 0;
       state.stats.breakdowns += 1;
@@ -363,7 +371,7 @@ function tickFlatRide(state: SimState, ride: FlatRide, events: RideEvent[]): voi
       events.push({ kind: "testPassed", rideKey: -ride.id });
       return;
     }
-    if (rollBreakdown(state, def.mtbfCycles, ride.cycleCount)) {
+    if (rollBreakdown(state, def.mtbfCycles, ride.cycleCount, -ride.id)) {
       ride.state = RIDE_STATE.broken;
       ride.breakdownTicks = 0;
       state.stats.breakdowns += 1;

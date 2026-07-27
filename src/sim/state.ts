@@ -33,6 +33,7 @@ import { type FlatRide, type Mechanic, type TrackedRide } from "./rides/rides";
 import { createFinanceState, type FinanceState } from "./economy/finance";
 import { createRatingState, type RatingState } from "./rating/rating";
 import { createWeatherState, type WeatherState } from "./weather/weather";
+import { createDeckState, type DeckState } from "./events/effects";
 import {
   DEFAULT_DIFFICULTY,
   DIFFICULTY_MODS,
@@ -131,6 +132,7 @@ export interface SimState {
   finance: FinanceState;
   rating: RatingState;
   weather: WeatherState;
+  deck: DeckState;
   /** District state (M4 districts subsystem); null until a plot is bought. */
   districts: { billboardCount: number } | null;
   ledger: Ledger;
@@ -178,6 +180,7 @@ export interface SimStateSnapshot {
   readonly finance: Omit<FinanceState, "valuationCacheKey" | "valuationCache">;
   readonly rating: RatingState;
   readonly weather: WeatherState;
+  readonly deck: DeckState;
   readonly districts: { readonly billboardCount: number } | null;
   readonly guests: {
     readonly count: number;
@@ -256,6 +259,7 @@ export function createInitialState(
     finance: createFinanceState(options?.hardFail ?? false),
     rating: createRatingState(),
     weather: createWeatherState(rng.weather),
+    deck: createDeckState(),
     districts: null,
     ledger: createLedger(),
     monthNumber: 0,
@@ -362,6 +366,7 @@ export function snapshotState(state: SimState): SimStateSnapshot {
     finance: snapshotFinance(state.finance),
     rating: structuredClone(state.rating),
     weather: structuredClone(state.weather),
+    deck: structuredClone(state.deck),
     districts: state.districts ? { ...state.districts } : null,
     guests: {
       count: n,
@@ -494,6 +499,7 @@ export function restoreState(
     },
     rating: structuredClone(snapshot.rating),
     weather: structuredClone(snapshot.weather),
+    deck: structuredClone(snapshot.deck),
     districts: snapshot.districts ? { ...snapshot.districts } : null,
     ledger: structuredClone(snapshot.ledger),
     monthNumber: snapshot.monthNumber,

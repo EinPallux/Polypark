@@ -50,6 +50,7 @@ import {
 import { campaignIsLive, tickMarketing } from "./economy/marketing";
 import { evaluateRating, tickRating, type RatingView } from "./rating/rating";
 import { tickWeather } from "./weather/weather";
+import { deckMonthClose } from "./events/deck";
 import { type WeatherId } from "@/content/weather";
 import { parkClock } from "./core/loop";
 export type { RatingView, RatingCause, RatingCauseId, SubScore } from "./rating/rating";
@@ -412,6 +413,21 @@ export function createSim(options: CreateSimOptions): SimFacade {
         tickMarketing(state, financeEvents);
         const closed = tickLedger(state, financeEvents);
         if (closed) {
+          // The deck draws on the month boundary, before the finance close, so
+          // a tax-audit fee or an inspection fine lands in the month that
+          // reported it rather than sliding into the next one.
+          for (const drawn of deckMonthClose(state)) {
+            events.emit(
+              drawn.kind === "event/drawn"
+                ? { type: "event/drawn", card: drawn.card! }
+                : {
+                    type: drawn.kind === "inspection/passed"
+                      ? "inspection/passed"
+                      : "inspection/failed",
+                    score: drawn.detail,
+                  },
+            );
+          }
           // Finance closes AFTER the ledger: the sweep and the credit ladder
           // both read the report's operating net.
           const outcome = financeMonthClose(

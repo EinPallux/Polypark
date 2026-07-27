@@ -4,6 +4,7 @@
  * calls into UI code (TECHNICAL_ARCHITECTURE §3).
  */
 import { type WeatherId } from "@/content/weather";
+import { type EventId } from "@/content/events";
 import { type MonthlyReport } from "../economy/ledger";
 import { type CreditGrade, type LoanProductId } from "@/content/loans";
 import { type MarketingCampaignId } from "@/content/marketing";
@@ -13,6 +14,9 @@ export type SimEvent =
   | { readonly type: "park/renamed"; readonly name: string }
   | { readonly type: "goal/completed"; readonly cardId: string; readonly rewardXp: number }
   | { readonly type: "park/levelUp"; readonly level: number }
+  | { readonly type: "event/drawn"; readonly card: EventId }
+  | { readonly type: "inspection/passed"; readonly score: number }
+  | { readonly type: "inspection/failed"; readonly score: number }
   | {
       readonly type: "weather/changed";
       readonly weather: WeatherId;

@@ -1,3 +1,4 @@
+import { EVENT_IDS } from "@/content/events";
 import { WEATHER_IDS } from "@/content/weather";
 import { z } from "zod";
 
@@ -198,6 +199,18 @@ export const SimSnapshotSchema = z.object({
     forecast: z.array(z.enum(WEATHER_IDS)),
     dayIndex: z.number().int(),
     closedByWeather: z.array(z.number().int()),
+  }),
+  deck: z.object({
+    lastDrawnMonth: z.record(z.string(), z.number()),
+    active: z.array(
+      z.object({
+        card: z.enum(EVENT_IDS),
+        untilDay: z.number().int(),
+        rideKey: z.number().int(),
+      }),
+    ),
+    nextInspectionMonth: z.number().int(),
+    sponsorUntilDay: z.number().int(),
   }),
   districts: z.object({ billboardCount: z.number().int() }).nullable(),
   stats: z.record(z.string(), z.number()),
