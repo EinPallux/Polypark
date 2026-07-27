@@ -77,7 +77,11 @@ function SubMeshInstances({
         scratchTilt.setFromUnitVectors(UP, scratchNormal);
         scratchQuaternion.premultiply(scratchTilt);
       }
-      scratchScale.setScalar(transform.scale);
+      if (typeof transform.scale === "number") {
+        scratchScale.setScalar(transform.scale);
+      } else {
+        scratchScale.set(transform.scale[0], transform.scale[1], transform.scale[2]);
+      }
       scratchMatrix.compose(scratchPosition, scratchQuaternion, scratchScale);
       // Instance world = placement × node (carries the dequantization scale).
       scratchMatrix.multiply(nodeMatrix);

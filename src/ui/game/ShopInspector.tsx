@@ -1,6 +1,11 @@
 "use client";
 
-import { SHOP_DEFS, SHOP_FAIR_PRICE_RATIO, SHOP_PRICE_CEILING_CENTS } from "@/content/shops";
+import {
+  SHOP_DEFS,
+  SHOP_FAIR_PRICE_RATIO,
+  SHOP_PRICE_CEILING_CENTS,
+  souvenirSecondItemChance,
+} from "@/content/shops";
 import { money, moneyToDollarString } from "@/shared/money";
 import { t } from "@/ui/i18n/t";
 import { SlabButton } from "@/ui/kit/SlabButton";
@@ -28,6 +33,7 @@ export function ShopInspector() {
   const buildMode = useGame((state) => state.buildMode);
   const selectShop = useGame((state) => state.selectShop);
   const setShopPrice = useGame((state) => state.setShopPrice);
+  const stars = useGame((state) => state.rating?.stars ?? 0);
 
   if (selectedShop === null || buildMode.kind !== "inspect") {
     return null;
@@ -113,6 +119,38 @@ export function ShopInspector() {
             </p>
           </>
         )}
+
+        {/* What this building does that a snack stall does not. Stated in the
+            panel rather than left to be inferred from watching guests — a
+            mechanic the player cannot see may as well not exist (pillar P5). */}
+        {def.capacity !== undefined ? (
+          <p data-testid="shop-seats" className="mt-2 font-body text-xs text-ink-500">
+            {t("shop.seats", {
+              seats: def.capacity,
+              taken: facade?.shopOccupancy(piece.id) ?? 0,
+            })}
+          </p>
+        ) : null}
+
+        {def.secondary ? (
+          <p className="mt-1 font-body text-xs text-ink-500">
+            {t(
+              def.secondary.amount >= 0 ? "shop.secondary.up" : "shop.secondary.down",
+              {
+                need: t(`need.${def.secondary.need}` as never),
+                amount: Math.abs(def.secondary.amount),
+              },
+            )}
+          </p>
+        ) : null}
+
+        {def.effect === "souvenir" ? (
+          <p className="mt-1 font-body text-xs text-ink-500">
+            {t("shop.souvenir", {
+              percent: Math.round(souvenirSecondItemChance(stars) * 100),
+            })}
+          </p>
+        ) : null}
 
         <p className="mt-2 font-body text-xs text-ink-500">
           {t("shop.upkeep", { amount: moneyToDollarString(money(def.upkeepCents)) })}

@@ -6,11 +6,20 @@
  */
 import Image from "next/image";
 import { t } from "@/ui/i18n/t";
-import { moneyToDollarString } from "@/shared/money";
+import { money, moneyToDollarString, type Money } from "@/shared/money";
 import { pieceCost } from "@/content/costs";
 import { SHOP_DEFS } from "@/content/shops";
+import { composedBuilding } from "@/content/buildings";
 import { unlockLevel } from "@/sim/api";
 import { useGame } from "./store";
+
+interface PaletteEntry {
+  readonly id: string;
+  readonly label: string;
+  /** Catalog piece whose thumbnail represents this entry. */
+  readonly thumbId: string;
+  readonly cost: Money;
+}
 
 export function BuildPalette({
   open,
@@ -30,11 +39,30 @@ export function BuildPalette({
     return null;
   }
   const unlocked = new Set(progression?.unlocked ?? []);
-  const pieces = catalog.pieces.filter((piece) =>
+  // The shop tab is driven by the shop roster rather than by the catalog: a
+  // composed building (Poly Bistro and friends) has no catalog row of its own,
+  // and filtering the catalog would silently drop every one of them. Scenery
+  // is still catalog-driven, since there the piece IS the thing.
+  const entries: PaletteEntry[] =
     category === "shops"
-      ? SHOP_DEFS[piece.id] !== undefined
-      : piece.category === "scenery" || piece.category === "prop",
-  );
+      ? Object.keys(SHOP_DEFS).map((id) => {
+          const composed = composedBuilding(id);
+          const piece = catalog.pieces.find((candidate) => candidate.id === id);
+          return {
+            id,
+            label: t(`shop.${id}` as never),
+            thumbId: composed ? composed.thumbPieceId : id,
+            cost: composed ? composed.buildCost : piece ? pieceCost(piece) : money(0),
+          };
+        })
+      : catalog.pieces
+          .filter((piece) => piece.category === "scenery" || piece.category === "prop")
+          .map((piece) => ({
+            id: piece.id,
+            label: piece.id.split("/")[1] ?? piece.id,
+            thumbId: piece.id,
+            cost: pieceCost(piece),
+          }));
 
   return (
     <div className="pointer-events-auto absolute bottom-24 left-1/2 z-20 w-[560px] max-w-[90vw] -translate-x-1/2">
@@ -52,31 +80,31 @@ export function BuildPalette({
           </button>
         </div>
         <div className="grid max-h-64 grid-cols-6 gap-2 overflow-y-auto pr-1">
-          {pieces.map((piece) => {
-            const selected = buildMode.kind === "place" && buildMode.pieceId === piece.id;
-            const shortName = piece.id.split("/")[1] ?? piece.id;
+          {entries.map((entry) => {
+            const selected = buildMode.kind === "place" && buildMode.pieceId === entry.id;
+            const shortName = entry.label;
             // Locked items stay visible, greyed, wearing the level they arrive
             // at. Hiding them would make the palette feel arbitrary; showing
             // them makes the track legible without opening a screen.
-            const needs = unlocked.has(piece.id) ? null : unlockLevel(piece.id);
+            const needs = unlocked.has(entry.id) ? null : unlockLevel(entry.id);
             const locked = needs !== null;
             return (
               <button
-                key={piece.id}
+                key={entry.id}
                 type="button"
-                data-testid={`palette-${piece.id.replace("/", "-")}`}
+                data-testid={`palette-${entry.id.replace("/", "-")}`}
                 disabled={locked}
                 aria-disabled={locked}
                 title={
                   locked
                     ? t("palette.locked", { level: needs })
-                    : `${shortName} · ${moneyToDollarString(pieceCost(piece))}`
+                    : `${shortName} · ${moneyToDollarString(entry.cost)}`
                 }
                 onClick={() => {
                   if (locked) {
                     return;
                   }
-                  setBuildMode({ kind: "place", pieceId: piece.id });
+                  setBuildMode({ kind: "place", pieceId: entry.id });
                   onClose();
                 }}
                 className={`relative flex flex-col items-center gap-1 bg-white/70 p-1.5 shadow-[var(--elev-slab)] transition-transform ${
@@ -87,14 +115,14 @@ export function BuildPalette({
               >
                 {locked ? (
                   <span
-                    data-testid={`palette-lock-${piece.id.replace("/", "-")}`}
+                    data-testid={`palette-lock-${entry.id.replace("/", "-")}`}
                     className="absolute top-0.5 right-0.5 bg-ink-900/85 px-1 font-ui text-[9px] font-bold text-gold-400"
                   >
                     L{needs}
                   </span>
                 ) : null}
                 <Image
-                  src={`/thumbs/${piece.id}.png`}
+                  src={`/thumbs/${entry.thumbId}.png`}
                   alt={shortName}
                   width={64}
                   height={64}

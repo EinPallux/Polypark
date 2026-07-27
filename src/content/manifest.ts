@@ -20,6 +20,9 @@ const nature = (piece: string): string => `Kenney_NatureKit/GLTF format/${piece}
 const coaster = (piece: string): string => `Kenney_CoasterKit/GLB format/${piece}`;
 const roads = (piece: string): string => `Kenney_CityKitRoads/GLB format/${piece}`;
 const suburban = (piece: string): string => `Kenney_CityKitSuburban/GLB format/${piece}`;
+const restaurant = (piece: string): string => `KayKit_RestaurantBits/gltf/${piece}`;
+const market = (piece: string): string => `Kenney_MiniMarketKit/GLB format/${piece}`;
+const commercial = (piece: string): string => `Kenney_CityKitCommercial/GLB format/${piece}`;
 
 export const PILOT_MANIFEST: readonly ManifestEntry[] = [
   // Paths (NatureKit ground_path* auto-tile family — GAME_DESIGN §8.1)
@@ -153,6 +156,40 @@ export const PILOT_MANIFEST: readonly ManifestEntry[] = [
   { id: "cubepets/cow", pack: "Kenney_CubePets", source: "Kenney_CubePets/GLB format/animal-cow.glb", category: "ride-part", kit: "cuddle", tags: ["pet", "ride"] },
   // Mechanic uniform (BlockyCharacters palette g — staff, TECH §6.3)
   { id: "blockycharacters/character-g", pack: "Kenney_BlockyCharacters", source: "Kenney_BlockyCharacters/GLB format/character-g.glb", category: "character", kit: "base", tags: ["staff"] },
+
+  // ——— M5: building compositions (GAME_DESIGN §10, the four §6 buildings) ———
+  // No pack piece is a restaurant, so Grill Garden / Sweet Scoop / Poly Bistro /
+  // Gift Kiosk are assembled the way the flat rides were (P7, ADR-16). These are
+  // `building-part`: consumed by src/content/buildings.ts, never placeable alone.
+  //
+  // RestaurantBits is authored on a 4 m module (walls 4×4, floors 4×4) against
+  // Polypark's 2 m cell — so the whole kit renders at scale 0.5 and one module
+  // lands on exactly one cell. Sizes were measured from the source accessors
+  // rather than guessed; see BUILDING_SCALE in buildings.ts.
+  { id: "restaurantbits/wall-orderwindow", pack: "KayKit_RestaurantBits", source: restaurant("wall_orderwindow_decorated.gltf"), category: "building-part", kit: "boardwalk", tags: ["shop", "counter"] },
+  { id: "restaurantbits/wall", pack: "KayKit_RestaurantBits", source: restaurant("wall_decorated.gltf"), category: "building-part", kit: "boardwalk", tags: ["shop", "wall"] },
+  { id: "restaurantbits/wall-doorway", pack: "KayKit_RestaurantBits", source: restaurant("wall_doorway.gltf"), category: "building-part", kit: "boardwalk", tags: ["shop", "wall"] },
+  { id: "restaurantbits/wall-window", pack: "KayKit_RestaurantBits", source: restaurant("wall_window_closed.gltf"), category: "building-part", kit: "boardwalk", tags: ["shop", "wall"] },
+  { id: "restaurantbits/counter", pack: "KayKit_RestaurantBits", source: restaurant("kitchencounter_straight_A_decorated.gltf"), category: "building-part", kit: "boardwalk", tags: ["shop", "counter"] },
+  { id: "restaurantbits/stove", pack: "KayKit_RestaurantBits", source: restaurant("stove_multi_decorated.gltf"), category: "building-part", kit: "boardwalk", tags: ["shop", "grill"] },
+  { id: "restaurantbits/extractorhood", pack: "KayKit_RestaurantBits", source: restaurant("extractorhood.gltf"), category: "building-part", kit: "boardwalk", tags: ["shop", "grill"] },
+  { id: "restaurantbits/oven", pack: "KayKit_RestaurantBits", source: restaurant("oven.gltf"), category: "building-part", kit: "boardwalk", tags: ["shop", "kitchen"] },
+  { id: "restaurantbits/floor", pack: "KayKit_RestaurantBits", source: restaurant("floor_kitchen.gltf"), category: "building-part", kit: "boardwalk", tags: ["shop", "floor"] },
+  { id: "restaurantbits/table-round", pack: "KayKit_RestaurantBits", source: restaurant("table_round_A.gltf"), category: "building-part", kit: "boardwalk", tags: ["shop", "seating"] },
+  { id: "restaurantbits/table-small", pack: "KayKit_RestaurantBits", source: restaurant("table_round_A_small_decorated.gltf"), category: "building-part", kit: "boardwalk", tags: ["shop", "seating"] },
+  { id: "restaurantbits/chair", pack: "KayKit_RestaurantBits", source: restaurant("chair_A.gltf"), category: "building-part", kit: "boardwalk", tags: ["shop", "seating"] },
+  { id: "restaurantbits/stool", pack: "KayKit_RestaurantBits", source: restaurant("chair_stool.gltf"), category: "building-part", kit: "boardwalk", tags: ["shop", "seating"] },
+  { id: "restaurantbits/menu", pack: "KayKit_RestaurantBits", source: restaurant("menu.gltf"), category: "building-part", kit: "boardwalk", tags: ["shop", "sign"] },
+  { id: "restaurantbits/jar", pack: "KayKit_RestaurantBits", source: restaurant("jar_A_large.gltf"), category: "building-part", kit: "boardwalk", tags: ["shop", "dressing"] },
+  { id: "restaurantbits/crate", pack: "KayKit_RestaurantBits", source: restaurant("crate_buns.gltf"), category: "building-part", kit: "boardwalk", tags: ["shop", "dressing"] },
+  // Retail + shade (Gift Kiosk and Sweet Scoop). MiniMarket/Commercial are
+  // authored near 1 u per module, so these ride closer to their native scale.
+  { id: "minimarket/cash-register", pack: "Kenney_MiniMarketKit", source: market("cash-register.glb"), category: "building-part", kit: "base", tags: ["shop", "retail"] },
+  { id: "minimarket/shelf-bags", pack: "Kenney_MiniMarketKit", source: market("shelf-bags.glb"), category: "building-part", kit: "base", tags: ["shop", "retail"] },
+  { id: "minimarket/shelf-boxes", pack: "Kenney_MiniMarketKit", source: market("shelf-boxes.glb"), category: "building-part", kit: "base", tags: ["shop", "retail"] },
+  { id: "minimarket/freezer", pack: "Kenney_MiniMarketKit", source: market("freezer.glb"), category: "building-part", kit: "base", tags: ["shop", "dessert"] },
+  { id: "commercial/awning", pack: "Kenney_CityKitCommercial", source: commercial("detail-awning-wide.glb"), category: "building-part", kit: "base", tags: ["shop", "shade"] },
+  { id: "commercial/parasol", pack: "Kenney_CityKitCommercial", source: commercial("detail-parasol-a.glb"), category: "building-part", kit: "base", tags: ["shop", "shade"] },
 ];
 
 /**

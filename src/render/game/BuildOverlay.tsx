@@ -2,10 +2,12 @@
 
 import { useMemo } from "react";
 import { DoubleSide } from "three";
+import { composedBuilding, type ComposedBuildingDef } from "@/content/buildings";
 import { CELL_SIZE_METERS } from "@/shared/grid";
 import { type Terrain } from "@/sim/api";
 import { useGame } from "@/ui/game/store";
-import { usePieceSubMeshes } from "./pieceMeshes";
+import { composedPartTransforms } from "./ComposedBuildings";
+import { usePieceSubMeshes, type PieceTransform } from "./pieceMeshes";
 
 /**
  * Build-mode-only feedback (GAME_DESIGN §8.1, "no visible grid outside build
@@ -72,6 +74,86 @@ function GhostPiece({ terrain, file }: { terrain: Terrain; file: string }) {
   );
 }
 
+/**
+ * Ghost for a composed building: the real parts, tinted, through the same
+ * transform the placed building will use. A silhouette or a single anchor mesh
+ * would have been cheaper, but the whole job of a ghost is to promise where
+ * things land — a preview that disagrees with the result teaches players to
+ * ignore it.
+ */
+function GhostComposed({ terrain, def }: { terrain: Terrain; def: ComposedBuildingDef }) {
+  const hover = useGame((state) => state.hover);
+  const rotation = useGame((state) => state.rotation);
+  const catalog = useGame((state) => state.catalog);
+  const byPiece = useMemo(
+    (): Map<string, PieceTransform[]> =>
+      hover
+        ? composedPartTransforms(def, hover.x, hover.z, rotation, terrain)
+        : new Map<string, PieceTransform[]>(),
+    [def, hover, rotation, terrain],
+  );
+  if (!hover || !catalog) {
+    return null;
+  }
+  const color = hover.valid ? "#37c871" : "#f0426c";
+  return (
+    <group>
+      {[...byPiece.entries()].map(([pieceId, transforms]) => {
+        const file = catalog.pieces.find((piece) => piece.id === pieceId)?.file;
+        return file ? (
+          <GhostPartMesh key={pieceId} file={file} transforms={transforms} color={color} />
+        ) : null;
+      })}
+    </group>
+  );
+}
+
+function GhostPartMesh({
+  file,
+  transforms,
+  color,
+}: {
+  file: string;
+  transforms: readonly PieceTransform[];
+  color: string;
+}) {
+  const subMeshes = usePieceSubMeshes(file);
+  return (
+    <>
+      {transforms.map((transform, i) => {
+        const scale: readonly [number, number, number] =
+          typeof transform.scale === "number"
+            ? [transform.scale, transform.scale, transform.scale]
+            : transform.scale;
+        return (
+          <group
+            key={i}
+            position={[transform.x, transform.y, transform.z]}
+            rotation={[0, transform.rotY, 0]}
+            scale={[scale[0], scale[1], scale[2]]}
+          >
+            {subMeshes.map((subMesh, index) => (
+              <mesh
+                key={index}
+                geometry={subMesh.geometry}
+                matrix={subMesh.nodeMatrix}
+                matrixAutoUpdate={false}
+              >
+                <meshStandardMaterial
+                  color={color}
+                  transparent
+                  opacity={0.55}
+                  depthWrite={false}
+                />
+              </mesh>
+            ))}
+          </group>
+        );
+      })}
+    </>
+  );
+}
+
 function LocalGrid({ terrain }: { terrain: Terrain }) {
   const hover = useGame((state) => state.hover);
   const points = useMemo(() => {
@@ -127,26 +209,39 @@ export function BuildOverlay({
   const buildMode = useGame((state) => state.buildMode);
   const hover = useGame((state) => state.hover);
   const pathDrag = useGame((state) => state.pathDrag);
+  const rotation = useGame((state) => state.rotation);
 
   if (buildMode.kind === "inspect") {
     return null;
   }
-  const ghostFile = buildMode.kind === "place" ? fileForPiece(buildMode.pieceId) : null;
+  const composed = buildMode.kind === "place" ? composedBuilding(buildMode.pieceId) : undefined;
+  const ghostFile =
+    buildMode.kind === "place" && !composed ? fileForPiece(buildMode.pieceId) : null;
+  // A multi-cell building highlights every cell it will claim, not just the one
+  // under the cursor — otherwise the player cannot see what they are about to
+  // cover until it is already there.
+  const footprint = composed
+    ? { w: rotation % 2 === 0 ? composed.footprint.w : composed.footprint.d,
+        d: rotation % 2 === 0 ? composed.footprint.d : composed.footprint.w }
+    : { w: 1, d: 1 };
 
   return (
     <group>
       <LocalGrid terrain={terrain} />
-      {hover ? (
-        <CellQuad
-          terrain={terrain}
-          x={hover.x}
-          z={hover.z}
-          color={
-            buildMode.kind === "bulldoze" ? "#f0426c" : hover.valid ? "#37c871" : "#f0426c"
-          }
-          opacity={0.4}
-        />
-      ) : null}
+      {hover
+        ? Array.from({ length: footprint.w * footprint.d }, (_, i) => (
+            <CellQuad
+              key={i}
+              terrain={terrain}
+              x={hover.x + (i % footprint.w)}
+              z={hover.z + Math.floor(i / footprint.w)}
+              color={
+                buildMode.kind === "bulldoze" ? "#f0426c" : hover.valid ? "#37c871" : "#f0426c"
+              }
+              opacity={0.4}
+            />
+          ))
+        : null}
       {pathDrag?.map((cell) => (
         <CellQuad
           key={`${cell.x}:${cell.z}`}
@@ -158,6 +253,7 @@ export function BuildOverlay({
         />
       ))}
       {ghostFile ? <GhostPiece terrain={terrain} file={ghostFile} /> : null}
+      {composed ? <GhostComposed terrain={terrain} def={composed} /> : null}
     </group>
   );
 }

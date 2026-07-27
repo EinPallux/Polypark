@@ -6,6 +6,7 @@ import { CELL_SIZE_METERS } from "@/shared/grid";
 import { useGame } from "@/ui/game/store";
 import { BuildOverlay } from "./BuildOverlay";
 import { CameraRig } from "./CameraRig";
+import { ComposedBuildings } from "./ComposedBuildings";
 import { FlatRides } from "./FlatRides";
 import { Guests } from "./Guests";
 import { PlacedPieces } from "./PlacedPieces";
@@ -67,6 +68,7 @@ export function GameCanvas() {
         <Water terrain={terrain} />
         <Scatter terrain={terrain} fileForPiece={fileForPiece} />
         <PlacedPieces terrain={terrain} fileForPiece={fileForPiece} />
+        <ComposedBuildings terrain={terrain} fileForPiece={fileForPiece} />
         <Tracks terrain={terrain} fileForPiece={fileForPiece} />
         <Trains terrain={terrain} />
         <FlatRides terrain={terrain} fileForPiece={fileForPiece} />

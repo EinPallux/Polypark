@@ -1474,6 +1474,64 @@
     {
       "aabb": {
         "max": [
+          0.4,
+          0.4,
+          0.248
+        ],
+        "min": [
+          -0.4,
+          0,
+          0.1
+        ]
+      },
+      "category": "building-part",
+      "file": "models/commercial/awning.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "commercial/awning",
+      "kit": "base",
+      "pack": "Kenney_CityKitCommercial",
+      "sizeBytes": 14220,
+      "source": "Kenney_CityKitCommercial/GLB format/detail-awning-wide.glb",
+      "tags": [
+        "shop",
+        "shade"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.173,
+          0.45,
+          0.2
+        ],
+        "min": [
+          -0.173,
+          0,
+          -0.2
+        ]
+      },
+      "category": "building-part",
+      "file": "models/commercial/parasol.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "commercial/parasol",
+      "kit": "base",
+      "pack": "Kenney_CityKitCommercial",
+      "sizeBytes": 15500,
+      "source": "Kenney_CityKitCommercial/GLB format/detail-parasol-a.glb",
+      "tags": [
+        "shop",
+        "shade"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
           0.625,
           2.01,
           0.705
@@ -1899,6 +1957,122 @@
       "tags": [
         "shop",
         "atm"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.45,
+          0.595,
+          0.45
+        ],
+        "min": [
+          -0.4,
+          0,
+          -0.4
+        ]
+      },
+      "category": "building-part",
+      "file": "models/minimarket/cash-register.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "minimarket/cash-register",
+      "kit": "base",
+      "pack": "Kenney_MiniMarketKit",
+      "sizeBytes": 16756,
+      "source": "Kenney_MiniMarketKit/GLB format/cash-register.glb",
+      "tags": [
+        "shop",
+        "retail"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.4,
+          0.35,
+          0.3
+        ],
+        "min": [
+          -0.4,
+          0,
+          -0.3
+        ]
+      },
+      "category": "building-part",
+      "file": "models/minimarket/freezer.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "minimarket/freezer",
+      "kit": "base",
+      "pack": "Kenney_MiniMarketKit",
+      "sizeBytes": 15856,
+      "source": "Kenney_MiniMarketKit/GLB format/freezer.glb",
+      "tags": [
+        "shop",
+        "dessert"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.4,
+          0.863,
+          0.35
+        ],
+        "min": [
+          -0.4,
+          0,
+          -0.35
+        ]
+      },
+      "category": "building-part",
+      "file": "models/minimarket/shelf-bags.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "minimarket/shelf-bags",
+      "kit": "base",
+      "pack": "Kenney_MiniMarketKit",
+      "sizeBytes": 28292,
+      "source": "Kenney_MiniMarketKit/GLB format/shelf-bags.glb",
+      "tags": [
+        "shop",
+        "retail"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.4,
+          0.85,
+          0.35
+        ],
+        "min": [
+          -0.4,
+          0,
+          -0.35
+        ]
+      },
+      "category": "building-part",
+      "file": "models/minimarket/shelf-boxes.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "minimarket/shelf-boxes",
+      "kit": "base",
+      "pack": "Kenney_MiniMarketKit",
+      "sizeBytes": 23628,
+      "source": "Kenney_MiniMarketKit/GLB format/shelf-boxes.glb",
+      "tags": [
+        "shop",
+        "retail"
       ]
     },
     {
@@ -2835,6 +3009,470 @@
       "tags": [
         "ride",
         "galleon"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.375,
+          1.208,
+          0.375
+        ],
+        "min": [
+          -0.375,
+          0,
+          -0.421
+        ]
+      },
+      "category": "building-part",
+      "file": "models/restaurantbits/chair.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "restaurantbits/chair",
+      "kit": "boardwalk",
+      "pack": "KayKit_RestaurantBits",
+      "sizeBytes": 34156,
+      "source": "KayKit_RestaurantBits/gltf/chair_A.gltf",
+      "tags": [
+        "shop",
+        "seating"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          1.006,
+          2.095,
+          1.263
+        ],
+        "min": [
+          -1,
+          0,
+          -1
+        ]
+      },
+      "category": "building-part",
+      "file": "models/restaurantbits/counter.glb",
+      "footprint": {
+        "d": 2,
+        "w": 1
+      },
+      "id": "restaurantbits/counter",
+      "kit": "boardwalk",
+      "pack": "KayKit_RestaurantBits",
+      "sizeBytes": 65604,
+      "source": "KayKit_RestaurantBits/gltf/kitchencounter_straight_A_decorated.gltf",
+      "tags": [
+        "shop",
+        "counter"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          1,
+          0.802,
+          1
+        ],
+        "min": [
+          -1,
+          0,
+          -1
+        ]
+      },
+      "category": "building-part",
+      "file": "models/restaurantbits/crate.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "restaurantbits/crate",
+      "kit": "boardwalk",
+      "pack": "KayKit_RestaurantBits",
+      "sizeBytes": 93056,
+      "source": "KayKit_RestaurantBits/gltf/crate_buns.gltf",
+      "tags": [
+        "shop",
+        "dressing"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          1,
+          4,
+          1.609
+        ],
+        "min": [
+          -1,
+          2,
+          0
+        ]
+      },
+      "category": "building-part",
+      "file": "models/restaurantbits/extractorhood.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "restaurantbits/extractorhood",
+      "kit": "boardwalk",
+      "pack": "KayKit_RestaurantBits",
+      "sizeBytes": 30440,
+      "source": "KayKit_RestaurantBits/gltf/extractorhood.gltf",
+      "tags": [
+        "shop",
+        "grill"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          2,
+          0.5,
+          2
+        ],
+        "min": [
+          -2,
+          0,
+          -2
+        ]
+      },
+      "category": "building-part",
+      "file": "models/restaurantbits/floor.glb",
+      "footprint": {
+        "d": 2,
+        "w": 2
+      },
+      "id": "restaurantbits/floor",
+      "kit": "boardwalk",
+      "pack": "KayKit_RestaurantBits",
+      "sizeBytes": 24660,
+      "source": "KayKit_RestaurantBits/gltf/floor_kitchen.gltf",
+      "tags": [
+        "shop",
+        "floor"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.25,
+          0.75,
+          0.25
+        ],
+        "min": [
+          -0.25,
+          0,
+          -0.25
+        ]
+      },
+      "category": "building-part",
+      "file": "models/restaurantbits/jar.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "restaurantbits/jar",
+      "kit": "boardwalk",
+      "pack": "KayKit_RestaurantBits",
+      "sizeBytes": 27036,
+      "source": "KayKit_RestaurantBits/gltf/jar_A_large.gltf",
+      "tags": [
+        "shop",
+        "dressing"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.25,
+          0.8,
+          0.15
+        ],
+        "min": [
+          -0.25,
+          0,
+          -0.15
+        ]
+      },
+      "category": "building-part",
+      "file": "models/restaurantbits/menu.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "restaurantbits/menu",
+      "kit": "boardwalk",
+      "pack": "KayKit_RestaurantBits",
+      "sizeBytes": 26244,
+      "source": "KayKit_RestaurantBits/gltf/menu.gltf",
+      "tags": [
+        "shop",
+        "sign"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          1,
+          2.02,
+          1.318
+        ],
+        "min": [
+          -1,
+          0,
+          -1.03
+        ]
+      },
+      "category": "building-part",
+      "file": "models/restaurantbits/oven.glb",
+      "footprint": {
+        "d": 2,
+        "w": 1
+      },
+      "id": "restaurantbits/oven",
+      "kit": "boardwalk",
+      "pack": "KayKit_RestaurantBits",
+      "sizeBytes": 46256,
+      "source": "KayKit_RestaurantBits/gltf/oven.gltf",
+      "tags": [
+        "shop",
+        "kitchen"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.375,
+          0.5,
+          0.375
+        ],
+        "min": [
+          -0.375,
+          0,
+          -0.375
+        ]
+      },
+      "category": "building-part",
+      "file": "models/restaurantbits/stool.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "restaurantbits/stool",
+      "kit": "boardwalk",
+      "pack": "KayKit_RestaurantBits",
+      "sizeBytes": 29504,
+      "source": "KayKit_RestaurantBits/gltf/chair_stool.gltf",
+      "tags": [
+        "shop",
+        "seating"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          1.2,
+          1.716,
+          1.258
+        ],
+        "min": [
+          -1,
+          0,
+          -1.03
+        ]
+      },
+      "category": "building-part",
+      "file": "models/restaurantbits/stove.glb",
+      "footprint": {
+        "d": 2,
+        "w": 2
+      },
+      "id": "restaurantbits/stove",
+      "kit": "boardwalk",
+      "pack": "KayKit_RestaurantBits",
+      "sizeBytes": 92256,
+      "source": "KayKit_RestaurantBits/gltf/stove_multi_decorated.gltf",
+      "tags": [
+        "shop",
+        "grill"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          1.5,
+          1,
+          1.5
+        ],
+        "min": [
+          -1.5,
+          0,
+          -1.5
+        ]
+      },
+      "category": "building-part",
+      "file": "models/restaurantbits/table-round.glb",
+      "footprint": {
+        "d": 2,
+        "w": 2
+      },
+      "id": "restaurantbits/table-round",
+      "kit": "boardwalk",
+      "pack": "KayKit_RestaurantBits",
+      "sizeBytes": 31100,
+      "source": "KayKit_RestaurantBits/gltf/table_round_A.gltf",
+      "tags": [
+        "shop",
+        "seating"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          0.75,
+          1.8,
+          0.75
+        ],
+        "min": [
+          -0.75,
+          0,
+          -0.75
+        ]
+      },
+      "category": "building-part",
+      "file": "models/restaurantbits/table-small.glb",
+      "footprint": {
+        "d": 1,
+        "w": 1
+      },
+      "id": "restaurantbits/table-small",
+      "kit": "boardwalk",
+      "pack": "KayKit_RestaurantBits",
+      "sizeBytes": 43668,
+      "source": "KayKit_RestaurantBits/gltf/table_round_A_small_decorated.gltf",
+      "tags": [
+        "shop",
+        "seating"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          2,
+          4,
+          2.662
+        ],
+        "min": [
+          -2.005,
+          0,
+          -0.25
+        ]
+      },
+      "category": "building-part",
+      "file": "models/restaurantbits/wall.glb",
+      "footprint": {
+        "d": 2,
+        "w": 2
+      },
+      "id": "restaurantbits/wall",
+      "kit": "boardwalk",
+      "pack": "KayKit_RestaurantBits",
+      "sizeBytes": 139700,
+      "source": "KayKit_RestaurantBits/gltf/wall_decorated.gltf",
+      "tags": [
+        "shop",
+        "wall"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          2,
+          4,
+          0.25
+        ],
+        "min": [
+          -2,
+          0,
+          -0.25
+        ]
+      },
+      "category": "building-part",
+      "file": "models/restaurantbits/wall-doorway.glb",
+      "footprint": {
+        "d": 1,
+        "w": 2
+      },
+      "id": "restaurantbits/wall-doorway",
+      "kit": "boardwalk",
+      "pack": "KayKit_RestaurantBits",
+      "sizeBytes": 29440,
+      "source": "KayKit_RestaurantBits/gltf/wall_doorway.gltf",
+      "tags": [
+        "shop",
+        "wall"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          2,
+          4,
+          0.45
+        ],
+        "min": [
+          -2,
+          0,
+          -0.45
+        ]
+      },
+      "category": "building-part",
+      "file": "models/restaurantbits/wall-orderwindow.glb",
+      "footprint": {
+        "d": 1,
+        "w": 2
+      },
+      "id": "restaurantbits/wall-orderwindow",
+      "kit": "boardwalk",
+      "pack": "KayKit_RestaurantBits",
+      "sizeBytes": 43104,
+      "source": "KayKit_RestaurantBits/gltf/wall_orderwindow_decorated.gltf",
+      "tags": [
+        "shop",
+        "counter"
+      ]
+    },
+    {
+      "aabb": {
+        "max": [
+          2,
+          4,
+          0.25
+        ],
+        "min": [
+          -2,
+          0,
+          -0.25
+        ]
+      },
+      "category": "building-part",
+      "file": "models/restaurantbits/wall-window.glb",
+      "footprint": {
+        "d": 1,
+        "w": 2
+      },
+      "id": "restaurantbits/wall-window",
+      "kit": "boardwalk",
+      "pack": "KayKit_RestaurantBits",
+      "sizeBytes": 30368,
+      "source": "KayKit_RestaurantBits/gltf/wall_window_closed.gltf",
+      "tags": [
+        "shop",
+        "wall"
       ]
     },
     {

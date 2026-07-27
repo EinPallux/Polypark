@@ -264,10 +264,42 @@ variants).
 > · **Info Kiosk** — free; widens how far guests will look for a shop (3 → 8 cells of reach),
 >   which is §6's wayfinding effect expressed as the search radius the sim actually has.
 >
-> **Grill Garden, Sweet Scoop, Poly Bistro and Gift Kiosk are NOT shipped**, and deliberately:
-> no pack piece is a restaurant, so they need real kit composition of the kind the flat rides
-> got. Shipping them as reskinned snack stalls would put four names on the menu with one
-> behaviour behind them.
+> **Grill Garden (L6) · Sweet Scoop (L4) · Poly Bistro (L13) · Gift Kiosk (L11) — shipped
+> (M5‑D)** as kit *compositions* (`src/content/buildings.ts`), the way the M3 flat rides were
+> built: no pack piece is a restaurant, so a restaurant is a parts list over pieces that are.
+> RestaurantBits is authored on a 4 m module against Polypark's 2 m cell, so the whole kit
+> renders at ×0.5 and one module lands on exactly one cell. Each carries a mechanic the three
+> M2 stalls do not have — that was the condition for shipping them at all:
+> · **Grill Garden** (3×2) — Hunger +70 **and Thirst −5**. Salt is what links the grill to the
+>   drinks stall instead of leaving every shop an independent vending machine. Measured: among
+>   guests who have actually eaten, average thirst runs 20–28 against a Snack Shack's 28–33.
+>   Across the *whole* park the −5 disappears into the base decay of the majority who never
+>   reached a counter, and the comparison flips seed to seed — so the test measures diners.
+> · **Sweet Scoop** (2×2) — Hunger +25 **and Fun +6**. A treat is a mood, not a meal.
+> · **Poly Bistro** (4×4) — Hunger +90, **Energy +20**, and the only building with **seats**:
+>   40 covers × 100 ticks (§6's "20 min seated"), so it turns over about a tenth of a snack
+>   stall for four times the margin — "high margin, low throughput" as arithmetic rather than
+>   as a blurb. It is also the park's **only source of Energy**; see the note below.
+> · **Gift Kiosk** (2×2) — Fun +8, and souvenirs. Rating scales the **basket**, not the price:
+>   every buyer takes one item at the price the player set, and the chance of a second runs 0
+>   at 1★ to 1 at 5★. A hidden multiplier on a number the player typed into the inspector
+>   would make the panel lie. Takings book to a new **`retail`** ledger category rather than
+>   hiding inside `facility` alongside restroom and cash‑machine fees.
+>
+> **Energy, and who is to blame for it.** Energy decays on a fixed clock (~950 ticks from
+> full) against a 1,200‑tick maximum stay, and until the Poly Bistro landed *nothing in the
+> game gave it back*. The guest loop treated any empty need as the park's failure, so a guest
+> who had simply been walking around for four hours left with an angry face and "That's it,
+> I'm leaving!" — a complaint the player could not act on, in a park that had done nothing
+> wrong. An empty Energy now reads as tired rather than let down; every other empty need still
+> earns the sour departure, because those the park really did fail to provide.
+>
+> The same rule governs the **thought log**. A tired guest looks for somewhere to sit and, if
+> there is nowhere, says nothing. Guests grumble about missing food, drink and restrooms —
+> what the park can provide from level one — but never "Nowhere to rest…", which below L13
+> would be a complaint about a building they have not been offered yet. Benches as a second,
+> free Energy source (GAME_DESIGN §10) stay deferred: they need a rest‑site concept distinct
+> from shops, and making a decorative prop charge upkeep would be a nasty surprise.
 
 Portion slider: ±30% price/satisfaction/cost linkage (M5). **"Fair price" hinting ships**:
 click a shop in inspect mode to price it, and the panel states what guests will wear.

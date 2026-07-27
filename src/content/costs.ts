@@ -1,4 +1,5 @@
 import { money, type Money } from "@/shared/money";
+import { COMPOSED_BUILDING_LIST } from "./buildings";
 import { type CatalogPiece } from "./schema";
 import { SHOP_DEFS } from "./shops";
 
@@ -37,11 +38,33 @@ export interface SimPieceDef {
   readonly cost: Money;
 }
 
+/**
+ * Every piece the sim can place: the catalog, plus the composed buildings.
+ *
+ * A composition has no catalog row of its own — it is a parts list over pieces
+ * that do — so it is appended here with its own footprint and price. The sim
+ * treats it as one ordinary placed piece with one id, one price and one
+ * footprint; only the renderer knows it is twenty-odd meshes.
+ *
+ * `building-part` pieces are filtered out: they exist to be composed and must
+ * never be placeable on their own, the same rule `ride-part` follows.
+ */
 export function toSimPieceDefs(pieces: readonly CatalogPiece[]): SimPieceDef[] {
-  return pieces.map((piece) => ({
-    id: piece.id,
-    category: piece.category,
-    footprint: piece.footprint,
-    cost: pieceCost(piece),
-  }));
+  const defs: SimPieceDef[] = pieces
+    .filter((piece) => piece.category !== "building-part")
+    .map((piece) => ({
+      id: piece.id,
+      category: piece.category,
+      footprint: piece.footprint,
+      cost: pieceCost(piece),
+    }));
+  for (const building of COMPOSED_BUILDING_LIST) {
+    defs.push({
+      id: building.id,
+      category: "building",
+      footprint: building.footprint,
+      cost: building.buildCost,
+    });
+  }
+  return defs;
 }

@@ -7,6 +7,62 @@ only where a migration ships — see TECHNICAL_ARCHITECTURE §8).
 
 ## [Unreleased]
 
+### M5‑D — The four §6 buildings, composed from the kits
+- **Grill Garden, Sweet Scoop, Poly Bistro and Gift Kiosk ship.** They had been named as absent
+  since M2 with a standing reason: no pack piece is a restaurant, so they needed real kit
+  composition of the kind the M3 flat rides got, and shipping them as reskinned snack stalls
+  would have put four names on the menu with one behaviour behind them. They are now parts
+  lists over 23 newly shipped pack pieces (KayKit RestaurantBits, Kenney MiniMarketKit and
+  CityKitCommercial) in a new `src/content/buildings.ts`.
+- **One scale decision, measured not eyeballed.** RestaurantBits is authored on a 4 m module
+  against Polypark's 2 m cell, so the whole kit renders at ×0.5 and one module lands on exactly
+  one cell. Sizes came from the pipeline's own AABBs.
+- **The sim still sees one piece.** A composition is one placed piece with one id, one price and
+  one multi‑cell footprint; only the renderer knows it is twenty‑odd meshes, and it expands them
+  into *instanced* transforms grouped by piece — twelve Gift Kiosks cost the same draw calls as
+  one. The build ghost previews the real parts through the same transform, because a preview
+  that disagrees with the result teaches players to ignore it.
+- **Each carries a mechanic the three M2 stalls do not have**, which was the condition for
+  shipping them: a **negative secondary need** (Grill Garden's Thirst −5 — salt is what links
+  the grill to the drinks stall), **seats** (the Bistro's 40 covers × 100 ticks, making "high
+  margin, low throughput" arithmetic rather than a blurb), and **rating‑scaled souvenirs**
+  (Gift Kiosk). Souvenirs scale the *basket*, not the price — a hidden multiplier on a number
+  the player typed into the inspector would make the panel lie.
+- **New `retail` ledger category** so souvenir takings read as the revenue stream they are
+  instead of hiding among restroom and cash‑machine fees. Restoring a ledger now merges over
+  current defaults, so gaining a category never needs a save‑format bump — and a v5 save's
+  first souvenir sale is `0 + 1200` rather than a NaN that spreads through every total.
+- **Fixed: guests blamed the park for being tired.** Energy decays on a fixed clock and, until
+  the Bistro, *nothing in the game restored it* — so the "any empty need is the park's fault"
+  branch was giving an angry face and "That's it, I'm leaving!" to guests who had simply walked
+  around for four hours. An empty Energy now reads as worn out; every other empty need still
+  earns the sour departure, because those the park really did fail to provide.
+- **Fixed: a big building could be unreachable.** Approach cells were scanned around the anchor
+  cell only — identical to the footprint while every shop was 1×1, but a 4×4 Bistro fronting a
+  path along its far side would have been a restaurant nobody could ever walk into. Found by
+  writing the test for it, not by playing.
+- **Two measurement notes, recorded rather than smoothed over.** The Grill Garden's −5 thirst is
+  invisible in a whole‑park average — it drowns in the base decay of the majority who never
+  reached a counter, and the comparison flips seed to seed — so the test measures *diners*,
+  where it is a clean 20–28 against a Snack Shack's 28–33. And the Bistro's 40 seats cannot be
+  filled at test‑park population, so rather than ship a ceiling assertion that passes with the
+  cap deleted (it did), the test pins the occupancy counter exactly, which is the thing that
+  actually breaks.
+- Also: the palette's shop tab is driven by the shop roster rather than by the catalog, since a
+  composed building has no catalog row and filtering the catalog dropped all four silently;
+  multi‑cell placement highlights every cell it will claim; `UNLOCKS_BY_LEVEL` was rewritten in
+  level order after two composed buildings landed on levels that already had entries — an object
+  literal, so the second would have silently deleted a ride family. Thumbnails regenerated,
+  which also filled in the ones **M5‑B and M5‑C never generated** — Info Kiosk, First Aid and
+  every Parking Grounds and Resort Row piece had been showing a broken image in the palette.
+- **Verified:** 239 unit tests · 16 e2e · typecheck/lint/dep‑cruiser/build/budgets green ·
+  129 pieces, 3.2 MB shipped (60 MB budget) · title 139.7 KB gz, play 189.6 KB gz · bench
+  **1,231 guests at 1.355 ms/tick avg, 2.74 ms worst** against the 6 ms budget — *faster* than
+  before the change, because generalising the shop‑approach scan also took a per‑tick
+  allocation out of the guest loop. The buildings were checked on screen, not just in tests:
+  the first pass gave the Bistro 1.5 m tables next to 0.38 m chairs and two pillars holding up
+  nothing, which is only visible by looking.
+
 ### M5‑A — Progression: the level track, unlocks and Star Tickets
 - **The park now has a shape over time.** Everything was buildable from minute one; the Park
   Level track (GAME_BALANCE §9.2) hands content over as the park grows — L1 Snack Shack + Sip

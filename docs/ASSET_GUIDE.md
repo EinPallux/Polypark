@@ -113,6 +113,15 @@ Authoritative mapping (GDD is the "what", this is the "from where"):
 6. **Budget gate** — CI fails if: any single GLB >1.5 MB, theme bundle >8 MB, total shipped
    models >60 MB (budgets: TECH §10).
 
+**Composition‑only categories.** `ride-part` and `building-part` pieces exist to be assembled by
+`content/rides.ts` and `content/buildings.ts` and are never placeable on their own: they are
+filtered out of the sim's piece defs and never appear in a palette. A composed thing has no
+catalog row of its own — it is a parts list over pieces that do — so its footprint and price
+live with the composition. Kits do not agree on scale (KayKit RestaurantBits is authored on a
+4 m module, Kenney's city kits nearer 1 u), so each composition states its scale factor and the
+reasoning, measured from the pipeline's own AABBs rather than eyeballed. Parts unused by any
+composition are shipped weight for nobody and a unit test fails on them.
+
 ## 6. Gaps & the kit‑only law
 
 **Kit‑only law (GAME_DESIGN P7, owner directive):** if the packs can't build it, it is not in

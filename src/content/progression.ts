@@ -29,6 +29,11 @@ export type UnlockId =
   | "coasterkit/stall-info"
   | "minimarket/atm"
   | "modularbuildings/first-aid"
+  // Composed buildings (src/content/buildings.ts) — placed-piece ids too
+  | "composed/grill-garden"
+  | "composed/sweet-scoop"
+  | "composed/poly-bistro"
+  | "composed/gift-kiosk"
   // Flat rides (FlatRideId)
   | "teacups"
   | "carousel"
@@ -47,19 +52,32 @@ export interface LevelNode {
   readonly isMilestone: boolean;
 }
 
-/** Levels that hand something over. Everything else is filled in below. */
+/**
+ * Levels that hand something over. Everything else is filled in below.
+ *
+ * Kept in level order, one entry per level: this is an object literal, so two
+ * entries for the same level would not merge — the second would silently
+ * delete the first, and a ride family would quietly stop existing.
+ *
+ * The four composed buildings (GAME_DESIGN §10) are spread so each arrives
+ * when the park has a reason for it: Sweet Scoop early as a cheap treat, Grill
+ * Garden once one stall no longer feeds the crowd, Gift Kiosk once the rating
+ * is worth monetising, Poly Bistro as a landmark with a landmark's price tag.
+ */
 const UNLOCKS_BY_LEVEL: Readonly<Record<number, readonly UnlockId[]>> = {
   1: ["coasterkit/stall-food", "coasterkit/stall-drinks"],
   2: ["coasterkit/stall-toilets"],
   3: ["teacups"],
-  4: ["carousel"],
+  4: ["carousel", "composed/sweet-scoop"],
   5: ["minimarket/atm"],
+  6: ["mouse", "composed/grill-garden"],
   7: ["coasterkit/stall-info"],
-  9: ["modularbuildings/first-aid"],
-  6: ["mouse"],
   8: ["galleon"],
+  9: ["modularbuildings/first-aid"],
   10: ["rocket"],
+  11: ["composed/gift-kiosk"],
   12: ["steel"],
+  13: ["composed/poly-bistro"],
   14: ["drop"],
 };
 
@@ -136,7 +154,13 @@ export function levelOfUnlock(id: UnlockId): number | null {
  * are how a park exists at all — locking either would turn "build your park"
  * into "unlock your park", which is the opposite of the pitch (GAME_DESIGN §2).
  */
-export const UNGATED_CATEGORIES = ["scenery", "path", "prop", "ride-part"] as const;
+export const UNGATED_CATEGORIES = [
+  "scenery",
+  "path",
+  "prop",
+  "ride-part",
+  "building-part",
+] as const;
 
 /** Monthly XP bonus per star of Park Rating (GAME_BALANCE §9.1). */
 export const RATING_XP_PER_STAR = 60;

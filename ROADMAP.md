@@ -144,7 +144,8 @@ with plain‑language causes) · marketing campaigns · difficulty presets · we
 - **Staff zones for all four roles** → M5. The v4→v5 staff migration merges two id spaces *and*
   changes a coordinate unit.
 - **Remaining rides/shops** → M5. Shipping nine ride families on top of four new subsystems is
-  exactly what breaks a milestone. The shops half (Bistro et al.) goes with them.
+  exactly what breaks a milestone. The shops half ✅ **shipped (M5‑C facilities, M5‑D the four
+  composed buildings)**; the ride families remain.
 - **Guests/Staff/Districts management panels** → M5, with the systems they would report on.
 - **4 event cards** (vandal night, hygiene scare, lost kid, refurb subsidy) → M5; each needs a
   system that does not exist, and a card with no visible effect is worse than no card.
@@ -165,6 +166,13 @@ Parkopedia, Advisor — never forcing, GAME_DESIGN §20) · remaining districts 
 Station, Staff Village, Commerce Quarter, Works Yard**) · Options screens with rebinding +
 accessibility set (GAME_DESIGN §23) · i18n externalization pass · save migrations test
 matrix · UI_UX §9 acceptance checklist.
+
+**Landed so far:** M5‑A the Park Level track · M5‑B districts framework + Parking Grounds and
+Resort Row · M5‑C the three §6 facilities · **M5‑D the four composed §6 buildings** (Grill
+Garden, Sweet Scoop, Poly Bistro, Gift Kiosk — the composed‑building framework arrives with
+them, so the remaining §10 buildings are a content file). **Still open:** Title/Hub, the
+Guidance layer, the four remaining districts, Options + accessibility, remaining Sites and
+Stories, A/B level nodes, night hours, staff zones, the 4 remaining event cards.
 
 **Demo:** a new player goes boot→first park→2★ guided only by goal cards they could have
 ignored; a save from M2 still loads; a story park keeps living after its 3rd star.

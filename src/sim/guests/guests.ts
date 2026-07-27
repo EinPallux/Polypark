@@ -6,11 +6,13 @@ import {
   SHOP_DEFS,
   SHOP_FAIR_PRICE_RATIO,
   SHOP_SEARCH_REACH,
+  souvenirSecondItemChance,
   type NeedKey,
+  type ShopDef,
 } from "@/content/shops";
 import { type SimState } from "../state";
 import { addIncome, addExpense } from "../economy/ledger";
-import { cellIndex } from "../world/world";
+import { cellIndex, type PlacedPiece } from "../world/world";
 import { findPath } from "../world/pathfind";
 // Re-exported so existing importers keep working after the move to world/.
 export { findPath, invalidatePathCache } from "../world/pathfind";
@@ -321,39 +323,99 @@ interface ShopSite {
   readonly approachZ: number;
 }
 
-/** Shops with an adjacent path cell to queue on (recomputed on world change). */
+/**
+ * Shops with an adjacent path cell to queue on (recomputed on world change).
+ *
+ * Adjacency is checked around every cell of the footprint, not just the anchor.
+ * That was invisible while every shop was 1×1 — anchor and footprint were the
+ * same cell — but a 4×4 Poly Bistro fronting a path along its far side would
+ * have been unreachable, and the park would simply have had a restaurant
+ * nobody ever walked into.
+ */
 export function findShopSites(state: SimState): ShopSite[] {
   const sites: ShopSite[] = [];
   for (const piece of state.world.placed.values()) {
     if (!SHOP_DEFS[piece.pieceId]) {
       continue;
     }
-    for (const [dx, dz] of [
-      [0, 1],
-      [1, 0],
-      [0, -1],
-      [-1, 0],
-    ] as const) {
-      const ax = piece.x + dx;
-      const az = piece.z + dz;
-      if (
-        state.world.terrain.inBounds(ax, az) &&
-        state.world.pathCells[cellIndex(state.world, ax, az)] === 1
-      ) {
-        sites.push({
-          placedId: piece.id,
-          pieceId: piece.pieceId,
-          priceCents: piece.priceCents,
-          cellX: piece.x,
-          cellZ: piece.z,
-          approachX: ax,
-          approachZ: az,
-        });
-        break;
-      }
+    const site = nearestApproach(state, piece);
+    if (site) {
+      sites.push(site);
     }
   }
   return sites;
+}
+
+/**
+ * The approach cell closest to the building's centre, so a guest heading for a
+ * big building walks to the middle of its frontage rather than to whichever
+ * corner happened to be scanned first.
+ *
+ * This runs for every shop on every tick, so it walks the footprint's border
+ * arithmetically and allocates nothing: a footprint is always a rectangle, and
+ * "is this cell part of the building" is four comparisons rather than a lookup
+ * in a set of freshly-built coordinate strings.
+ */
+function nearestApproach(state: SimState, piece: PlacedPiece): ShopSite | null {
+  const def = state.world.pieces.get(piece.pieceId);
+  const w = def ? (piece.rot % 2 === 0 ? def.footprint.w : def.footprint.d) : 1;
+  const d = def ? (piece.rot % 2 === 0 ? def.footprint.d : def.footprint.w) : 1;
+  const minX = piece.x;
+  const minZ = piece.z;
+  const maxX = piece.x + w - 1;
+  const maxZ = piece.z + d - 1;
+  const centreX = (minX + maxX) / 2;
+  const centreZ = (minZ + maxZ) / 2;
+
+  let bestX = 0;
+  let bestZ = 0;
+  let bestDist = Infinity;
+  const consider = (ax: number, az: number): void => {
+    if (ax >= minX && ax <= maxX && az >= minZ && az <= maxZ) {
+      return; // inside the building itself
+    }
+    if (!state.world.terrain.inBounds(ax, az)) {
+      return;
+    }
+    if (state.world.pathCells[cellIndex(state.world, ax, az)] !== 1) {
+      return;
+    }
+    const dist = Math.abs(ax - centreX) + Math.abs(az - centreZ);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestX = ax;
+      bestZ = az;
+    }
+  };
+  // Only the border ring can have a neighbour outside the footprint. The edges
+  // are walked S, E, N, W — the same priority the old four-neighbour scan used.
+  // On a 1×1 shop all four neighbours tie at distance 1, so the order IS the
+  // choice, and changing it would quietly re-route guests around every stall
+  // already standing in every save.
+  for (let x = minX; x <= maxX; x++) {
+    consider(x, maxZ + 1);
+  }
+  for (let z = minZ; z <= maxZ; z++) {
+    consider(maxX + 1, z);
+  }
+  for (let x = minX; x <= maxX; x++) {
+    consider(x, minZ - 1);
+  }
+  for (let z = minZ; z <= maxZ; z++) {
+    consider(minX - 1, z);
+  }
+  if (bestDist === Infinity) {
+    return null;
+  }
+  return {
+    placedId: piece.id,
+    pieceId: piece.pieceId,
+    priceCents: piece.priceCents,
+    cellX: piece.x,
+    cellZ: piece.z,
+    approachX: bestX,
+    approachZ: bestZ,
+  };
 }
 
 function guestCell(state: SimState, slot: number): { x: number; z: number } {
@@ -461,6 +523,84 @@ function seekRide(state: SimState, slot: number, options: readonly OpenRideOptio
   return true;
 }
 
+/** How much a shop moves `need` — its primary effect, or its secondary one. */
+function servesNeed(def: ShopDef, need: NeedKey): number {
+  if (def.satisfies === need) {
+    return def.amount;
+  }
+  if (def.secondary?.need === need) {
+    return def.secondary.amount;
+  }
+  return 0;
+}
+
+/**
+ * Walk to the best shop for `need`, returning whether the guest set off.
+ *
+ * A shop counts if it moves the need in the right direction at all, so the
+ * Poly Bistro is found by a tired guest even though its Energy is the second
+ * effect on a hunger building. Full buildings are skipped here rather than
+ * walked to and bounced — being sent across the park to a restaurant with no
+ * free table is the kind of small unfairness that reads as the game wasting
+ * your guests' time.
+ */
+function seekShop(
+  state: SimState,
+  slot: number,
+  shopSites: readonly ShopSite[],
+  need: NeedKey,
+  needValue: number,
+  hasWayfinding: boolean,
+  complainIfNone: boolean,
+): boolean {
+  const g = state.guests;
+  const here = guestCell(state, slot);
+  // Guests only consider shops within reach. An Info Kiosk in the park is
+  // the difference between "I can't find anything" and finding the stall two
+  // plazas over — GAME_BALANCE §6's wayfinding effect, as a search radius.
+  const reach = SHOP_SEARCH_REACH + (hasWayfinding ? INFO_KIOSK_REACH_BONUS : 0);
+  const candidates = shopSites.filter(
+    (site) =>
+      servesNeed(SHOP_DEFS[site.pieceId]!, need) > 0 &&
+      Math.abs(site.approachX - here.x) + Math.abs(site.approachZ - here.z) <= reach * 6,
+  );
+  candidates.sort(
+    (a, b) =>
+      Math.abs(a.approachX - here.x) +
+      Math.abs(a.approachZ - here.z) -
+      (Math.abs(b.approachX - here.x) + Math.abs(b.approachZ - here.z)),
+  );
+  for (const site of candidates) {
+    if (g.wallet[slot]! < site.priceCents) {
+      continue;
+    }
+    if (isShopFull(state, site.placedId, SHOP_DEFS[site.pieceId]!)) {
+      continue;
+    }
+    // Price is a real decision, not just an affordability check: a guest who
+    // thinks a snack is a rip-off walks past a stall they could afford. The
+    // hungrier they are, the more they will put up with.
+    if (!willPay(g, slot, site, needValue, state.difficultyMods.priceToleranceMult)) {
+      continue;
+    }
+    if (routeTo(state, slot, site.approachX, site.approachZ)) {
+      g.servingShop[slot] = site.placedId;
+      return true;
+    }
+  }
+  if (!complainIfNone) {
+    return false;
+  }
+  // Nothing satisfies the need — grump about it and wander on.
+  if (candidates.length === 0) {
+    think(g, slot, `thought.no.${need}`);
+  } else if (candidates.every((site) => g.wallet[slot]! < site.priceCents)) {
+    setEmote(g, slot, EMOTE.broke);
+    think(g, slot, "thought.broke");
+  }
+  return false;
+}
+
 function decide(
   state: SimState,
   slot: number,
@@ -480,49 +620,42 @@ function decide(
   }
   const lowest = lowestNeed(g, slot);
   if (lowest.value <= LEAVE_NEED_FLOOR) {
-    setEmote(g, slot, EMOTE.angry);
-    beginLeaving(state, slot, "thought.fedUp");
+    // Running out of energy is not the park's fault, and a guest who spent four
+    // hours here and got tired should not leave as though they had been let
+    // down. Every other empty need IS something the park failed to provide, so
+    // those keep the angry face and the sour thought. Before the Poly Bistro
+    // there was no energy anywhere in the game, so this branch quietly blamed
+    // the park for the passage of time.
+    if (lowest.need === "energy") {
+      beginLeaving(state, slot, "thought.wornOut");
+    } else {
+      setEmote(g, slot, EMOTE.angry);
+      beginLeaving(state, slot, "thought.fedUp");
+    }
     return;
   }
-  if (lowest.value < SEEK_THRESHOLD && lowest.need !== "fun" && lowest.need !== "energy") {
-    // Find the nearest reachable shop satisfying the need.
-    const here = guestCell(state, slot);
-    // Guests only consider shops within reach. An Info Kiosk in the park is
-    // the difference between "I can't find anything" and finding the stall two
-    // plazas over — GAME_BALANCE §6's wayfinding effect, as a search radius.
-    const reach = SHOP_SEARCH_REACH + (hasWayfinding ? INFO_KIOSK_REACH_BONUS : 0);
-    const candidates = shopSites.filter(
-      (site) =>
-        SHOP_DEFS[site.pieceId]!.satisfies === lowest.need &&
-        Math.abs(site.approachX - here.x) + Math.abs(site.approachZ - here.z) <= reach * 6,
-    );
-    candidates.sort(
-      (a, b) =>
-        Math.abs(a.approachX - here.x) +
-        Math.abs(a.approachZ - here.z) -
-        (Math.abs(b.approachX - here.x) + Math.abs(b.approachZ - here.z)),
-    );
-    for (const site of candidates) {
-      if (g.wallet[slot]! < site.priceCents) {
-        continue;
-      }
-      // Price is a real decision, not just an affordability check: a guest who
-      // thinks a snack is a rip-off walks past a stall they could afford. The
-      // hungrier they are, the more they will put up with.
-      if (!willPay(g, slot, site, lowest.value, state.difficultyMods.priceToleranceMult)) {
-        continue;
-      }
-      if (routeTo(state, slot, site.approachX, site.approachZ)) {
-        g.servingShop[slot] = site.placedId;
-        return;
-      }
-    }
-    // Nothing satisfies the need — grump about it and wander on.
-    if (candidates.length === 0) {
-      think(g, slot, `thought.no.${lowest.need}`);
-    } else if (candidates.every((site) => g.wallet[slot]! < site.priceCents)) {
-      setEmote(g, slot, EMOTE.broke);
-      think(g, slot, "thought.broke");
+  // Fun is handled below, where rides get first refusal — a Gift Kiosk should
+  // never out-compete a roller coaster for a guest who wants a good time.
+  if (lowest.value < SEEK_THRESHOLD && lowest.need !== "fun") {
+    // Guests grumble about missing food, drink and restrooms — those the park
+    // is expected to provide from level one. They do NOT grumble about having
+    // nowhere to sit down: the only building that restores Energy arrives at
+    // L13, so "Nowhere to rest…" every twenty ticks would be a complaint about
+    // something the player cannot yet act on, which is the same mistake the
+    // worn-out departure above stopped making.
+    const worthComplainingAbout = lowest.need !== "energy";
+    if (
+      seekShop(
+        state,
+        slot,
+        shopSites,
+        lowest.need,
+        lowest.value,
+        hasWayfinding,
+        worthComplainingAbout,
+      )
+    ) {
+      return;
     }
   }
   // Rides beat strolling when fun is sagging — and thrill-leaning archetypes
@@ -530,6 +663,10 @@ function decide(
   const thrillish = g.archetype[slot] === 1 || g.archetype[slot] === 4;
   if (g.fun[slot]! < SEEK_THRESHOLD || (thrillish && g.fun[slot]! < 78)) {
     if (seekRide(state, slot, rideOptions)) {
+      return;
+    }
+    // No ride to be had: a souvenir is the consolation, not the first choice.
+    if (seekShop(state, slot, shopSites, "fun", g.fun[slot]!, hasWayfinding, false)) {
       return;
     }
   }
@@ -582,8 +719,18 @@ function arriveAtDestination(state: SimState, slot: number): void {
     const piece = state.world.placed.get(shopId);
     const def = piece ? SHOP_DEFS[piece.pieceId] : undefined;
     if (piece && def) {
+      // A seated building can be full. Shrug and re-decide rather than wait —
+      // the same shape as a full ride queue, and it keeps the guest free to go
+      // do something else instead of being pinned by the park (ADR-15).
+      if (isShopFull(state, shopId, def)) {
+        g.servingShop[slot] = -1;
+        g.state[slot] = GUEST_STATE.idle;
+        think(g, slot, "thought.shop.full");
+        return;
+      }
       g.state[slot] = GUEST_STATE.serving;
       g.serveTicks[slot] = def.serveTicks;
+      enterShop(state, shopId);
       return;
     }
     g.servingShop[slot] = -1; // shop was bulldozed mid-walk
@@ -591,11 +738,52 @@ function arriveAtDestination(state: SimState, slot: number): void {
   g.state[slot] = GUEST_STATE.idle;
 }
 
+/* ---- Seat occupancy (GAME_BALANCE §6) ---------------------------------- */
+
+export function rebuildShopOccupancy(g: GuestSoA): Map<number, number> {
+  const occupancy = new Map<number, number>();
+  for (let slot = 0; slot < g.count; slot++) {
+    const shopId = g.servingShop[slot]!;
+    if (g.state[slot] === GUEST_STATE.serving && shopId >= 0) {
+      occupancy.set(shopId, (occupancy.get(shopId) ?? 0) + 1);
+    }
+  }
+  return occupancy;
+}
+
+export function shopOccupancyOf(state: SimState, placedId: number): number {
+  return state.shopOccupancy.get(placedId) ?? 0;
+}
+
+function isShopFull(state: SimState, placedId: number, def: ShopDef): boolean {
+  return def.capacity !== undefined && shopOccupancyOf(state, placedId) >= def.capacity;
+}
+
+function enterShop(state: SimState, placedId: number): void {
+  state.shopOccupancy.set(placedId, (state.shopOccupancy.get(placedId) ?? 0) + 1);
+}
+
+function leaveShop(state: SimState, placedId: number): void {
+  const left = (state.shopOccupancy.get(placedId) ?? 1) - 1;
+  // Drop the key at zero so demolishing a shop cannot leave a counter behind.
+  if (left <= 0) {
+    state.shopOccupancy.delete(placedId);
+  } else {
+    state.shopOccupancy.set(placedId, left);
+  }
+}
+
 function finishServing(state: SimState, slot: number): void {
   const g = state.guests;
-  const piece = state.world.placed.get(g.servingShop[slot]!);
+  const servedId = g.servingShop[slot]!;
+  const piece = state.world.placed.get(servedId);
   g.servingShop[slot] = -1;
   g.state[slot] = GUEST_STATE.idle;
+  // Free the seat before any early return — a guest served by a shop that was
+  // demolished mid-meal still has to stop occupying it.
+  if (servedId >= 0) {
+    leaveShop(state, servedId);
+  }
   if (!piece) {
     return;
   }
@@ -608,8 +796,18 @@ function finishServing(state: SimState, slot: number): void {
       think(g, slot, "thought.broke");
       return;
     }
-    g.wallet[slot] = g.wallet[slot]! - piece.priceCents;
-    addIncome(state, def.ledgerCategory, piece.priceCents);
+    // Souvenirs sell by the basket: one item always, a second when the park is
+    // one guests are delighted to take something home from (GAME_DESIGN §10).
+    const items =
+      def.effect === "souvenir" &&
+      g.wallet[slot]! >= piece.priceCents * 2 &&
+      state.rng.guests.chance(souvenirSecondItemChance(state.rating.stars))
+        ? 2
+        : 1;
+    const spent = piece.priceCents * items;
+    g.wallet[slot] = g.wallet[slot]! - spent;
+    addIncome(state, def.ledgerCategory, spent);
+    addExpense(state, "goods", def.unitCostCents * (items - 1));
   }
   if (def.effect === "wallet") {
     // The fee is the park's product; the cash is what keeps the guest spending
@@ -619,8 +817,15 @@ function finishServing(state: SimState, slot: number): void {
   }
   addExpense(state, "goods", def.unitCostCents);
   addNeed(g, slot, def.satisfies, def.amount);
+  // The second need, which may pull the other way: the Grill Garden feeds you
+  // and leaves you thirsty (GAME_BALANCE §6).
+  if (def.secondary) {
+    addNeed(g, slot, def.secondary.need, def.secondary.amount);
+  }
   setEmote(g, slot, EMOTE.happy);
-  if (def.satisfies === "hunger") {
+  if (def.effect === "souvenir") {
+    think(g, slot, "thought.souvenir");
+  } else if (def.satisfies === "hunger") {
     state.stats.mealsServed += 1;
     think(g, slot, "thought.ate");
   } else if (def.satisfies === "thirst") {

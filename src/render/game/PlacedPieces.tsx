@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { composedBuilding } from "@/content/buildings";
 import { CELL_SIZE_METERS } from "@/shared/grid";
 import { type Terrain } from "@/sim/api";
 import { useGame } from "@/ui/game/store";
@@ -50,6 +51,12 @@ export function PlacedPieces({
   const sceneryByPiece = useMemo(() => {
     const byPiece = new Map<string, PieceTransform[]>();
     for (const piece of snapshot?.world.placed ?? []) {
+      // Composed buildings are many meshes over a multi-cell footprint, so
+      // ComposedBuildings draws them; here they would render as one mesh at
+      // the anchor cell's centre, which is not where the building is.
+      if (composedBuilding(piece.pieceId)) {
+        continue;
+      }
       const wx = (piece.x + 0.5) * CELL_SIZE_METERS;
       const wz = (piece.z + 0.5) * CELL_SIZE_METERS;
       const list = byPiece.get(piece.pieceId) ?? [];

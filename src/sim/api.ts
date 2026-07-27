@@ -30,6 +30,7 @@ import {
   guestNeedsSnapshot,
   liveGuestCount,
   moodOf,
+  shopOccupancyOf,
   tickGuests,
   type GuestSoA,
 } from "./guests/guests";
@@ -309,6 +310,8 @@ export interface SimFacade {
   checkPaintPath(x: number, z: number): PlaceCheck;
   pathTiles(): ResolvedPathTile[];
   placedPieces(): PlacedPiece[];
+  /** Guests currently being served at a placed shop — seats in use. */
+  shopOccupancy(placedId: number): number;
   hud(): HudView;
   guestView(): GuestRenderView;
   guestInfo(slot: number): ReturnType<typeof guestNeedsSnapshot> | null;
@@ -580,6 +583,7 @@ export function createSim(options: CreateSimOptions): SimFacade {
     checkPaintPath: (x, z) => checkPaintPath(state.world, x, z),
     pathTiles: () => resolveAllPathTiles(state.world),
     placedPieces: () => [...state.world.placed.values()],
+    shopOccupancy: (placedId: number) => shopOccupancyOf(state, placedId),
     hud: () => {
       let broken = 0;
       for (const ride of state.rides.tracked.values()) {

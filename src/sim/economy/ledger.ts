@@ -14,6 +14,7 @@ export {
   addFinancing,
   addIncome,
   createLedger,
+  restoreLedger,
   type ExpenseCategory,
   type FinancingCategory,
   type IncomeCategory,

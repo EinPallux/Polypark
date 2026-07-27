@@ -52,7 +52,8 @@ export interface PieceTransform {
   readonly y: number;
   readonly z: number;
   readonly rotY: number;
-  readonly scale: number;
+  /** Uniform, or per-axis for parts authored at a different aspect (floor slabs). */
+  readonly scale: number | readonly [number, number, number];
   /** Optional ground normal — the piece tilts to sit flush on sloped terrain. */
   readonly tilt?: { readonly x: number; readonly y: number; readonly z: number };
 }

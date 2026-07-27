@@ -6,7 +6,17 @@ import { type SimState } from "../state";
  * cents; the month closes on the tick boundary — wages and upkeep post, a
  * MonthlyReport is emitted, and the accumulators reset.
  */
-export type IncomeCategory = "entry" | "food" | "drink" | "facility" | "ride" | "sponsor";
+export type IncomeCategory =
+  | "entry"
+  | "food"
+  | "drink"
+  | "facility"
+  | "ride"
+  | "sponsor"
+  /** Souvenirs (Gift Kiosk). Kept out of `facility` so the Finance panel can
+   *  show retail as the revenue stream it is rather than burying it with
+   *  restroom and cash-machine fees. */
+  | "retail";
 export type ExpenseCategory =
   | "goods"
   | "wages"
@@ -30,7 +40,7 @@ export interface Ledger {
 
 export function createLedger(): Ledger {
   return {
-    income: { entry: 0, food: 0, drink: 0, facility: 0, ride: 0, sponsor: 0 },
+    income: { entry: 0, food: 0, drink: 0, facility: 0, ride: 0, sponsor: 0, retail: 0 },
     expense: {
       goods: 0,
       wages: 0,
@@ -41,6 +51,25 @@ export function createLedger(): Ledger {
       admin: 0,
     },
     financing: { borrowed: 0, principalRepaid: 0, settlement: 0 },
+  };
+}
+
+/**
+ * Rebuild a ledger from a save, filling in categories the save predates.
+ *
+ * A save records whatever categories existed when it was written, so a v5 file
+ * has no `retail` bucket. Cloning it straight through would leave that key
+ * undefined and turn the park's first souvenir sale into `undefined + 1200`
+ * — a NaN that spreads silently through every total. Merging over the current
+ * defaults means adding an income or expense category never needs a format
+ * bump, and never needs one to be remembered.
+ */
+export function restoreLedger(saved: Ledger): Ledger {
+  const fresh = createLedger();
+  return {
+    income: { ...fresh.income, ...saved.income },
+    expense: { ...fresh.expense, ...saved.expense },
+    financing: { ...fresh.financing, ...saved.financing },
   };
 }
 

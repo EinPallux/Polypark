@@ -18,8 +18,13 @@ import {
   type PlacedPiece,
   type WorldState,
 } from "./world/world";
-import { createGuests, GUEST_CAP, type GuestSoA } from "./guests/guests";
-import { createLedger, type Ledger } from "./economy/ledger";
+import {
+  createGuests,
+  rebuildShopOccupancy,
+  GUEST_CAP,
+  type GuestSoA,
+} from "./guests/guests";
+import { createLedger, restoreLedger, type Ledger } from "./economy/ledger";
 import { type Janitor, type Litter } from "./staff/janitors";
 import { createGoalsState, type GoalsState } from "./goals/goals";
 import {
@@ -119,6 +124,12 @@ export interface SimState {
   parkOpen: boolean;
   entryFeeCents: number;
   guests: GuestSoA;
+  /**
+   * Guests mid-serve at each placed shop id — what seat capacity is checked
+   * against. Derived state, never saved: it is rebuilt from the guest array on
+   * load, so it cannot drift out of sync with the guests it counts.
+   */
+  shopOccupancy: Map<number, number>;
   spawnAccumulator: number;
   litter: Litter[];
   janitors: Janitor[];
@@ -257,6 +268,7 @@ export function createInitialState(
     parkOpen: false,
     entryFeeCents: DEFAULT_ENTRY_FEE_CENTS,
     guests: createGuests(),
+    shopOccupancy: new Map(),
     spawnAccumulator: 0,
     litter: [],
     janitors: [],
@@ -499,6 +511,7 @@ export function restoreState(
     parkOpen: snapshot.parkOpen,
     entryFeeCents: snapshot.entryFeeCents,
     guests,
+    shopOccupancy: rebuildShopOccupancy(guests),
     spawnAccumulator: snapshot.spawnAccumulator,
     litter: snapshot.litter.map((l) => ({ ...l })),
     janitors: snapshot.janitors.map((j) => ({ ...j, path: [...j.path] })),
@@ -518,7 +531,7 @@ export function restoreState(
     weather: structuredClone(snapshot.weather),
     deck: structuredClone(snapshot.deck),
     districts: structuredClone(snapshot.districts),
-    ledger: structuredClone(snapshot.ledger),
+    ledger: restoreLedger(structuredClone(snapshot.ledger)),
     monthNumber: snapshot.monthNumber,
     lastMonthGuests: snapshot.lastMonthGuests,
     stats: { ...snapshot.stats },

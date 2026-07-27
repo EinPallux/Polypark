@@ -1,4 +1,6 @@
 import { money } from "@/shared/money";
+import { composedBuilding } from "@/content/buildings";
+import { SHOP_DEFS } from "@/content/shops";
 import { type SimPieceDef } from "@/content/costs";
 import { type SiteDescriptor } from "@/content/sites/types";
 import { type Terrain } from "../world/terrain";
@@ -28,6 +30,20 @@ export const TEST_PIECES: SimPieceDef[] = [
   { id: "test/bench", category: "prop", footprint: { w: 1, d: 1 }, cost: money(80_00) },
   { id: "test/house", category: "building", footprint: { w: 2, d: 1 }, cost: money(400_00) },
 ];
+
+/**
+ * Every shop in the roster as a placeable piece, carrying its REAL footprint.
+ *
+ * Tests used to hand-roll these as 1×1, which was harmless while every shop was
+ * a stall but would quietly let a 4×4 Poly Bistro be placed in one cell — and a
+ * test that places a building the game cannot place proves nothing.
+ */
+export const SHOP_PIECES: SimPieceDef[] = Object.keys(SHOP_DEFS).map((id) => ({
+  id,
+  category: "building" as const,
+  footprint: composedBuilding(id)?.footprint ?? { w: 1, d: 1 },
+  cost: SHOP_DEFS[id]!.buildCost,
+}));
 
 export function findCell(
   terrain: Terrain,
