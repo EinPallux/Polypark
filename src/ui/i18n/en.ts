@@ -116,6 +116,17 @@ export const en = {
   "weather.storm": "Storm",
   "weather.heatwave": "Heatwave",
   "weather.forecast": "Forecast",
+  // Shop pricing (GAME_BALANCE §6). The fair-price hint is the doc's own
+  // "guests think $9 is steep for a snack" — pricing is a judgement, not a
+  // guessing game.
+  "shop.coasterkit/stall-food": "Snack Shack",
+  "shop.coasterkit/stall-drinks": "Sip Station",
+  "shop.coasterkit/stall-toilets": "Restroom",
+  "shop.alwaysFree": "Free to use — and staying that way.",
+  "shop.fair": "Guests are happy paying this. They'd baulk past {fair}.",
+  "shop.steep": "Guests think this is steep — they'd expect around {fair}.",
+  "shop.margin": "Costs {cost} to serve · {margin} margin",
+  "shop.upkeep": "{amount}/mo upkeep",
   // Event deck (GAME_BALANCE §8.1). Blurbs say what happened and what it costs
   // — never "you lose", because nothing here can end a park (ADR-15).
   "event.vip-critic.name": "A critic came by",

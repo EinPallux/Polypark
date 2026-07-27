@@ -82,7 +82,7 @@ with a living crowd · thought‑log spot test via the guest inspector (browser 
 open gate → guests counted in HUD → hire janitor. **Deferred, named:** hierarchical A* +
 congestion (plain A* + cache ships; revisit at M6 perf pass) · vomit + First Aid (with rides,
 M3) · emote cluster chips + hero guest pool (M6 polish) · country‑road car flavor (M4 Parking) ·
-shop price editing UI (M3 economy pass).
+shop price editing UI ✅ **shipped in the M4→M5 debt pass**.
 
 ## M3 · Rides & the track builder — ✅ complete 2026‑07‑26
 

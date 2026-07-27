@@ -1,6 +1,6 @@
 import { CELL_SIZE_METERS } from "@/shared/grid";
 import { money } from "@/shared/money";
-import { SHOP_DEFS, type NeedKey } from "@/content/shops";
+import { SHOP_DEFS, SHOP_FAIR_PRICE_RATIO, type NeedKey } from "@/content/shops";
 import { type SimState } from "../state";
 import { addIncome, addExpense } from "../economy/ledger";
 import { cellIndex } from "../world/world";
@@ -46,6 +46,12 @@ export { EMOTE, GUEST_STATE } from "./emotes";
 export const ARCHETYPES = ["family", "thrill", "foodie", "sightseer", "superfan"] as const;
 const ARCHETYPE_WALLET_CENTS = [110_00, 70_00, 95_00, 55_00, 160_00] as const;
 const ARCHETYPE_WEIGHTS = [0.34, 0.26, 0.16, 0.18, 0.06] as const;
+/**
+ * Price tolerance per archetype (GAME_BALANCE §4.3). Specified since M2 and
+ * unread until shops became priceable — a sightseer counts every dollar, a
+ * superfan barely looks at the board.
+ */
+const ARCHETYPE_PRICE_TOLERANCE = [1.0, 0.9, 1.2, 0.8, 1.3] as const;
 
 export interface GuestSoA {
   count: number;
@@ -367,9 +373,40 @@ function addNeed(g: GuestSoA, slot: number, need: NeedKey, amount: number): void
   g[need][slot] = Math.min(Math.max(needValue(g, slot, need) + amount, 0), 100);
 }
 
+/**
+ * Would this guest pay what the shop is asking? Fair price scales with the
+ * archetype's tolerance (a foodie wears a premium on food; a sightseer does
+ * not), and need pressure raises it further — desperation is a real discount
+ * on judgement. Never a hard cutoff: past fair, the chance falls off smoothly,
+ * so one cent over the line does not empty the queue.
+ */
+function willPay(
+  g: GuestSoA,
+  slot: number,
+  site: ShopSite,
+  needValue: number,
+  toleranceMult: number,
+): boolean {
+  const def = SHOP_DEFS[site.pieceId]!;
+  if (def.defaultPriceCents <= 0) {
+    return true;
+  }
+  const tolerance =
+    ARCHETYPE_PRICE_TOLERANCE[g.archetype[slot]!]! * toleranceMult;
+  const desperation = 1 + (100 - needValue) / 260; // up to ~1.38 at need 0
+  const fair = def.defaultPriceCents * SHOP_FAIR_PRICE_RATIO * tolerance * desperation;
+  if (site.priceCents <= fair) {
+    return true;
+  }
+  const over = site.priceCents / fair;
+  return g.wallet[slot]! > 0 && over < 1.6;
+}
+
 interface ShopSite {
   readonly placedId: number;
   readonly pieceId: string;
+  /** What this particular shop charges right now. */
+  readonly priceCents: number;
   readonly cellX: number;
   readonly cellZ: number;
   readonly approachX: number;
@@ -398,6 +435,7 @@ export function findShopSites(state: SimState): ShopSite[] {
         sites.push({
           placedId: piece.id,
           pieceId: piece.pieceId,
+          priceCents: piece.priceCents,
           cellX: piece.x,
           cellZ: piece.z,
           approachX: ax,
@@ -549,8 +587,13 @@ function decide(
         (Math.abs(b.approachX - here.x) + Math.abs(b.approachZ - here.z)),
     );
     for (const site of candidates) {
-      const def = SHOP_DEFS[site.pieceId]!;
-      if (g.wallet[slot]! < def.defaultPriceCents) {
+      if (g.wallet[slot]! < site.priceCents) {
+        continue;
+      }
+      // Price is a real decision, not just an affordability check: a guest who
+      // thinks a snack is a rip-off walks past a stall they could afford. The
+      // hungrier they are, the more they will put up with.
+      if (!willPay(g, slot, site, lowest.value, state.difficultyMods.priceToleranceMult)) {
         continue;
       }
       if (routeTo(state, slot, site.approachX, site.approachZ)) {
@@ -561,9 +604,7 @@ function decide(
     // Nothing satisfies the need — grump about it and wander on.
     if (candidates.length === 0) {
       think(g, slot, `thought.no.${lowest.need}`);
-    } else if (
-      candidates.every((site) => g.wallet[slot]! < SHOP_DEFS[site.pieceId]!.defaultPriceCents)
-    ) {
+    } else if (candidates.every((site) => g.wallet[slot]! < site.priceCents)) {
       setEmote(g, slot, EMOTE.broke);
       think(g, slot, "thought.broke");
     }
@@ -641,13 +682,13 @@ function finishServing(state: SimState, slot: number): void {
   if (!def) {
     return;
   }
-  if (def.defaultPriceCents > 0) {
-    if (g.wallet[slot]! < def.defaultPriceCents) {
+  if (piece.priceCents > 0) {
+    if (g.wallet[slot]! < piece.priceCents) {
       think(g, slot, "thought.broke");
       return;
     }
-    g.wallet[slot] = g.wallet[slot]! - def.defaultPriceCents;
-    addIncome(state, def.ledgerCategory, def.defaultPriceCents);
+    g.wallet[slot] = g.wallet[slot]! - piece.priceCents;
+    addIncome(state, def.ledgerCategory, piece.priceCents);
   }
   addExpense(state, "goods", def.unitCostCents);
   addNeed(g, slot, def.satisfies, def.amount);

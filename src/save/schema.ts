@@ -33,6 +33,8 @@ export const PlacedPieceSchema = z.object({
   rot: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]),
   placedAtTick: z.number().int().nonnegative(),
   paidCents: z.number().int().nonnegative(),
+  /** Per-shop price; 0 for scenery and free facilities. */
+  priceCents: z.number().int().nonnegative(),
 });
 
 const numberArray = z.array(z.number());

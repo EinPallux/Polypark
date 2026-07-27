@@ -6,6 +6,8 @@ import { FLAT_RIDES } from "@/content/rides";
 import { TRACK_FAMILY_IDS } from "@/content/track";
 import { RATING_CAUSE_IDS } from "@/sim/api";
 import { WEATHER, WEATHER_IDS } from "@/content/weather";
+import { SHOP_DEFS } from "@/content/shops";
+import { EVENT_CARDS } from "@/content/events";
 import { en } from "./en";
 import { months, t } from "./t";
 
@@ -33,6 +35,18 @@ describe("every dynamically-built key resolves", () => {
       ...Object.keys(FLAT_RIDES).filter((id) => !has(`ride.${id}`)),
       ...TRACK_FAMILY_IDS.filter((id) => !has(`ride.family.${id}`)),
     ];
+    expect(missing).toEqual([]);
+  });
+
+  it("names every shop the player can price", () => {
+    const missing = Object.keys(SHOP_DEFS).filter((id) => !has(`shop.${id}`));
+    expect(missing).toEqual([]);
+  });
+
+  it("names and explains every event card", () => {
+    const missing = Object.values(EVENT_CARDS).flatMap((def) =>
+      [def.nameKey, def.blurbKey].filter((k) => !has(k)),
+    );
     expect(missing).toEqual([]);
   });
 

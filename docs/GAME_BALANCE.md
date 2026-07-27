@@ -210,8 +210,19 @@ variants).
 | ATM | $1,500 | $2.5 fee | — | wallet refill | 10 | $60 |
 | Info Kiosk | $2,000 | free | — | −60% lost chance in 40 m | — | $80 (Guide staffed) |
 
-Portion slider: ±30% price/satisfaction/cost linkage. "Fair price" hinting mirrors §4.1
-elasticity (tooltip: "guests think $9 is steep for a snack").
+Portion slider: ±30% price/satisfaction/cost linkage (M5). **"Fair price" hinting ships**:
+click a shop in inspect mode to price it, and the panel states what guests will wear.
+
+**Per‑shop pricing (shipped, was overdue from M3).** Price lives on the placed piece, not the
+shop type, so two Snack Shacks can charge differently and demolish/undo carry the price. Guests
+weigh it: fair price = `default × 1.15 × archetypeTolerance × desperation`, where desperation
+rises to ~1.38 as the need empties — a starving guest forgives a lot. Past fair the chance of
+buying falls off smoothly rather than cutting off, so one cent over the line does not empty the
+queue. Archetype price tolerance (§4.3: 1.0 / 0.9 / 1.2 / 0.8 / 1.3) was specified in M2 and
+unread until now — pricing is what finally gave it something to bite on.
+
+Free facilities cannot be charged for at all (GAME_DESIGN §24), and a $40 ceiling caps the UI —
+a decency rail, not a balance dial, since elasticity already makes gouging unprofitable.
 
 > **M2 shipped subset.** Snack Shack, Sip Station and Restroom are live (catalog pieces
 > `coasterkit/stall-food|stall-drinks|stall-toilets`) with the costs/prices/satisfaction above.

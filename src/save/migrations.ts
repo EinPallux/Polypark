@@ -18,10 +18,31 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
     const ledger = (sim["ledger"] ?? {}) as Record<string, unknown>;
     const expense = (ledger["expense"] ?? {}) as Record<string, unknown>;
     const stats = (sim["stats"] ?? {}) as Record<string, unknown>;
+    const world = (sim["world"] ?? {}) as Record<string, unknown>;
+    // Shops became priceable in v5. Seed each placed piece at its shop's
+    // default so an upgraded park charges exactly what it charged before.
+    // why: literal cents, not SHOP_DEFS — a migration is a frozen snapshot
+    // (TECH §8) and must not shift when the shop table is retuned.
+    const V5_DEFAULT_PRICE_CENTS: Record<string, number> = {
+      "coasterkit/stall-food": 6_00,
+      "coasterkit/stall-drinks": 4_00,
+      "coasterkit/stall-toilets": 0,
+    };
+    const placed = (Array.isArray(world["placed"]) ? world["placed"] : []) as Record<
+      string,
+      unknown
+    >[];
     return {
       ...raw,
       sim: {
         ...sim,
+        world: {
+          ...world,
+          placed: placed.map((piece) => ({
+            ...piece,
+            priceCents: V5_DEFAULT_PRICE_CENTS[String(piece["pieceId"])] ?? 0,
+          })),
+        },
         difficulty: "standard",
         finance: {
           nextLoanId: 1,

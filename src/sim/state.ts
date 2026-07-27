@@ -413,7 +413,10 @@ export function restoreState(
     }
   }
   for (const piece of snapshot.world.placed) {
-    world.placed.set(piece.id, piece);
+    // Clone, don't alias: priceCents is mutable, so sharing the object would
+    // let a price change in the resumed park write back into the snapshot it
+    // was restored from.
+    world.placed.set(piece.id, { ...piece });
     const def = world.pieces.get(piece.pieceId);
     if (def) {
       for (const cell of footprintCells(def, piece.x, piece.z, piece.rot)) {

@@ -28,6 +28,7 @@ import { type LoanProductId } from "@/content/loans";
 import { type MarketingCampaignId } from "@/content/marketing";
 import { type TrackFamilyId, type TrackKind } from "@/content/track";
 import { SAVE_FORMAT_VERSION, type SaveFile } from "@/save/schema";
+import { SHOP_DEFS } from "@/content/shops";
 import { t } from "@/ui/i18n/t";
 
 /**
@@ -69,6 +70,7 @@ interface GameState {
   rating: RatingView | null;
   weather: WeatherView | null;
   selectedRide: number | null;
+  selectedShop: number | null;
   rideAlong: number | null;
   stepper: FixedStepper;
   selectedGuest: number | null;
@@ -117,6 +119,8 @@ interface GameState {
   setRidePrice: (key: number, cents: number) => void;
   demolishRide: (key: number) => void;
   selectRide: (key: number | null) => void;
+  selectShop: (id: number | null) => void;
+  setShopPrice: (placedId: number, cents: number) => void;
   setRideAlong: (key: number | null) => void;
   dismissGoal: (cardId: string) => void;
   selectGuest: (slot: number | null) => void;
@@ -145,6 +149,7 @@ export const useGame = create<GameState>()(
     rating: null,
     weather: null,
     selectedRide: null,
+    selectedShop: null,
     rideAlong: null,
     stepper: createFixedStepper(),
     selectedGuest: null,
@@ -395,6 +400,13 @@ export const useGame = create<GameState>()(
           }
         }
         state.syncFromSim();
+      } else if (buildMode.kind === "inspect") {
+        // Clicking a shop in inspect mode opens its price panel — the same
+        // gesture that already selects a ride.
+        const piece = facade
+          .placedPieces()
+          .find((p) => p.x === x && p.z === z && SHOP_DEFS[p.pieceId] !== undefined);
+        set({ selectedShop: piece ? piece.id : null });
       } else if (buildMode.kind === "path") {
         set({ pathDrag: [{ x, z }] });
       } else if (buildMode.kind === "bulldoze") {
@@ -574,6 +586,19 @@ export const useGame = create<GameState>()(
       });
       state.syncFromSim();
     },
+    selectShop(id) {
+      set({ selectedShop: id });
+    },
+
+    setShopPrice(placedId, cents) {
+      const { facade } = get();
+      if (!facade) {
+        return;
+      }
+      facade.dispatch({ type: "shop/setPrice", placedId, cents });
+      get().syncFromSim();
+    },
+
     selectRide(key) {
       set({ selectedRide: key });
     },

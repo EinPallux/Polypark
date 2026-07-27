@@ -1,5 +1,5 @@
 import { addMoney, money, scaleMoney, subMoney } from "@/shared/money";
-import { SHOP_DEFS } from "@/content/shops";
+import { SHOP_DEFS, SHOP_PRICE_CEILING_CENTS } from "@/content/shops";
 import { FLAT_RIDES, type FlatRideId } from "@/content/rides";
 import {
   TRACK_FAMILIES,
@@ -68,6 +68,7 @@ export type Command =
       readonly forceCostCents?: number;
       /** Internal: record this as the piece's paid amount. */
       readonly forcePaidCents?: number;
+      readonly forcePriceCents?: number;
       readonly forcePlacedAtTick?: number;
     }
   | {
@@ -144,6 +145,12 @@ export type Command =
       readonly to: "closed" | "testing" | "open";
     }
   | { readonly type: "ride/setPrice"; readonly rideId: number; readonly cents: number }
+  | {
+      readonly type: "shop/setPrice";
+      /** Placed-piece instance id — prices are per shop, not per shop type. */
+      readonly placedId: number;
+      readonly cents: number;
+    }
   | {
       readonly type: "build/placeFlatRide";
       readonly defId: FlatRideId;
@@ -380,6 +387,10 @@ const handlers: HandlerMap = {
       rot: command.rot,
       placedAtTick: command.forcePlacedAtTick ?? state.tick,
       paidCents: command.forcePaidCents ?? def.cost,
+      // Undo of a demolish restores the price the player had set, not the
+      // default they would have had to dial back in.
+      priceCents:
+        command.forcePriceCents ?? SHOP_DEFS[command.pieceId]?.defaultPriceCents ?? 0,
     };
     state.world.placed.set(id, piece);
     for (const cell of footprintCells(def, command.x, command.z, command.rot)) {
@@ -434,6 +445,7 @@ const handlers: HandlerMap = {
         forceCostCents: refund, // undoing re-charges exactly what was refunded…
         forcePaidCents: piece.paidCents, // …while restoring the original paid record
         forcePlacedAtTick: piece.placedAtTick,
+        forcePriceCents: piece.priceCents,
       },
     };
   },
@@ -948,6 +960,31 @@ const handlers: HandlerMap = {
     return { ok: true };
   },
 
+  "shop/setPrice": (state, command) => {
+    const piece = state.world.placed.get(command.placedId);
+    const def = piece ? SHOP_DEFS[piece.pieceId] : undefined;
+    if (!piece || !def) {
+      return { ok: false, reason: "invalid" };
+    }
+    // A free facility stays free — charging for the toilets is exactly the
+    // kind of thing GAME_DESIGN §24 keeps out of this game.
+    if (def.defaultPriceCents === 0) {
+      return { ok: false, reason: "invalid" };
+    }
+    const cents = Math.round(command.cents);
+    if (cents < 0 || cents > SHOP_PRICE_CEILING_CENTS) {
+      return { ok: false, reason: "invalid" };
+    }
+    const previous = piece.priceCents;
+    if (cents === previous) {
+      return { ok: false, reason: "invalid" };
+    }
+    piece.priceCents = cents;
+    return {
+      ok: true,
+      inverse: { type: "shop/setPrice", placedId: command.placedId, cents: previous },
+    };
+  },
   "ride/setPrice": (state, command) => {
     const ride =
       state.rides.tracked.get(command.rideId) ?? state.rides.flat.get(-command.rideId);

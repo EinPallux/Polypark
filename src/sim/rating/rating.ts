@@ -447,7 +447,13 @@ function valueScore(state: SimState): SubScore {
   for (const piece of state.world.placed.values()) {
     const shop = SHOP_DEFS[piece.pieceId];
     if (shop && shop.defaultPriceCents > 0) {
-      items.push({ ratio: 1, weight: 0.5, cause: "value.shopPrice" });
+      // Real ratio, not a hardcoded 1. Until shops became priceable this cause
+      // could never fire, so Value was scoring a lever the player did not have.
+      items.push({
+        ratio: clamp(piece.priceCents / shop.defaultPriceCents, 0, VALUE_RATIO_CAP),
+        weight: 0.5,
+        cause: "value.shopPrice",
+      });
     }
   }
 

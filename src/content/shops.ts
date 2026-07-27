@@ -61,3 +61,17 @@ export const SHOP_DEFS: Readonly<Record<string, ShopDef>> = {
     ledgerCategory: "facility",
   },
 };
+
+/**
+ * Hard ceiling on any shop price. Not a balance dial — a decency rail: the
+ * elasticity model already makes gouging unprofitable, and this only stops the
+ * UI offering a number no guest would ever pay (GAME_DESIGN §24).
+ */
+export const SHOP_PRICE_CEILING_CENTS = 40_00;
+
+/**
+ * How far above the default price guests will tolerate before they start
+ * walking away, scaled by each archetype's price tolerance (GAME_BALANCE §4.3).
+ * At 1.0 the shop is at its default; the walk-away curve starts past this.
+ */
+export const SHOP_FAIR_PRICE_RATIO = 1.15;

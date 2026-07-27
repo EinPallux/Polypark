@@ -7,6 +7,7 @@ import { t } from "@/ui/i18n/t";
 import { BuildPalette } from "@/ui/game/BuildPalette";
 import { Hud } from "@/ui/game/Hud";
 import { ManagementWindow } from "@/ui/game/ManagementWindow";
+import { ShopInspector } from "@/ui/game/ShopInspector";
 import { GuestInspector, MonthReportModal, StaffPopover } from "@/ui/game/panels";
 import { RideInspector, RidesPalette, TrackBuilderPanel } from "@/ui/game/ridePanels";
 import { PauseMenu } from "@/ui/game/PauseMenu";
@@ -60,6 +61,8 @@ function PlayInner() {
           state.setBuildMode({ kind: "inspect" });
         } else if (state.selectedRide !== null) {
           state.selectRide(null);
+        } else if (state.selectedShop !== null) {
+          state.selectShop(null);
         } else {
           state.setMenuOpen(!state.menuOpen);
         }
@@ -162,6 +165,7 @@ function PlayInner() {
       <RidesPalette open={ridesOpen} onClose={() => setRidesOpen(false)} />
       <TrackBuilderPanel />
       <RideInspector />
+      <ShopInspector />
       <GuestInspector />
       <ManagementWindow open={manageOpen} onClose={() => setManageOpen(false)} />
       <MonthReportModal />
