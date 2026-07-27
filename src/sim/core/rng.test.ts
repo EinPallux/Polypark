@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  createRngStreams,
-  deserializeRngStreams,
-  RngStream,
-  serializeRngStreams,
-} from "./rng";
+import { createRngStreams, deserializeRngStreams, RngStream, serializeRngStreams } from "./rng";
 
 describe("seeded RNG streams (TECH §4.3)", () => {
   it("same seed ⇒ same sequence", () => {

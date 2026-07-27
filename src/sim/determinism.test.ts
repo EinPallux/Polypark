@@ -3,7 +3,14 @@ import { createSim, type SimFacade } from "./api";
 import { findOpenFlat, TEST_PIECES, TEST_SITE } from "./testing/fixture";
 
 function makeSim(seed: number): SimFacade {
-  return createSim({ seed, parkName: "Meadowbrook", site: TEST_SITE, pieceDefs: TEST_PIECES });
+  return createSim({
+    // Progression is not what this test is about — build from a full palette.
+    unlockAll: true,
+    seed,
+    parkName: "Meadowbrook",
+    site: TEST_SITE,
+    pieceDefs: TEST_PIECES,
+  });
 }
 
 describe("golden-seed determinism (TECH §11.1)", () => {
@@ -47,6 +54,8 @@ describe("golden-seed determinism (TECH §11.1)", () => {
     first.dispatch({ type: "build/place", pieceId: "test/bench", ...spot, rot: 0 });
     first.advance(40);
     const resumed = createSim({
+      // Progression is not what this test is about — build from a full palette.
+      unlockAll: true,
       seed: 777,
       site: TEST_SITE,
       pieceDefs: TEST_PIECES,
@@ -61,7 +70,9 @@ describe("golden-seed determinism (TECH §11.1)", () => {
     const sim = makeSim(5);
     const before = sim.hash();
     expect(sim.dispatch({ type: "park/rename", name: "   " }).ok).toBe(false);
-    expect(sim.dispatch({ type: "build/place", pieceId: "nope", x: 0, z: 0, rot: 0 }).ok).toBe(false);
+    expect(sim.dispatch({ type: "build/place", pieceId: "nope", x: 0, z: 0, rot: 0 }).ok).toBe(
+      false,
+    );
     expect(sim.hash()).toBe(before);
   });
 

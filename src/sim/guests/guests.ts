@@ -55,6 +55,11 @@ const ARCHETYPE_WEIGHTS = [0.34, 0.26, 0.16, 0.18, 0.06] as const;
  * superfan barely looks at the board.
  */
 const ARCHETYPE_PRICE_TOLERANCE = [1.0, 0.9, 1.2, 0.8, 1.3] as const;
+/**
+ * XP a departing guest pays, indexed by moodOf()'s 0..3
+ * (miserable/grumpy/content/delighted), spanning §9.1's "1–6 XP by mood".
+ */
+const EXIT_JOY_XP = [1, 2, 4, 6] as const;
 
 export interface GuestSoA {
   count: number;
@@ -533,6 +538,11 @@ function arriveAtDestination(state: SimState, slot: number): void {
     if (mood >= 2) {
       state.stats.happyDepartures += 1;
     }
+    // Exit-joy XP (GAME_BALANCE §9.1: 1–6 by mood). Deferred in M2 with the
+    // note "switches on with the rating system" — which now exists, so the
+    // level curve finally advances from running a park guests enjoy rather
+    // than only from ticking goal cards.
+    state.xp += EXIT_JOY_XP[mood] ?? 1;
     despawn(state, slot);
     return;
   }

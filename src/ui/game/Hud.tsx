@@ -41,7 +41,10 @@ function Vitals() {
         {moneyToDollarString(money(hud.money))}
       </span>
       <span className="font-ui text-xs font-semibold tracking-[0.06em] text-frost-300/70 uppercase">
-        👥 <span data-testid="hud-guests" className="font-numeral tabular-nums">{hud.guestCount}</span>{" "}
+        👥{" "}
+        <span data-testid="hud-guests" className="font-numeral tabular-nums">
+          {hud.guestCount}
+        </span>{" "}
         ·{" "}
         <span data-testid="hud-rating" className="font-numeral tabular-nums">
           {hud.ratingStars.toFixed(1)}
@@ -183,7 +186,10 @@ function Dock({
       label: t("play.mode.paths"),
       icon: "🛤",
       active: buildMode.kind === "path",
-      onClick: () => (buildMode.kind === "path" ? setBuildMode({ kind: "inspect" }) : setBuildMode({ kind: "path" })),
+      onClick: () =>
+        buildMode.kind === "path"
+          ? setBuildMode({ kind: "inspect" })
+          : setBuildMode({ kind: "path" }),
     },
     {
       id: "scenery",
@@ -226,7 +232,9 @@ function Dock({
       icon: "🧨",
       active: buildMode.kind === "bulldoze",
       onClick: () =>
-        buildMode.kind === "bulldoze" ? setBuildMode({ kind: "inspect" }) : setBuildMode({ kind: "bulldoze" }),
+        buildMode.kind === "bulldoze"
+          ? setBuildMode({ kind: "inspect" })
+          : setBuildMode({ kind: "bulldoze" }),
     },
   ];
 
@@ -318,6 +326,7 @@ export function Hud({
   onOpenManage: () => void;
 }) {
   const parkName = useGame((state) => state.hud?.parkName);
+  const starTickets = useGame((state) => state.progression?.starTickets ?? 0);
   const [hintCollapsed] = useState(false);
 
   return (
@@ -330,7 +339,7 @@ export function Hud({
         </div>
         <div className="flex flex-col items-end gap-2">
           <div className="pointer-events-auto">
-            <IdentityChip {...(parkName ? { name: parkName } : {})} tickets={0} />
+            <IdentityChip {...(parkName ? { name: parkName } : {})} tickets={starTickets} />
           </div>
           <GoalPanel />
         </div>

@@ -182,6 +182,8 @@ export const SimSnapshotSchema = z.object({
   monthNumber: z.number().int().nonnegative(),
   lastMonthGuests: z.number().int().nonnegative(),
   xp: z.number().nonnegative(),
+  starTickets: z.number().int().nonnegative(),
+  unlockAll: z.boolean(),
   ledger: z.object({
     income: z.record(z.string(), z.number()),
     expense: z.record(z.string(), z.number()),

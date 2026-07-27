@@ -31,6 +31,7 @@ function PlayInner() {
   const params = useSearchParams();
   const fresh = params.get("new") === "1";
   const bench = Number(params.get("bench") ?? 0);
+  const unlockAll = params.get("unlockAll") === "1";
   const boot = useGame((state) => state.boot);
   const bootError = useGame((state) => state.bootError);
   const ready = useGame((state) => state.facade !== null);
@@ -41,8 +42,12 @@ function PlayInner() {
   const [manageOpen, setManageOpen] = useState(false);
 
   useEffect(() => {
-    void boot({ fresh: fresh || bench > 0, ...(bench > 0 ? { bench } : {}) });
-  }, [boot, fresh, bench]);
+    void boot({
+      fresh: fresh || bench > 0,
+      ...(bench > 0 ? { bench } : {}),
+      ...(unlockAll ? { unlockAll: true } : {}),
+    });
+  }, [boot, fresh, bench, unlockAll]);
 
   // Global shortcuts: ESC (close layers → menu), R rotate, space pause, 1/2/3 speeds, Ctrl+Z/Y.
   useEffect(() => {

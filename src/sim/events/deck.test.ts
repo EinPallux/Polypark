@@ -28,6 +28,8 @@ function park(seed = 11): SimFacade {
     cost: SHOP_DEFS[pieceId]!.buildCost,
   }));
   const sim = createSim({
+    // Progression is not what this test is about — build from a full palette.
+    unlockAll: true,
     seed,
     parkName: "Deck",
     site: TEST_SITE,
@@ -188,6 +190,8 @@ describe("persistence", () => {
     sim.advance(TICKS_PER_GAME_MONTH + 50);
     const snapshot = sim.snapshot();
     const resumed = createSim({
+      // Progression is not what this test is about — build from a full palette.
+      unlockAll: true,
       seed: snapshot.seed,
       site: TEST_SITE,
       pieceDefs: TEST_PIECES,

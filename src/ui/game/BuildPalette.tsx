@@ -9,6 +9,7 @@ import { t } from "@/ui/i18n/t";
 import { moneyToDollarString } from "@/shared/money";
 import { pieceCost } from "@/content/costs";
 import { SHOP_DEFS } from "@/content/shops";
+import { unlockLevel } from "@/sim/api";
 import { useGame } from "./store";
 
 export function BuildPalette({
@@ -23,10 +24,12 @@ export function BuildPalette({
   const catalog = useGame((state) => state.catalog);
   const buildMode = useGame((state) => state.buildMode);
   const setBuildMode = useGame((state) => state.setBuildMode);
+  const progression = useGame((state) => state.progression);
 
   if (!open || !catalog) {
     return null;
   }
+  const unlocked = new Set(progression?.unlocked ?? []);
   const pieces = catalog.pieces.filter((piece) =>
     category === "shops"
       ? SHOP_DEFS[piece.id] !== undefined
@@ -52,20 +55,44 @@ export function BuildPalette({
           {pieces.map((piece) => {
             const selected = buildMode.kind === "place" && buildMode.pieceId === piece.id;
             const shortName = piece.id.split("/")[1] ?? piece.id;
+            // Locked items stay visible, greyed, wearing the level they arrive
+            // at. Hiding them would make the palette feel arbitrary; showing
+            // them makes the track legible without opening a screen.
+            const needs = unlocked.has(piece.id) ? null : unlockLevel(piece.id);
+            const locked = needs !== null;
             return (
               <button
                 key={piece.id}
                 type="button"
                 data-testid={`palette-${piece.id.replace("/", "-")}`}
-                title={`${shortName} · ${moneyToDollarString(pieceCost(piece))}`}
+                disabled={locked}
+                aria-disabled={locked}
+                title={
+                  locked
+                    ? t("palette.locked", { level: needs })
+                    : `${shortName} · ${moneyToDollarString(pieceCost(piece))}`
+                }
                 onClick={() => {
+                  if (locked) {
+                    return;
+                  }
                   setBuildMode({ kind: "place", pieceId: piece.id });
                   onClose();
                 }}
-                className={`flex cursor-pointer flex-col items-center gap-1 bg-white/70 p-1.5 shadow-[var(--elev-slab)] transition-transform hover:-translate-y-0.5 ${
-                  selected ? "ring-2 ring-gold-400" : ""
-                }`}
+                className={`relative flex flex-col items-center gap-1 bg-white/70 p-1.5 shadow-[var(--elev-slab)] transition-transform ${
+                  locked
+                    ? "cursor-not-allowed opacity-45 grayscale"
+                    : "cursor-pointer hover:-translate-y-0.5"
+                } ${selected ? "ring-2 ring-gold-400" : ""}`}
               >
+                {locked ? (
+                  <span
+                    data-testid={`palette-lock-${piece.id.replace("/", "-")}`}
+                    className="absolute top-0.5 right-0.5 bg-ink-900/85 px-1 font-ui text-[9px] font-bold text-gold-400"
+                  >
+                    L{needs}
+                  </span>
+                ) : null}
                 <Image
                   src={`/thumbs/${piece.id}.png`}
                   alt={shortName}

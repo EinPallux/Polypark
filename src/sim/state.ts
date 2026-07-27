@@ -141,6 +141,13 @@ export interface SimState {
   stats: Stats;
   goals: GoalsState;
   xp: number;
+  /** Star Tickets banked from milestone levels (GAME_BALANCE §9.3). */
+  starTickets: number;
+  /**
+   * Sandbox setting: every unlock available from the start. A real park
+   * option, not a test hook — chosen at creation, immutable after.
+   */
+  readonly unlockAll: boolean;
   /** Static per-pieceId monthly upkeep (derived from SHOP_DEFS at load). */
   shopUpkeep: ReadonlyMap<string, number>;
 }
@@ -163,6 +170,8 @@ export interface SimStateSnapshot {
   readonly monthNumber: number;
   readonly lastMonthGuests: number;
   readonly xp: number;
+  readonly starTickets: number;
+  readonly unlockAll: boolean;
   readonly ledger: Ledger;
   readonly stats: Stats;
   readonly goals: GoalsState;
@@ -218,6 +227,7 @@ export interface CreateStateOptions {
   readonly difficulty?: DifficultyId;
   readonly startingCashCents?: number;
   readonly hardFail?: boolean;
+  readonly unlockAll?: boolean;
 }
 
 /** Starting cash after the difficulty multiplier (GAME_BALANCE §2). */
@@ -267,6 +277,8 @@ export function createInitialState(
     stats: createStats(),
     goals: createGoalsState(),
     xp: 0,
+    starTickets: 0,
+    unlockAll: options?.unlockAll ?? false,
     shopUpkeep: buildShopUpkeep(),
   };
 }
@@ -342,6 +354,8 @@ export function snapshotState(state: SimState): SimStateSnapshot {
     monthNumber: state.monthNumber,
     lastMonthGuests: state.lastMonthGuests,
     xp: state.xp,
+    starTickets: state.starTickets,
+    unlockAll: state.unlockAll,
     ledger: structuredClone(state.ledger),
     stats: { ...state.stats },
     goals: structuredClone(state.goals),
@@ -510,6 +524,8 @@ export function restoreState(
     stats: { ...snapshot.stats },
     goals: structuredClone(snapshot.goals),
     xp: snapshot.xp,
+    starTickets: snapshot.starTickets,
+    unlockAll: snapshot.unlockAll,
     shopUpkeep: buildShopUpkeep(),
   };
 }

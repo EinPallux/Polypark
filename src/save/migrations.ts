@@ -44,6 +44,11 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
           })),
         },
         difficulty: "standard",
+        // Progression arrived in v5. A v4 park has banked no tickets, and it
+        // was built with everything available — so it keeps that, rather than
+        // having pieces it already placed become un-rebuildable.
+        starTickets: 0,
+        unlockAll: true,
         // Rides predate refurbishment: none has ever been refitted, so its
         // refurb clock is simply its build clock.
         rides: (() => {

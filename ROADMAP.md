@@ -140,9 +140,7 @@ with plain‑language causes) · marketing campaigns · difficulty presets · we
 **Deferred, named, with reasons:**
 - **Districts framework + Parking Grounds + Resort Row** → M5. Needs the land‑value writer and
   arrival‑capacity model; Resort Row is load‑bearing on night hours, which is itself M5.
-- **Park Level track + unlock gating + A/B nodes + Star Tickets** → M5. Gating breaks every
-  existing test and the bench until an `unlockAll` sandbox flag lands; that is a milestone's
-  worth of churn on its own.
+- **Park Level track + unlock gating + Star Tickets** ✅ **shipped (M5‑A)**. A/B nodes remain.
 - **Staff zones for all four roles** → M5. The v4→v5 staff migration merges two id spaces *and*
   changes a coordinate unit.
 - **Remaining rides/shops** → M5. Shipping nine ride families on top of four new subsystems is

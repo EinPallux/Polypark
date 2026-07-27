@@ -53,6 +53,9 @@ import { tickWeather } from "./weather/weather";
 import { deckMonthClose } from "./events/deck";
 import { type WeatherId } from "@/content/weather";
 import { parkClock } from "./core/loop";
+import { LEVEL_TRACK, RATING_XP_PER_STAR, xpForLevel } from "@/content/progression";
+import { unlockedIds } from "./progression/unlocks";
+export { unlockLevel } from "./progression/unlocks";
 export type { RatingView, RatingCause, RatingCauseId, SubScore } from "./rating/rating";
 export { RATING_CAUSE_IDS } from "./rating/rating";
 import { minPaymentCents } from "./economy/amortize";
@@ -205,6 +208,25 @@ export interface FinanceView {
   readonly difficulty: DifficultyId;
 }
 
+export interface LevelNodeView {
+  readonly level: number;
+  readonly unlocks: readonly string[];
+  readonly starTickets: number;
+  readonly isMilestone: boolean;
+  readonly reached: boolean;
+}
+
+export interface ProgressionView {
+  readonly level: number;
+  readonly xp: number;
+  readonly xpIntoLevel: number;
+  readonly xpForNextLevel: number;
+  readonly starTickets: number;
+  readonly unlockAll: boolean;
+  readonly unlocked: readonly string[];
+  readonly track: readonly LevelNodeView[];
+}
+
 export interface WeatherView {
   readonly today: WeatherId;
   /** The next FORECAST_DAYS days — already drawn, so the strip cannot lie. */
@@ -283,6 +305,7 @@ export interface SimFacade {
   finance(): FinanceView;
   rating(): RatingView;
   weather(): WeatherView;
+  progression(): ProgressionView;
 }
 
 export interface CreateSimOptions {
@@ -294,6 +317,7 @@ export interface CreateSimOptions {
   readonly difficulty?: DifficultyId;
   readonly startingCashCents?: number;
   readonly hardFail?: boolean;
+  readonly unlockAll?: boolean;
 }
 
 /** Translate a finance module event into the public SimEvent union. */
@@ -339,6 +363,37 @@ function emitFinanceEvent(
   }
 }
 
+
+/**
+ * The single place XP enters the park. Centralised so every source — goal
+ * cards, exit joy, the monthly rating bonus — pays milestone Star Tickets and
+ * emits the level-up event the same way, instead of each remembering to.
+ */
+function awardXp(
+  state: ReturnType<typeof createInitialState>,
+  amount: number,
+  events: ReturnType<typeof createEventCollector>,
+): void {
+  if (amount <= 0) {
+    return;
+  }
+  const before = levelForXp(state.xp);
+  state.xp += amount;
+  const after = levelForXp(state.xp);
+  for (let level = before + 1; level <= after; level++) {
+    const node = LEVEL_TRACK[level - 1];
+    if (node && node.starTickets > 0) {
+      state.starTickets += node.starTickets;
+    }
+    events.emit({
+      type: "park/levelUp",
+      level,
+      unlocked: node ? [...node.unlocks] : [],
+      starTickets: node?.starTickets ?? 0,
+    });
+  }
+}
+
 export function createSim(options: CreateSimOptions): SimFacade {
   const state = options.resumeFrom
     ? restoreState(options.resumeFrom, options.site, options.pieceDefs)
@@ -353,6 +408,7 @@ export function createSim(options: CreateSimOptions): SimFacade {
             ? { startingCashCents: options.startingCashCents }
             : {}),
           ...(options.hardFail !== undefined ? { hardFail: options.hardFail } : {}),
+          ...(options.unlockAll !== undefined ? { unlockAll: options.unlockAll } : {}),
         },
       );
   const bus = createCommandBus();
@@ -407,19 +463,17 @@ export function createSim(options: CreateSimOptions): SimFacade {
           );
         }
         for (const done of tickGoals(state)) {
-          const before = levelForXp(state.xp);
-          state.xp += done.rewardXp;
           events.emit({ type: "goal/completed", cardId: done.cardId, rewardXp: done.rewardXp });
-          const after = levelForXp(state.xp);
-          if (after > before) {
-            events.emit({ type: "park/levelUp", level: after });
-          }
+          awardXp(state, done.rewardXp, events);
         }
         tickRating(state);
         const financeEvents: FinanceEvent[] = [];
         tickMarketing(state, financeEvents);
         const closed = tickLedger(state, financeEvents);
         if (closed) {
+          // Monthly rating bonus (§9.1: rating × 60) — the other XP source M2
+          // deferred until the rating system existed.
+          awardXp(state, Math.round(state.rating.stars * RATING_XP_PER_STAR), events);
           // The deck draws on the month boundary, before the finance close, so
           // a tax-audit fee or an inspection fine lands in the month that
           // reported it rather than sliding into the next one.
@@ -521,6 +575,23 @@ export function createSim(options: CreateSimOptions): SimFacade {
       };
     },
     rating: () => evaluateRating(state),
+    progression: () => ({
+      level: levelForXp(state.xp),
+      xp: state.xp,
+      xpIntoLevel: state.xp - xpForLevel(levelForXp(state.xp)),
+      xpForNextLevel:
+        xpForLevel(levelForXp(state.xp) + 1) - xpForLevel(levelForXp(state.xp)),
+      starTickets: state.starTickets,
+      unlockAll: state.unlockAll,
+      unlocked: [...unlockedIds(state)],
+      track: LEVEL_TRACK.map((node) => ({
+        level: node.level,
+        unlocks: [...node.unlocks],
+        starTickets: node.starTickets,
+        isMilestone: node.isMilestone,
+        reached: levelForXp(state.xp) >= node.level,
+      })),
+    }),
     weather: () => ({
       today: state.weather.today,
       forecast: [...state.weather.forecast],

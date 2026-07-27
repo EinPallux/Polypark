@@ -17,6 +17,7 @@ import {
   type MonthlyReport,
   type RatingView,
   type WeatherView,
+  type ProgressionView,
   type Rotation,
   type SimFacade,
   type SimStateSnapshot,
@@ -69,6 +70,7 @@ interface GameState {
   finance: FinanceView | null;
   rating: RatingView | null;
   weather: WeatherView | null;
+  progression: ProgressionView | null;
   selectedRide: number | null;
   selectedShop: number | null;
   rideAlong: number | null;
@@ -88,7 +90,7 @@ interface GameState {
   /** True once the 3D scene's model Suspense has resolved (e2e readiness). */
   sceneReady: boolean;
 
-  boot: (options: { fresh: boolean; bench?: number }) => Promise<void>;
+  boot: (options: { fresh: boolean; bench?: number; unlockAll?: boolean }) => Promise<void>;
   syncFromSim: () => void;
   setSpeed: (speed: GameSpeed) => void;
   setBuildMode: (mode: BuildMode) => void;
@@ -149,6 +151,7 @@ export const useGame = create<GameState>()(
     finance: null,
     rating: null,
     weather: null,
+    progression: null,
     selectedRide: null,
     selectedShop: null,
     rideAlong: null,
@@ -168,7 +171,7 @@ export const useGame = create<GameState>()(
     sceneReady: false,
     toasts: [],
 
-    async boot({ fresh, bench }) {
+    async boot({ fresh, bench, unlockAll }) {
       try {
         const response = await fetch("/content/catalog.json");
         const catalog = parseCatalog(await response.json());
@@ -187,6 +190,10 @@ export const useGame = create<GameState>()(
           // why: zod validated the payload at decode; the remaining gap is
           // readonly-tuple variance between the schema type and the snapshot.
           ...(resume ? { resumeFrom: resume.sim as unknown as SimStateSnapshot } : {}),
+          // Sandbox: ?unlockAll=1 opens the whole palette from level 1. A real
+          // park option (pillar P1), which is also what lets the e2e specs
+          // build coasters without grinding to level 6 first.
+          ...(unlockAll ? { unlockAll: true } : {}),
         });
         // Perf harness (ROADMAP M1 acceptance): ?bench=N fills the site with
         // free random scenery so any machine can load-test the renderer.
@@ -237,6 +244,7 @@ export const useGame = create<GameState>()(
         finance: facade.finance(),
         rating: facade.rating(),
         weather: facade.weather(),
+        progression: facade.progression(),
         worldVersion,
         ...(current.worldVersion !== worldVersion ? { snapshot: facade.snapshot() } : {}),
       }));
@@ -255,7 +263,24 @@ export const useGame = create<GameState>()(
             t("goal.completedToast", { title: t(`goal.${event.cardId}` as never), xp: event.rewardXp }),
           );
         } else if (event.type === "park/levelUp") {
-          get().pushToast("good", t("play.levelUp", { level: event.level }));
+          // Name what arrived. "Level 6!" alone makes the player go hunting;
+          // "Unlocked: Mousetrap coasters" sends them straight to the dock.
+          if (event.unlocked.length > 0) {
+            get().pushToast(
+              "good",
+              t("play.levelUpUnlocked", {
+                level: event.level,
+                what: event.unlocked.map((id) => t(`unlock.${id}` as never)).join(", "),
+              }),
+            );
+          } else if (event.starTickets > 0) {
+            get().pushToast(
+              "good",
+              t("play.levelUpTicket", { level: event.level, tickets: event.starTickets }),
+            );
+          } else {
+            get().pushToast("good", t("play.levelUp", { level: event.level }));
+          }
         } else if (event.type === "park/monthReport") {
           set({ monthReport: event.report });
         } else if (event.type === "ride/broke") {

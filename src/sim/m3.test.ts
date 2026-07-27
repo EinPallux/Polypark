@@ -10,6 +10,8 @@ import { RIDE_STATE } from "./rides/rides";
 
 function makePark(): SimFacade {
   const sim = createSim({
+    // Progression is not what this test is about — build from a full palette.
+    unlockAll: true,
     seed: 4242,
     parkName: "Ride Test",
     site: TEST_SITE,
@@ -63,7 +65,9 @@ describe("M3 — the marquee toy", () => {
   it("append/pop round-trips through undo/redo (exact inverse)", () => {
     const sim = makePark();
     expect(sim.dispatch({ type: "ride/startTrack", family: "mouse", ...ANCHOR }).ok).toBe(true);
-    expect(sim.dispatch({ type: "ride/appendPiece", rideId: 1, kind: "straight", flipped: false }).ok).toBe(true);
+    expect(
+      sim.dispatch({ type: "ride/appendPiece", rideId: 1, kind: "straight", flipped: false }).ok,
+    ).toBe(true);
     const before = sim.hash();
     expect(
       sim.dispatch({ type: "ride/appendPiece", rideId: 1, kind: "bump-up", flipped: false }).ok,
@@ -177,6 +181,8 @@ describe("M3 — the marquee toy", () => {
     sim.advance(1_000);
     const snapshot = sim.snapshot();
     const resumed = createSim({
+      // Progression is not what this test is about — build from a full palette.
+      unlockAll: true,
       seed: snapshot.seed,
       site: TEST_SITE,
       pieceDefs: TEST_PIECES,

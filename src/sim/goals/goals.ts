@@ -157,16 +157,5 @@ export function dismissGoal(state: SimState, cardId: string): boolean {
   return true;
 }
 
-/** XP → level via the GAME_BALANCE §9.2 curve. */
-export function levelForXp(xp: number): number {
-  let level = 1;
-  let cumulative = 0;
-  while (level < 30) {
-    cumulative += 400 * Math.pow(level, 1.35);
-    if (xp < cumulative) {
-      return level;
-    }
-    level += 1;
-  }
-  return 30;
-}
+// The level curve lives with the rest of the progression content.
+export { levelForXp } from "@/content/progression";

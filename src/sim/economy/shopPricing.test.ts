@@ -19,6 +19,8 @@ function park(seed = 5): { sim: SimFacade; shopId: number } {
     cost: SHOP_DEFS[pieceId]!.buildCost,
   }));
   const sim = createSim({
+    // Progression is not what this test is about — build from a full palette.
+    unlockAll: true,
     seed,
     parkName: "Prices",
     site: TEST_SITE,
@@ -101,6 +103,8 @@ describe("a shop can be priced", () => {
     sim.advance(400);
     const snapshot = sim.snapshot();
     const resumed = createSim({
+      // Progression is not what this test is about — build from a full palette.
+      unlockAll: true,
       seed: snapshot.seed,
       site: TEST_SITE,
       pieceDefs: TEST_PIECES,
@@ -118,6 +122,8 @@ describe("a shop can be priced", () => {
     const { sim, shopId } = park();
     const snapshot = sim.snapshot();
     const resumed = createSim({
+      // Progression is not what this test is about — build from a full palette.
+      unlockAll: true,
       seed: snapshot.seed,
       site: TEST_SITE,
       pieceDefs: TEST_PIECES,

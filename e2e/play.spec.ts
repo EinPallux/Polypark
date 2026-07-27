@@ -15,7 +15,9 @@ test.use({ viewport: { width: 1600, height: 900 } });
 test.setTimeout(180_000);
 
 async function bootFreshPark(page: Page): Promise<void> {
-  await page.goto("/play?new=1");
+  // Sandbox park: these specs are about building and running a park, not
+  // about the level track, so they open with the full palette.
+  await page.goto("/play?new=1&unlockAll=1");
   await expect(page.getByTestId("hud-money")).toHaveText("$75000", { timeout: 30_000 });
   await expect(page.getByTestId("scene-ready")).toBeAttached({ timeout: 45_000 });
 }
@@ -191,6 +193,36 @@ test("debt pass: a shop can be priced, and says when guests think it's steep", a
 
   await page.keyboard.press("Escape");
   await expect(page.getByTestId("shop-inspector")).toBeHidden();
+});
+
+test("M5: a level-1 park shows the whole track, locked but legible", async ({ page }) => {
+  // Deliberately NOT the sandbox park — this is what a real new player sees.
+  await page.goto("/play?new=1");
+  await expect(page.getByTestId("hud-money")).toHaveText("$75000", { timeout: 30_000 });
+  await expect(page.getByTestId("scene-ready")).toBeAttached({ timeout: 45_000 });
+
+  // Shops: the two starters are open, the restroom is a "not yet".
+  await page.getByTestId("dock-shops").click();
+  await expect(page.getByTestId("palette-coasterkit-stall-food")).toBeEnabled();
+  await expect(page.getByTestId("palette-coasterkit-stall-toilets")).toBeDisabled();
+  await page.keyboard.press("Escape");
+
+  // Rides: every one visible, greyed, wearing the level it arrives at. Hiding
+  // them would make the palette feel arbitrary.
+  await page.getByTestId("dock-rides").click();
+  await expect(page.getByTestId("ride-flat-teacups")).toBeDisabled();
+  await expect(page.getByTestId("ride-flat-teacups")).toContainText("L3");
+  await expect(page.getByTestId("ride-start-mouse")).toBeDisabled();
+  // Title case: the uppercase is CSS, so the DOM text is not transformed.
+  await expect(page.getByTestId("ride-start-mouse")).toContainText("Park Level 6");
+  await page.keyboard.press("Escape");
+
+  // The track screen says the same thing in one place.
+  await page.getByTestId("dock-manage").click();
+  await page.getByRole("tab", { name: "Progress" }).click();
+  await expect(page.getByTestId("progress-level")).toHaveText("1");
+  await expect(page.getByTestId("level-track")).toContainText("Mousetrap coasters");
+  await expect(page.getByTestId("progress-tickets")).toContainText("0");
 });
 
 test("M2: open the park and guests arrive; goals progress", async ({ page }) => {

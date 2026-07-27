@@ -10,8 +10,13 @@ import { RECEIVERSHIP_MAX_MONTHS } from "./finance";
  * save (ADR-15, invariant #8).
  */
 
-function park(options?: { difficulty?: "relaxed" | "standard" | "tycoon"; cash?: number }): SimFacade {
+function park(options?: {
+  difficulty?: "relaxed" | "standard" | "tycoon";
+  cash?: number;
+}): SimFacade {
   return createSim({
+    // Progression is not what this test is about — build from a full palette.
+    unlockAll: true,
     seed: 99,
     parkName: "Finance Test",
     site: TEST_SITE,
@@ -74,9 +79,15 @@ describe("loans", () => {
   });
 
   it("the quoted rate follows the credit grade and difficulty", () => {
-    const standard = park().finance().offers.find((o) => o.product === "piggy")!;
-    const tycoon = park({ difficulty: "tycoon" }).finance().offers.find((o) => o.product === "piggy")!;
-    const relaxed = park({ difficulty: "relaxed" }).finance().offers.find((o) => o.product === "piggy")!;
+    const standard = park()
+      .finance()
+      .offers.find((o) => o.product === "piggy")!;
+    const tycoon = park({ difficulty: "tycoon" })
+      .finance()
+      .offers.find((o) => o.product === "piggy")!;
+    const relaxed = park({ difficulty: "relaxed" })
+      .finance()
+      .offers.find((o) => o.product === "piggy")!;
     expect(standard.aprBps).toBe(850); // grade C
     expect(tycoon.aprBps).toBe(1_150); // +300 bps
     expect(relaxed.aprBps).toBe(650); // −200 bps
@@ -243,6 +254,8 @@ describe("determinism and persistence", () => {
     sim.advance(TICKS_PER_GAME_MONTH + 500);
     const snapshot = sim.snapshot();
     const resumed = createSim({
+      // Progression is not what this test is about — build from a full palette.
+      unlockAll: true,
       seed: snapshot.seed,
       site: TEST_SITE,
       pieceDefs: TEST_PIECES,

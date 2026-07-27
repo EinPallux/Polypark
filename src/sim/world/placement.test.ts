@@ -3,19 +3,29 @@ import { createSim, type SimFacade } from "../api";
 import { findCell, findOpenFlat, TEST_PIECES, TEST_SITE } from "../testing/fixture";
 
 function makeSim(): SimFacade {
-  return createSim({ seed: 7, site: TEST_SITE, pieceDefs: TEST_PIECES });
+  return createSim({
+    // Progression is not what this test is about — build from a full palette.
+    unlockAll: true,
+    seed: 7,
+    site: TEST_SITE,
+    pieceDefs: TEST_PIECES,
+  });
 }
 
 describe("placement rules per slope class (M1 golden tests)", () => {
   it("places scenery on flat, blocks double-occupancy, frees on remove", () => {
     const sim = makeSim();
     const spot = findOpenFlat(sim.terrain());
-    expect(sim.dispatch({ type: "build/place", pieceId: "test/flower", ...spot, rot: 0 }).ok).toBe(true);
+    expect(sim.dispatch({ type: "build/place", pieceId: "test/flower", ...spot, rot: 0 }).ok).toBe(
+      true,
+    );
     const denied = sim.dispatch({ type: "build/place", pieceId: "test/bench", ...spot, rot: 0 });
     expect(denied).toEqual({ ok: false, reason: "occupied" });
     const placedId = sim.placedPieces()[0]!.id;
     expect(sim.dispatch({ type: "build/remove", id: placedId, refund: "bulldoze" }).ok).toBe(true);
-    expect(sim.dispatch({ type: "build/place", pieceId: "test/bench", ...spot, rot: 0 }).ok).toBe(true);
+    expect(sim.dispatch({ type: "build/place", pieceId: "test/bench", ...spot, rot: 0 }).ok).toBe(
+      true,
+    );
   });
 
   it("gentle slopes take scenery and paths but not buildings", () => {
@@ -25,7 +35,9 @@ describe("placement rules per slope class (M1 golden tests)", () => {
       terrain,
       (x, z) => terrain.slopeClassAt(x, z) === "gentle" && !terrain.isWater(x, z),
     );
-    expect(sim.dispatch({ type: "build/place", pieceId: "test/flower", ...gentle, rot: 0 }).ok).toBe(true);
+    expect(
+      sim.dispatch({ type: "build/place", pieceId: "test/flower", ...gentle, rot: 0 }).ok,
+    ).toBe(true);
     sim.undo();
     expect(sim.checkPaintPath(gentle.x, gentle.z).ok).toBe(true);
     const house = sim.checkPlace("test/house", gentle.x, gentle.z, 0);
@@ -38,7 +50,10 @@ describe("placement rules per slope class (M1 golden tests)", () => {
     const steep = findCell(terrain, (x, z) => terrain.slopeClassAt(x, z) === "steep");
     const water = findCell(terrain, (x, z) => terrain.isWater(x, z));
     expect(sim.checkPlace("test/flower", steep.x, steep.z, 0).ok).toBe(false);
-    expect(sim.checkPlace("test/flower", water.x, water.z, 0)).toEqual({ ok: false, reason: "water" });
+    expect(sim.checkPlace("test/flower", water.x, water.z, 0)).toEqual({
+      ok: false,
+      reason: "water",
+    });
     expect(sim.checkPaintPath(water.x, water.z)).toEqual({ ok: false, reason: "water" });
   });
 
@@ -46,7 +61,9 @@ describe("placement rules per slope class (M1 golden tests)", () => {
     const sim = makeSim();
     const spot = findOpenFlat(sim.terrain());
     // 2×1 house at rot 1 occupies (x, z) and (x, z+1).
-    expect(sim.dispatch({ type: "build/place", pieceId: "test/house", ...spot, rot: 1 }).ok).toBe(true);
+    expect(sim.dispatch({ type: "build/place", pieceId: "test/house", ...spot, rot: 1 }).ok).toBe(
+      true,
+    );
     expect(sim.checkPlace("test/flower", spot.x, spot.z + 1, 0)).toEqual({
       ok: false,
       reason: "occupied",

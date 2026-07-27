@@ -7,6 +7,30 @@ only where a migration ships — see TECHNICAL_ARCHITECTURE §8).
 
 ## [Unreleased]
 
+### M5‑A — Progression: the level track, unlocks and Star Tickets
+- **The park now has a shape over time.** Everything was buildable from minute one; the Park
+  Level track (GAME_BALANCE §9.2) hands content over as the park grows — L1 Snack Shack + Sip
+  Station through L14 Pumpkin Drop, with Mousetrap at L6 and Steelwind at L12. Gating covers
+  `build/place`, `build/placeFlatRide` and `ride/startTrack`, failing with a `locked` reason
+  that reads as "not yet", never "you failed to" (ADR‑15).
+- **Locked ≠ hidden.** The palette shows every ride greyed, wearing the level it arrives at, so
+  the palette *is* the roadmap — and a new Progress tab lays out the whole ladder in one place.
+  Hiding locked content would make the palette feel arbitrary instead of anticipatory.
+- **Two guardrails the tests pin.** Paths and scenery are never gated — they are how a park
+  exists at all. And an id the track never mentions defaults to *buildable*, so a missing node
+  can never silently remove something from the palette.
+- **`unlockAll` is a real park setting, not a test backdoor** (`?unlockAll=1`). It landed in
+  the same change as the gate, which is what kept 177 existing tests from going red at once,
+  and it means the suite exercises a path players can actually take.
+- **XP finally comes from running a park.** §9.1's exit‑joy XP (1/2/4/6 by departing mood) and
+  the monthly rating bonus (rating × 60) were deferred in M2 "until the rating system exists" —
+  it does now, so the level curve advances from guests enjoying themselves rather than only
+  from ticking goal cards. Spending money still pays nothing: no pay‑to‑level loop, asserted.
+- **Star Tickets** are banked at every milestone level and shown in the identity chip, which
+  had been hardcoded to `0` since M0.
+- The level curve moved from `goals/` to `content/progression.ts` — it is balance data, and
+  unlocks read it too.
+
 ### M4 — The tycoon layer (🚧 in progress)
 - **Finance spine (`src/sim/economy/finance.ts`, `amortize.ts`):** three loan products with
   APRs locked at origination off an A–E credit grade (GAME_BALANCE §8.2), a park valuation

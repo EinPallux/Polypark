@@ -13,7 +13,13 @@ export type SimEvent =
   | { readonly type: "sim/started"; readonly seed: number }
   | { readonly type: "park/renamed"; readonly name: string }
   | { readonly type: "goal/completed"; readonly cardId: string; readonly rewardXp: number }
-  | { readonly type: "park/levelUp"; readonly level: number }
+  | {
+      readonly type: "park/levelUp";
+      readonly level: number;
+      /** What this level handed over, so the toast can name it. */
+      readonly unlocked: readonly string[];
+      readonly starTickets: number;
+    }
   | { readonly type: "event/drawn"; readonly card: EventId }
   | { readonly type: "inspection/passed"; readonly score: number }
   | { readonly type: "inspection/failed"; readonly score: number }

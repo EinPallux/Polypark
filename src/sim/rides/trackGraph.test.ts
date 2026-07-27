@@ -24,7 +24,12 @@ describe("pose math", () => {
 
   it("corner-small turns left; flipped turns right", () => {
     expect(advancePose(START, p("corner-small"))).toEqual({ mx: -2, mz: 2, level: 0, heading: 3 });
-    expect(advancePose(START, p("corner-small", true))).toEqual({ mx: 2, mz: 2, level: 0, heading: 1 });
+    expect(advancePose(START, p("corner-small", true))).toEqual({
+      mx: 2,
+      mz: 2,
+      level: 0,
+      heading: 1,
+    });
   });
 
   it("left then flipped-left chains into an S returning to the original heading", () => {
@@ -71,7 +76,10 @@ describe("occupancy", () => {
     // where the forward one EXITS (heading reversed) must cover the same cells.
     const fwd = pieceCells(START, p("corner-small"));
     const exit = advancePose(START, p("corner-small"));
-    const back = pieceCells({ ...exit, heading: ((exit.heading + 2) % 4) as 0 | 1 | 2 | 3 }, p("corner-small", true));
+    const back = pieceCells(
+      { ...exit, heading: ((exit.heading + 2) % 4) as 0 | 1 | 2 | 3 },
+      p("corner-small", true),
+    );
     const key = (c: { cellX: number; cellZ: number }): string => `${c.cellX},${c.cellZ}`;
     expect(new Set(back.map(key))).toEqual(new Set(fwd.map(key)));
   });
@@ -87,13 +95,7 @@ describe("energy model", () => {
 
   it("an unpowered climb valleys out", () => {
     // bump-up crest of 0.5 m repeated with no speed source drains the launch.
-    const walk = energyWalk([
-      p("station"),
-      p("bump-up"),
-      p("bump-up"),
-      p("bump-up"),
-      p("bump-up"),
-    ]);
+    const walk = energyWalk([p("station"), p("bump-up"), p("bump-up"), p("bump-up"), p("bump-up")]);
     expect(walk.fail?.reason).toBe("valleyed");
   });
 

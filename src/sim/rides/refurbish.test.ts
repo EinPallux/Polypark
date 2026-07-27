@@ -14,6 +14,8 @@ import { TEST_PIECES, TEST_SITE } from "../testing/fixture";
 
 function parkWithFlatRide(seed = 6): { sim: SimFacade; key: number } {
   const sim = createSim({
+    // Progression is not what this test is about — build from a full palette.
+    unlockAll: true,
     seed,
     parkName: "Refurb",
     site: TEST_SITE,
@@ -106,6 +108,8 @@ describe("refurbishing a ride", () => {
   it("is refused when the park cannot pay", () => {
     const { sim, key } = parkWithFlatRide();
     const broke = createSim({
+      // Progression is not what this test is about — build from a full palette.
+      unlockAll: true,
       seed: 1,
       site: TEST_SITE,
       pieceDefs: TEST_PIECES,
@@ -122,6 +126,8 @@ describe("refurbishing a ride", () => {
     sim.advance(200);
     const snapshot = sim.snapshot();
     const resumed = createSim({
+      // Progression is not what this test is about — build from a full palette.
+      unlockAll: true,
       seed: snapshot.seed,
       site: TEST_SITE,
       pieceDefs: TEST_PIECES,

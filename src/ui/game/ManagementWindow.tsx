@@ -17,7 +17,7 @@ import { useGame } from "./store";
  * (UI_UX §7.1 rule 1). Copy comes from i18n; the sim only supplies data.
  */
 
-const TAB_IDS = ["finance", "rating", "loans", "marketing"] as const;
+const TAB_IDS = ["finance", "rating", "progress", "loans", "marketing"] as const;
 type TabId = (typeof TAB_IDS)[number];
 
 const cash = (cents: number): string => moneyToDollarString(money(cents));
@@ -35,9 +35,7 @@ function StatTile({
     tone === "good" ? "text-grass-500" : tone === "bad" ? "text-danger-500" : "text-ink-700";
   return (
     <div className="flex-1 bg-white/70 px-3 py-2">
-      <p className="font-ui text-[10px] font-bold tracking-wide text-ink-500 uppercase">
-        {label}
-      </p>
+      <p className="font-ui text-[10px] font-bold tracking-wide text-ink-500 uppercase">{label}</p>
       <p className={`font-numeral text-lg font-bold tabular-nums ${toneClass}`}>{value}</p>
     </div>
   );
@@ -47,15 +45,7 @@ function StatTile({
 type SubScoreName = "fun" | "value" | "care" | "wonder" | "flow";
 
 /** A sub-score row that expands to its top-3 causes in plain language. */
-function SubScoreRow({
-  name,
-  sub,
-  weight,
-}: {
-  name: SubScoreName;
-  sub: SubScore;
-  weight: number;
-}) {
+function SubScoreRow({ name, sub, weight }: { name: SubScoreName; sub: SubScore; weight: number }) {
   const [open, setOpen] = useState(false);
   const rideName = useRideNamer();
   return (
@@ -123,7 +113,11 @@ function FinanceTab() {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex gap-2">
-        <StatTile label={t("manage.cash")} value={cash(hud.money)} tone={hud.money < 0 ? "bad" : "neutral"} />
+        <StatTile
+          label={t("manage.cash")}
+          value={cash(hud.money)}
+          tone={hud.money < 0 ? "bad" : "neutral"}
+        />
         <StatTile label={t("manage.parkValue")} value={cash(v.parkValueCents)} />
         <StatTile
           label={t("manage.debt")}
@@ -161,7 +155,10 @@ function RatingTab() {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-baseline gap-3 bg-white/70 px-4 py-3">
-        <span data-testid="rating-stars" className="font-numeral text-4xl font-bold text-ink-700 tabular-nums">
+        <span
+          data-testid="rating-stars"
+          className="font-numeral text-4xl font-bold text-ink-700 tabular-nums"
+        >
           {rating.stars.toFixed(1)}
         </span>
         <span className="font-ui text-lg text-gold-400">★</span>
@@ -180,6 +177,91 @@ function RatingTab() {
         <SubScoreRow name="care" sub={rating.care} weight={20} />
         <SubScoreRow name="wonder" sub={rating.wonder} weight={15} />
         <SubScoreRow name="flow" sub={rating.flow} weight={15} />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The Park Level track. Shows the whole ladder, not just what is next — a
+ * player deciding whether to push for Mousetrap should be able to see that it
+ * is two levels away without guessing (pillar P5).
+ */
+function ProgressTab() {
+  const progression = useGame((state) => state.progression);
+  if (!progression) {
+    return null;
+  }
+  const pct = Math.round((progression.xpIntoLevel / Math.max(progression.xpForNextLevel, 1)) * 100);
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-3 bg-white/70 px-4 py-3">
+        <span
+          data-testid="progress-level"
+          className="font-numeral text-4xl font-bold text-ink-700 tabular-nums"
+        >
+          {progression.level}
+        </span>
+        <div className="flex-1">
+          <p className="font-ui text-[10px] font-bold text-ink-500 uppercase">
+            {t("manage.parkLevel")}
+          </p>
+          <span className="mt-1 block h-2 bg-ink-900/10">
+            <span className="block h-full bg-gold-400" style={{ width: `${pct}%` }} />
+          </span>
+          <p className="mt-1 font-numeral text-[11px] text-ink-500 tabular-nums">
+            {t("manage.xpToNext", {
+              into: Math.round(progression.xpIntoLevel),
+              next: Math.round(progression.xpForNextLevel),
+            })}
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="font-ui text-[10px] font-bold text-ink-500 uppercase">
+            {t("identity.tickets")}
+          </p>
+          <p data-testid="progress-tickets" className="font-numeral text-xl font-bold text-gold-400 tabular-nums">
+            🎟 {progression.starTickets}
+          </p>
+        </div>
+      </div>
+
+      {progression.unlockAll ? (
+        <p className="bg-white/60 px-3 py-2 font-body text-xs text-ink-500">
+          {t("manage.sandboxUnlocked")}
+        </p>
+      ) : null}
+
+      <div className="flex flex-col gap-1" data-testid="level-track">
+        {progression.track
+          .filter((node) => node.unlocks.length > 0 || node.isMilestone)
+          .map((node) => (
+            <div
+              key={node.level}
+              className={`flex items-center gap-3 px-3 py-1.5 ${
+                node.reached ? "bg-white/70" : "bg-white/40 opacity-70"
+              }`}
+            >
+              <span
+                className={`w-10 text-center font-numeral text-sm font-bold tabular-nums ${
+                  node.reached ? "text-ink-700" : "text-ink-500"
+                }`}
+              >
+                L{node.level}
+              </span>
+              <span className="flex-1 font-body text-xs text-ink-700">
+                {node.unlocks.length > 0
+                  ? node.unlocks.map((id) => t(`unlock.${id}` as never)).join(" · ")
+                  : t("manage.milestoneOnly")}
+              </span>
+              {node.starTickets > 0 ? (
+                <span className="font-ui text-[11px] text-gold-400">🎟 {node.starTickets}</span>
+              ) : null}
+              <span aria-hidden className="w-4 text-center text-ink-500">
+                {node.reached ? "✓" : "·"}
+              </span>
+            </div>
+          ))}
       </div>
     </div>
   );
@@ -254,9 +336,7 @@ function LoansTab() {
               onClick={() => takeLoan(offer.product)}
               title={offer.blocked ? t(`manage.offerBlocked.${offer.blocked}`) : undefined}
             >
-              {offer.blocked
-                ? t(`manage.offerBlocked.${offer.blocked}`)
-                : t("manage.borrow")}
+              {offer.blocked ? t(`manage.offerBlocked.${offer.blocked}`) : t("manage.borrow")}
             </SlabButton>
           </div>
         ))}
@@ -275,7 +355,10 @@ function MarketingTab() {
   return (
     <div className="flex flex-col gap-3">
       {running && (
-        <p data-testid="campaign-running" className="bg-white/70 px-3 py-2 font-body text-sm text-ink-700">
+        <p
+          data-testid="campaign-running"
+          className="bg-white/70 px-3 py-2 font-body text-sm text-ink-700"
+        >
           {t("manage.campaignRunning", {
             name: t(MARKETING_CAMPAIGNS[running].nameKey as never),
           })}
@@ -342,7 +425,9 @@ export function ManagementWindow({ open, onClose }: { open: boolean; onClose: ()
             data-testid="receivership-banner"
             className="border-l-4 border-danger-500 bg-danger-500/10 px-4 py-2"
           >
-            <p className="font-ui text-sm font-bold text-ink-700">{t("manage.receivership.title")}</p>
+            <p className="font-ui text-sm font-bold text-ink-700">
+              {t("manage.receivership.title")}
+            </p>
             <p className="font-body text-xs text-ink-700">
               {t("manage.receivership.blurb", { duration: months(receivership.monthsRemaining) })}
             </p>
@@ -356,6 +441,7 @@ export function ManagementWindow({ open, onClose }: { open: boolean; onClose: ()
         <div className="max-h-[60vh] overflow-y-auto p-4">
           {tab === "finance" && <FinanceTab />}
           {tab === "rating" && <RatingTab />}
+          {tab === "progress" && <ProgressTab />}
           {tab === "loans" && <LoansTab />}
           {tab === "marketing" && <MarketingTab />}
         </div>

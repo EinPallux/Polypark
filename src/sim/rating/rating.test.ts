@@ -32,6 +32,8 @@ function makePark(): SimFacade {
     cost: SHOP_DEFS[pieceId]!.buildCost,
   }));
   const sim = createSim({
+    // Progression is not what this test is about — build from a full palette.
+    unlockAll: true,
     seed: 4242,
     parkName: "Rating Test",
     site: TEST_SITE,
@@ -95,6 +97,8 @@ describe("the sub-scores respond to the park", () => {
       cost: SHOP_DEFS[pieceId]!.buildCost,
     }));
     const dirty = createSim({
+      // Progression is not what this test is about — build from a full palette.
+      unlockAll: true,
       seed: snapshot.seed,
       site: TEST_SITE,
       pieceDefs: [...TEST_PIECES, ...shopPieces],
@@ -146,6 +150,8 @@ describe("the sub-scores respond to the park", () => {
     expect(sim.rating().capStars).toBe(5);
     // Give the park enough assets to clear the debt-ratio gate.
     const rich = createSim({
+      // Progression is not what this test is about — build from a full palette.
+      unlockAll: true,
       seed: 1,
       site: TEST_SITE,
       pieceDefs: TEST_PIECES,
@@ -215,6 +221,8 @@ describe("cost and persistence", () => {
     sim.advance(1_200);
     const snapshot = sim.snapshot();
     const resumed = createSim({
+      // Progression is not what this test is about — build from a full palette.
+      unlockAll: true,
       seed: snapshot.seed,
       site: TEST_SITE,
       pieceDefs: TEST_PIECES,

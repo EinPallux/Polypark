@@ -18,7 +18,14 @@ import { nextWeather } from "./weather";
  */
 
 function park(seed = 31): SimFacade {
-  const sim = createSim({ seed, parkName: "Weather", site: TEST_SITE, pieceDefs: TEST_PIECES });
+  const sim = createSim({
+    // Progression is not what this test is about — build from a full palette.
+    unlockAll: true,
+    seed,
+    parkName: "Weather",
+    site: TEST_SITE,
+    pieceDefs: TEST_PIECES,
+  });
   const gate = TEST_SITE.gate;
   sim.dispatch({
     type: "build/paintPath",
@@ -93,6 +100,8 @@ describe("the forecast is a promise, not a guess", () => {
     const sim = park();
     const promised = [...sim.weather().forecast];
     const resumed = createSim({
+      // Progression is not what this test is about — build from a full palette.
+      unlockAll: true,
       seed: sim.snapshot().seed,
       site: TEST_SITE,
       pieceDefs: TEST_PIECES,

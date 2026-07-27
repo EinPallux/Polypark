@@ -28,12 +28,16 @@ const pieceDefs: SimPieceDef[] = [
 // A funded park: plaza + 30 shops overrun the $75k sandbox start, so boost the
 // bankroll through the public snapshot/resume seam (no sim internals touched).
 const seedSim = createSim({
+  // Progression is not what this test is about — build from a full palette.
+  unlockAll: true,
   seed: 4242,
   parkName: "Bench Park",
   site: MEADOWBROOK,
   pieceDefs,
 });
 const sim = createSim({
+  // Progression is not what this test is about — build from a full palette.
+  unlockAll: true,
   seed: 4242,
   parkName: "Bench Park",
   site: MEADOWBROOK,
@@ -154,9 +158,7 @@ for (let i = 0; i < SAMPLES; i++) {
 }
 
 const avg = totalMs / SAMPLES;
-const openCoasters = sim
-  .ridesView()
-  .tracked.filter((ride) => ride.state === 2).length;
+const openCoasters = sim.ridesView().tracked.filter((ride) => ride.state === 2).length;
 console.log(`shops placed        ${placed}`);
 console.log(`plaza path cells    ${cells.length}`);
 console.log(`coasters running    ${openCoasters}`);

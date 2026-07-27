@@ -381,14 +381,26 @@ recomputed on load (never serialized) so retuning this table reaches existing pa
 
 Guest‑exit joy (1–6 XP by mood) · milestones (first 100 guests: 500 XP…) · **Goal Deck cards**
 (small 60–150 XP, horizon cards 400–800 XP) · monthly rating bonus (rating × 60) · coaster
-completions (E×40). No XP from spending money (no pay‑to‑level loop). *(M2 pays XP from Goal
-Deck cards only; exit joy and the rating bonus switch on with the rating system.)*
+completions (E×40). No XP from spending money (no pay‑to‑level loop). *(All three ship as of M5: exit joy pays 1/2/4/6 XP by mood on departure, and the monthly
+rating bonus pays rating × 60. Spending money still pays nothing — no pay‑to‑level loop.)*
 
 ### 9.2 Level curve (1→30)
 
 `XP(next) = 400 × level^1.35` → L2=400, L5≈3,500 cum, L10≈17k, L20≈76k, L30≈187k cumulative.
 Target pacing (Standard, competent play): L1–8 in first hour, L15 ≈ hour 3, L30 ≈ hour 8–10 per
 park. Every 5th level = Milestone node (fireworks + 🎟1).
+
+**Unlock schedule (shipped).** L1 Snack Shack + Sip Station · L2 Restroom · L3 Teacup Twirl ·
+L4 Critter Carousel · L6 Mousetrap coasters · L8 Galleon Swing · L10 Rocket Orbit ·
+L12 Steelwind coasters · L14 Pumpkin Drop. Levels above 14 carry milestones only until the
+remaining ride families land — a node promising content the game cannot deliver is worse than
+an empty one.
+
+Two rules the table must keep. **Paths and scenery are never gated**: they are how a park
+exists at all, and locking them would turn "build your park" into "unlock your park". And an
+id the track never mentions defaults to *buildable*, so forgetting to author a node can never
+silently remove something from the palette. `unlockAll` is a real park setting (sandbox‑first,
+pillar P1), not a test backdoor — the tests use the same path a player can.
 
 ### 9.3 Star Tickets & Collection prices
 

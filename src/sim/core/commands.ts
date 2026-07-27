@@ -1,5 +1,6 @@
 import { addMoney, money, scaleMoney, subMoney } from "@/shared/money";
 import { SHOP_DEFS, SHOP_PRICE_CEILING_CENTS } from "@/content/shops";
+import { isUnlocked } from "../progression/unlocks";
 import { FLAT_RIDES, REFURB_COST_RATE, type FlatRideId } from "@/content/rides";
 import {
   TRACK_FAMILIES,
@@ -181,7 +182,9 @@ export type CommandFailure =
   /** Receivership caps discretionary construction (GAME_DESIGN §14.3). */
   | "receivership-limited"
   /** The ride's trains are held by collections until arrears clear. */
-  | "repossessed";
+  | "repossessed"
+  /** Not yet on the Park Level track — a "not yet", never a "you failed to". */
+  | "locked";
 
 export type CommandResult =
   | {
@@ -363,6 +366,12 @@ const handlers: HandlerMap = {
   },
 
   "build/place": (state, command) => {
+    // Internal replays (undo/redo restoring a piece) bypass the gate: the park
+    // legitimately built it, and re-checking would make undo fail after a
+    // level-down that cannot happen anyway.
+    if (command.forceId === undefined && !isUnlocked(state, command.pieceId)) {
+      return { ok: false, reason: "locked" };
+    }
     const check = checkPlace(state.world, command.pieceId, command.x, command.z, command.rot);
     if (!check.ok) {
       return { ok: false, reason: check.reason ?? "invalid" };
@@ -703,6 +712,9 @@ const handlers: HandlerMap = {
   },
 
   "ride/startTrack": (state, command) => {
+    if (command.forceId === undefined && !isUnlocked(state, command.family)) {
+      return { ok: false, reason: "locked" };
+    }
     const family = TRACK_FAMILIES[command.family];
     const anchor: TrackPose = {
       mx: command.mx,
@@ -1051,6 +1063,9 @@ const handlers: HandlerMap = {
   },
 
   "build/placeFlatRide": (state, command) => {
+    if (command.forceId === undefined && !isUnlocked(state, command.defId)) {
+      return { ok: false, reason: "locked" };
+    }
     const def = FLAT_RIDES[command.defId];
     const w = command.rot % 2 === 0 ? def.footprint.w : def.footprint.d;
     const d = command.rot % 2 === 0 ? def.footprint.d : def.footprint.w;
