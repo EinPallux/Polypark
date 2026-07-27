@@ -115,7 +115,7 @@ circuit through the real UI → circuit closes with live stats → test → open
 teacups placed/tested/opened via roster + inspector, guests admitted, fares collected.
 **Deferred, named:** painted queue‑path pieces (virtual queues ship; CoasterKit queue tiles
 land M4) · banked "skew" pieces + Sky Serpent/Splashlog families (M5 coaster depth) · Build
-Catalog screen v1 (M4, with the tycoon layer's unlock surface) · refurbishment ✅ **shipped in the M4→M5 debt pass** (visible aging still M6 polish) · staff pathfinding on paths (mechanics beeline; M4 staff polish).
+Catalog screen v1 (M4, with the tycoon layer's unlock surface) · refurbishment ✅ **shipped in the M4→M5 debt pass** (visible aging still M6 polish) · staff pathfinding on paths ✅ **shipped in the M4→M5 debt pass**.
 
 ## M4 · The tycoon layer — "real stakes" (≈3 weeks)
 

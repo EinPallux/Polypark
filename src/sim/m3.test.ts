@@ -122,6 +122,33 @@ describe("M3 — the marquee toy", () => {
     expect(sim.snapshot().stats.ridersServed).toBeGreaterThan(0);
   });
 
+  it("walks mechanics along the path network, and still reaches an unpathed ride", () => {
+    // M3 shipped a straight-line beeline "trade realism for never getting
+    // stuck". Routing them properly is only safe if the stuck case is still
+    // impossible — a ride can legitimately have no path to it.
+    const sim = makePark();
+    const rideId = buildOval(sim);
+    sim.dispatch({ type: "ride/setState", rideId, to: "testing" });
+    sim.advance(400);
+    sim.dispatch({ type: "ride/setState", rideId, to: "open" });
+    expect(sim.dispatch({ type: "staff/hireMechanic" }).ok).toBe(true);
+
+    // Rip out every path cell, so no route to the ride exists at all.
+    const cells: { x: number; z: number }[] = [];
+    const site = TEST_SITE;
+    for (let x = 0; x < site.cells.w; x++) {
+      for (let z = 0; z < site.cells.d; z++) {
+        cells.push({ x, z });
+      }
+    }
+    sim.dispatch({ type: "build/erasePath", cells });
+
+    sim.advance(45_000);
+    // Repairs still happen: the beeline survives as the fallback precisely so
+    // a broken ride can never be stranded with no way for the player to see why.
+    expect(sim.snapshot().stats.repairsDone).toBeGreaterThan(0);
+  });
+
   it("rides break down and a mechanic repairs them", () => {
     const sim = makePark();
     const rideId = buildOval(sim);

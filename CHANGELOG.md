@@ -89,6 +89,30 @@ only where a migration ships — see TECHNICAL_ARCHITECTURE §8).
   10 i18n, 5 park clock); new e2e opens the management window, borrows, and reads the rating
   through the real UI. Bench 1.83 ms/tick at 1,251–1,500 guests with 6 coasters (6 ms budget).
 
+### Debt pass — overdue deferrals from M2/M3, paid before M5
+- **Per‑shop pricing** (M2 → M3 → shipped, two milestones late). Shops charged a content
+  constant: no state, no command, no UI. That left a real hole, not a missing nicety —
+  Value's `value.shopPrice` cause hardcoded `ratio: 1`, so the tycoon layer scored the player
+  on a lever they had no way to touch, and GAME_BALANCE §4.3's archetype price tolerance had
+  been specified since M2 without a single reader. Price now lives on the placed piece, so two
+  Snack Shacks can differ and demolish/undo carry it. Guests weigh price against archetype
+  tolerance and need pressure; a gouging stall provably serves fewer guests at the same seed.
+  Free facilities stay free (GAME_DESIGN §24). Click a shop in inspect mode to price it, with
+  the "guests think $9 is steep" hint GAME_BALANCE §6 always asked for.
+- **Ride refurbishment** (M3 → shipped). 25% of build cost buys back novelty (to ×1.15, §4.1's
+  own number, decaying again from there) and clears accumulated wear. It deliberately does
+  **not** restore book value: depreciation floors at 45%, so resetting the age would turn a 25%
+  spend into a 55% valuation gain — and park value sets borrowing headroom, making that an
+  infinite‑credit loop.
+- **Staff pathfinding** (M3 → shipped). Mechanics walked straight lines across the grass. They
+  now follow the path network, with the beeline surviving as a deliberate fallback so a ride
+  with no route to it can never strand a mechanic — tested by bulldozing every path in the park
+  and asserting repairs still complete. `findPath` moved from `guests/` to `world/pathfind.ts`;
+  it is a property of the grid, and its old home is exactly why `rides.ts` could not use it.
+- **Aliasing bug found on the way:** `restoreState` reused the snapshot's own piece objects.
+  Harmless while every field was readonly; with a mutable price it meant a resumed park could
+  write back into the save it loaded from. Restore now clones.
+
 ### M3 — Rides & the track builder (✅ completed 2026‑07‑26)
 - **Track model (`src/content/track.ts`, `src/sim/rides/trackGraph.ts`):** the CoasterKit
   library measured piece by piece (M3 survey) into authored port metadata — 12 kinds
