@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { FLAT_RIDE_LIST } from "@/content/rides";
+import { FLAT_RIDES, FLAT_RIDE_LIST, REFURB_COST_RATE } from "@/content/rides";
 import { TRACK_FAMILIES, TRACK_KIND_LIST } from "@/content/track";
 import { RIDE_STATE } from "@/sim/api";
 import { money, moneyToDollarString } from "@/shared/money";
@@ -336,6 +336,7 @@ export function RideInspector() {
   const setRideState = useGame((state) => state.setRideState);
   const setRidePrice = useGame((state) => state.setRidePrice);
   const demolishRide = useGame((state) => state.demolishRide);
+  const refurbishRide = useGame((state) => state.refurbishRide);
   const setBuildMode = useGame((state) => state.setBuildMode);
 
   if (selectedRide === null || buildMode.kind === "track") {
@@ -433,6 +434,23 @@ export function RideInspector() {
               {t("ride.builder.title")}
             </SlabButton>
           )}
+          <SlabButton
+            variant="secondary"
+            data-testid="ride-refurbish"
+            title={t("ride.refurbishHint")}
+            onClick={() => refurbishRide(ride.key)}
+          >
+            {t("ride.refurbish", {
+              cost: moneyToDollarString(
+                money(
+                  Math.round(
+                    (tracked ? tracked.totalSpentCents : FLAT_RIDES[flat!.defId].costCents) *
+                      REFURB_COST_RATE,
+                  ),
+                ),
+              ),
+            })}
+          </SlabButton>
           <SlabButton
             variant="secondary"
             data-testid="ride-demolish"

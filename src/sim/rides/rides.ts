@@ -59,6 +59,11 @@ export interface TrackedRide {
   mechanicId: number;
   everOpened: boolean;
   createdAtTick: number;
+  /**
+   * When this ride was last made new again. Novelty reads this; depreciation
+   * deliberately does NOT — see the `ride/refurbish` command for why.
+   */
+  refurbishedAtTick: number;
 }
 
 export interface FlatRide {
@@ -81,6 +86,11 @@ export interface FlatRide {
   entranceX: number;
   entranceZ: number;
   placedAtTick: number;
+  /**
+   * When this ride was last made new again. Novelty reads this; depreciation
+   * deliberately does NOT — see the `ride/refurbish` command for why.
+   */
+  refurbishedAtTick: number;
   everOpened: boolean;
 }
 

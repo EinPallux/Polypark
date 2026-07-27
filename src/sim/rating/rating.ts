@@ -74,8 +74,10 @@ export const RATING_NEUTRAL_STARS = 2.5;
  */
 const RATING_REFRESH_TICKS = 25;
 
-const NOVELTY_PEAK_BONUS = 0.4;
+export const NOVELTY_PEAK_BONUS = 0.4;
 const NOVELTY_MONTHS = 3;
+/** Refurb restores novelty to ×1.15, not the ×1.4 of an opening (§4.1). */
+export const REFURB_NOVELTY_BONUS = 0.15;
 
 const FUN_SCALE = 45;
 const FUN_VARIETY_BONUS_MAX = 0.25;
@@ -347,9 +349,29 @@ export interface RatingView {
   readonly confidence: number;
 }
 
-const novelty = (state: SimState, sinceTick: number): number => {
-  const ageMonths = (state.tick - sinceTick) / TICKS_PER_GAME_MONTH;
-  return 1 + NOVELTY_PEAK_BONUS * clamp(1 - ageMonths / NOVELTY_MONTHS, 0, 1);
+/**
+ * A new ride pulls crowds; that fades over NOVELTY_MONTHS. A refurbishment
+ * buys some of it back but never all of it — GAME_BALANCE §4.1: "new ride ×1.4
+ * decaying to ×1.0 over 3 months; refurb restores to ×1.15". So a refurbished
+ * ride re-enters the curve partway down rather than at the top, and no amount
+ * of refurbishing turns an old ride back into an opening-day one.
+ */
+export const novelty = (
+  state: SimState,
+  builtTick: number,
+  refurbishedTick: number,
+): number => {
+  const fromBuild = 1 + NOVELTY_PEAK_BONUS * clamp(
+    1 - (state.tick - builtTick) / TICKS_PER_GAME_MONTH / NOVELTY_MONTHS,
+    0,
+    1,
+  );
+  const fromRefurb = 1 + REFURB_NOVELTY_BONUS * clamp(
+    1 - (state.tick - refurbishedTick) / TICKS_PER_GAME_MONTH / NOVELTY_MONTHS,
+    0,
+    1,
+  );
+  return Math.max(fromBuild, fromRefurb);
 };
 
 const bandOf = (e: number): number =>
@@ -368,7 +390,7 @@ function funScore(state: SimState): SubScore {
     }
     const perf = perfFor(rating, ride.id);
     const uptime = meanOf(perf.uptime, 1);
-    portfolio += ride.evaln.eStat * novelty(state, ride.createdAtTick) * uptime;
+    portfolio += ride.evaln.eStat * novelty(state, ride.createdAtTick, ride.refurbishedAtTick) * uptime;
     bands.add(bandOf(ride.evaln.eStat));
     if (uptime < 0.85 && (!worstUptime || uptime < worstUptime.uptime)) {
       worstUptime = { key: ride.id, uptime };
@@ -378,7 +400,7 @@ function funScore(state: SimState): SubScore {
     const def = FLAT_RIDES[ride.defId];
     const perf = perfFor(rating, -ride.id);
     const uptime = meanOf(perf.uptime, 1);
-    portfolio += def.eStat * novelty(state, ride.placedAtTick) * uptime;
+    portfolio += def.eStat * novelty(state, ride.placedAtTick, ride.refurbishedAtTick) * uptime;
     bands.add(bandOf(def.eStat));
     if (uptime < 0.85 && (!worstUptime || uptime < worstUptime.uptime)) {
       worstUptime = { key: -ride.id, uptime };

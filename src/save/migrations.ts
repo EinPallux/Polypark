@@ -44,6 +44,21 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
           })),
         },
         difficulty: "standard",
+        // Rides predate refurbishment: none has ever been refitted, so its
+        // refurb clock is simply its build clock.
+        rides: (() => {
+          const rides = (sim["rides"] ?? {}) as Record<string, unknown>;
+          const stamp = (list: unknown, tickKey: string): unknown[] =>
+            (Array.isArray(list) ? list : []).map((r) => {
+              const ride = r as Record<string, unknown>;
+              return { ...ride, refurbishedAtTick: Number(ride[tickKey] ?? 0) };
+            });
+          return {
+            ...rides,
+            tracked: stamp(rides["tracked"], "createdAtTick"),
+            flat: stamp(rides["flat"], "placedAtTick"),
+          };
+        })(),
         finance: {
           nextLoanId: 1,
           loans: [],

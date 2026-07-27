@@ -87,6 +87,7 @@ const TrackedRideSchema = z.object({
   mechanicId: z.number().int(),
   everOpened: z.boolean(),
   createdAtTick: z.number().int().nonnegative(),
+  refurbishedAtTick: z.number().int().nonnegative(),
 });
 
 const FlatRideSchema = z.object({
@@ -108,6 +109,7 @@ const FlatRideSchema = z.object({
   entranceX: z.number().int(),
   entranceZ: z.number().int(),
   placedAtTick: z.number().int().nonnegative(),
+  refurbishedAtTick: z.number().int().nonnegative(),
   everOpened: z.boolean(),
 });
 

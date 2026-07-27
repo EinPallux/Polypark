@@ -1,6 +1,6 @@
 import { addMoney, money, scaleMoney, subMoney } from "@/shared/money";
 import { SHOP_DEFS, SHOP_PRICE_CEILING_CENTS } from "@/content/shops";
-import { FLAT_RIDES, type FlatRideId } from "@/content/rides";
+import { FLAT_RIDES, REFURB_COST_RATE, type FlatRideId } from "@/content/rides";
 import {
   TRACK_FAMILIES,
   trackPieceCost,
@@ -145,6 +145,12 @@ export type Command =
       readonly to: "closed" | "testing" | "open";
     }
   | { readonly type: "ride/setPrice"; readonly rideId: number; readonly cents: number }
+  | {
+      readonly type: "ride/refurbish";
+      readonly rideId: number;
+      /** Internal (replay): pin the charge so redo reproduces it exactly. */
+      readonly forceCostCents?: number;
+    }
   | {
       readonly type: "shop/setPrice";
       /** Placed-piece instance id — prices are per shop, not per shop type. */
@@ -763,6 +769,7 @@ const handlers: HandlerMap = {
       mechanicId: 0,
       everOpened: false,
       createdAtTick: command.forceCreatedAtTick ?? state.tick,
+      refurbishedAtTick: command.forceCreatedAtTick ?? state.tick,
     };
     state.rides.tracked.set(id, ride);
     for (const cell of groundCells) {
@@ -960,6 +967,54 @@ const handlers: HandlerMap = {
     return { ok: true };
   },
 
+  /**
+   * Refurbish a ride: 25% of what it cost to build, in exchange for novelty
+   * and reliability. GAME_BALANCE §4.1 — "refurb restores novelty to ×1.15".
+   *
+   * It deliberately does NOT restore book value. Depreciation bottoms out at
+   * 45% of build cost, so letting a refurb reset the age would turn a 25%
+   * spend into a 55% valuation gain — and park value sets borrowing headroom,
+   * which makes that an infinite-credit loop. The player buys appeal and
+   * reliability here, never balance sheet.
+   *
+   * Operational, not undoable: the wear it clears is real work done.
+   */
+  "ride/refurbish": (state, command) => {
+    const tracked = state.rides.tracked.get(command.rideId);
+    const flat = state.rides.flat.get(-command.rideId);
+    const ride = tracked ?? flat;
+    if (!ride) {
+      return { ok: false, reason: "invalid" };
+    }
+    const buildCents = tracked ? tracked.totalSpentCents : FLAT_RIDES[flat!.defId].costCents;
+    const cost = money(command.forceCostCents ?? Math.round(buildCents * REFURB_COST_RATE));
+    // Player-originated when there is no internal pin — a replayed refurb must
+    // not be blocked, or redo would diverge from the run it is reproducing.
+    const denial = receivershipSpendDenial(state, cost, command.forceCostCents === undefined);
+    if (denial) {
+      return { ok: false, reason: denial };
+    }
+    if (state.money < cost) {
+      return { ok: false, reason: "not-enough-money" };
+    }
+    state.money = subMoney(state.money, cost);
+    state.ledger.expense.upkeep += cost;
+    ride.refurbishedAtTick = state.tick;
+    // Wear resets with the refit. The rating's per-ride cycle mirror has to
+    // move with it or the next tick differences against a larger number and
+    // reports a negative throughput.
+    const key = tracked ? tracked.id : -flat!.id;
+    const perf = state.rating.perRide[String(key)];
+    if (perf) {
+      perf.lastCycleCount = 0;
+    }
+    ride.cycleCount = 0;
+    return {
+      ok: true,
+      replay: { type: "ride/refurbish", rideId: command.rideId, forceCostCents: cost },
+    };
+  },
+
   "shop/setPrice": (state, command) => {
     const piece = state.world.placed.get(command.placedId);
     const def = piece ? SHOP_DEFS[piece.pieceId] : undefined;
@@ -1053,6 +1108,7 @@ const handlers: HandlerMap = {
       entranceX: 0,
       entranceZ: 0,
       placedAtTick: command.forcePlacedAtTick ?? state.tick,
+      refurbishedAtTick: command.forcePlacedAtTick ?? state.tick,
       everOpened: false,
     };
     const entrance = flatRideEntranceCell(ride);

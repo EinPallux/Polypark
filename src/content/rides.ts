@@ -240,3 +240,6 @@ export const FLAT_RIDE_LIST: readonly FlatRideDef[] = Object.values(FLAT_RIDES);
 export function flatRideCost(id: FlatRideId): Money {
   return money(FLAT_RIDES[id].costCents);
 }
+
+/** Refurbishment costs a quarter of what the ride cost to build (§4.1). */
+export const REFURB_COST_RATE = 0.25;

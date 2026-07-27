@@ -121,6 +121,7 @@ interface GameState {
   selectRide: (key: number | null) => void;
   selectShop: (id: number | null) => void;
   setShopPrice: (placedId: number, cents: number) => void;
+  refurbishRide: (key: number) => void;
   setRideAlong: (key: number | null) => void;
   dismissGoal: (cardId: string) => void;
   selectGuest: (slot: number | null) => void;
@@ -588,6 +589,20 @@ export const useGame = create<GameState>()(
     },
     selectShop(id) {
       set({ selectedShop: id });
+    },
+
+    refurbishRide(key) {
+      const { facade } = get();
+      if (!facade) {
+        return;
+      }
+      const result = facade.dispatch({ type: "ride/refurbish", rideId: key });
+      if (!result.ok) {
+        get().pushToast("bad", DENIAL_TEXT[result.reason] ?? t("play.deny.generic"));
+      } else {
+        get().pushToast("good", t("ride.refurbishedToast"));
+      }
+      get().syncFromSim();
     },
 
     setShopPrice(placedId, cents) {

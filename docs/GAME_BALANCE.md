@@ -82,7 +82,14 @@ EntryPriceElasticity = clamp(1.6 − (entry / fairEntry)^1.4, 0.1, 1.3)
    fairEntry = $6 + $1.1 × Σ(top8 ride E) / 8 … shown to player as "guests expect ~$X"
 ```
 
-Novelty: new ride ×1.4 decaying to ×1.0 over 3 months; refurb restores to ×1.15.
+Novelty: new ride ×1.4 decaying to ×1.0 over 3 months; refurb restores to ×1.15 and decays
+again from there, so refurbishing is never a substitute for building something new.
+
+**Refurbishment (shipped, was overdue from M3).** `ride/refurbish` costs 25% of what the ride
+cost to build and buys back novelty plus a full reset of accumulated wear. It deliberately does
+**not** restore book value: depreciation floors at 45% of build cost, so resetting the age would
+turn a 25% spend into a 55% valuation gain — and park value sets borrowing headroom, which makes
+that an infinite‑credit loop. The player buys appeal and reliability here, never balance sheet.
 
 > **M2 interim (shipped, pre‑rides).** Until rides land (M3) the sim runs a reduced model with
 > the same elasticity shape (clamp and exponent unchanged):
